@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import {
-  Cpu,
-  Search,
-  Zap,
-  Download,
-  ZoomIn,
-  ZoomOut,
+import { 
+  Cpu, 
+  Search, 
+  Zap, 
+  Download, 
+  ZoomIn, 
+  ZoomOut, 
   Sparkles,
   Flame
 } from 'lucide-react';
@@ -18,9 +18,9 @@ interface TestPoint {
   name: string;
   line: string;
   normalVoltage: string;
-  diodeValue: string; // Condução reversa (mV)
-  x: number; // percentage on board
-  y: number; // percentage on board
+  diodeValue: string;
+  x: number;
+  y: number;
   tip: string;
   status: 'normal' | 'alerta' | 'curto';
 }
@@ -55,7 +55,7 @@ const SCHEMATICS_DATA: PhoneSchematic[] = [
     chronicIssues: [
       {
         symptom: 'Aparelho não carrega ou acusa temperatura baixa',
-        probableComponent: 'Termistor TH3001 na placa do conector ou flex FPC',
+        probableComponent: 'Termistor TH3001 na subplaca ou flex FPC',
         solution: 'Substituição do termistor NTC 100kΩ ou troca do sub-flex original.',
       },
       {
@@ -65,7 +65,7 @@ const SCHEMATICS_DATA: PhoneSchematic[] = [
       },
       {
         symptom: 'Consumo travado em 80mA na fonte ao pressionar Power',
-        probableComponent: 'Falha de solda no PMIC principal ou cristal oscilador 38.4MHz',
+        probableComponent: 'Falha de solda no PMIC principal ou cristal 38.4MHz',
         solution: 'Reflow controlado ou reballing do S2MPB02 com pasta 183°C.',
       },
     ],
@@ -93,7 +93,7 @@ const SCHEMATICS_DATA: PhoneSchematic[] = [
         solution: 'Substituir a célula da bateria original 5000mAh.',
       },
       {
-        symptom: 'Wi-Fi e Bluetooth não ativam (botão cinza)',
+        symptom: 'Wi-Fi e Bluetooth não ativam',
         probableComponent: 'CI de conectividade WCN3980',
         solution: 'Resolda leve a 330°C ou troca do módulo RF.',
       },
@@ -102,7 +102,6 @@ const SCHEMATICS_DATA: PhoneSchematic[] = [
       { id: 'TP1', name: 'VBUS_USB_IN', line: 'VBUS 5V Entrada', normalVoltage: '5.1V', diodeValue: '560 mV', x: 20, y: 82, tip: 'Entrada direta da subplaca', status: 'normal' },
       { id: 'TP2', name: 'VDD_PX_MAIN', line: 'Malha Primária', normalVoltage: '4.0V', diodeValue: '460 mV', x: 42, y: 58, tip: 'Alimenta os estágios de chaveamento dos indutores', status: 'normal' },
       { id: 'TP3', name: 'VREG_S4_1.2V', line: 'RAM LPDDR4X', normalVoltage: '1.2V', diodeValue: '280 mV', x: 62, y: 44, tip: 'Tensão de alimentação da memória RAM', status: 'normal' },
-      { id: 'TP4', name: 'MSM_PS_HOLD', line: 'Sinal de sustentação do power', normalVoltage: '1.8V', diodeValue: '620 mV', x: 70, y: 38, tip: 'Comprova se o processador aceitou o início do sistema', status: 'normal' },
     ],
   },
   {
@@ -129,7 +128,6 @@ const SCHEMATICS_DATA: PhoneSchematic[] = [
     testPoints: [
       { id: 'TP1', name: 'CHG_VBUS', line: 'VBUS Carga Rápida', normalVoltage: '5V - 11V', diodeValue: '580 mV', x: 25, y: 80, tip: 'Compatível com Turbo Charge 33W', status: 'normal' },
       { id: 'TP2', name: 'SYS_4V', line: 'Linha do Sistema', normalVoltage: '3.9V', diodeValue: '440 mV', x: 45, y: 60, tip: 'Linha VSYS principal da placa', status: 'normal' },
-      { id: 'TP3', name: 'VIO18_PMU', line: 'Barramento I/O 1.8V', normalVoltage: '1.8V', diodeValue: '410 mV', x: 60, y: 40, tip: 'Presente em sensores e display', status: 'normal' },
     ],
   },
   {
@@ -156,7 +154,6 @@ const SCHEMATICS_DATA: PhoneSchematic[] = [
     testPoints: [
       { id: 'TP1', name: 'PP_BATT_VCC', line: 'Tensão da Bateria', normalVoltage: '3.8V - 4.35V', diodeValue: '450 mV', x: 28, y: 70, tip: 'Entrada direta do conector da bateria', status: 'normal' },
       { id: 'TP2', name: 'PP_VDD_MAIN', line: 'Barramento Principal', normalVoltage: '4.2V', diodeValue: '390 mV', x: 48, y: 52, tip: 'Alimenta quase todos os LDOs e bucks', status: 'normal' },
-      { id: 'TP3', name: 'PP1V8_S2', line: 'Tensão 1.8V Always-On', normalVoltage: '1.8V', diodeValue: '480 mV', x: 64, y: 35, tip: 'Necessário para I2C e sensores', status: 'normal' },
     ],
   },
 ];
@@ -178,41 +175,39 @@ export const EsquemasTab: React.FC = () => {
   });
 
   return (
-    <div className="h-full overflow-y-auto bg-[#070b14] text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#0d1628] via-[#09152a] to-[#0d1628] border border-cyan-500/20 rounded-2xl p-5 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#080c17] border border-[#00D287]/20 rounded-2xl p-5 sm:p-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+            <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-xs">
               <Cpu className="w-3.5 h-3.5 mr-1" />
-              Bancada Técnica & Laboratório
+              Laboratório Técnico
             </Badge>
             <span className="text-xs text-slate-400">Boardviews & Linhas de Tensão</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-white">
-            Esquemas Elétricos & <span className="text-cyan-400">Diagnóstico de Placas</span>
+            Esquemas Elétricos & <span className="text-[#00D287]">Diagnóstico</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-            Consulte diagramas esquemáticos, valores de condução reversa para multímetro e mapa de defeitos crônicos dos smartphones mais vendidos no Brasil.
+            Consulte diagramas esquemáticos e valores de condução reversa para multímetro.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => alert(`Baixando pacote PDF completo do modelo: ${selectedSchematic.model}`)}
-            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 px-4 rounded-xl shadow-md shadow-cyan-500/20"
-          >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            Baixar PDF do Esquema
-          </Button>
-        </div>
+        <Button
+          onClick={() => alert(`Baixando PDF do esquema: ${selectedSchematic.model}`)}
+          className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-9 px-4 rounded-xl shadow-md shadow-[#00D287]/20"
+        >
+          <Download className="w-3.5 h-3.5 mr-1.5" />
+          Baixar PDF
+        </Button>
       </div>
 
       {/* Model Selector Bar */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Left Column: Device Selection */}
         <div className="lg:col-span-1 space-y-3">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2.5">
+          <div className="bg-[#080c17] border border-white/5 rounded-xl p-3 space-y-2.5">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Fabricante
             </div>
@@ -223,8 +218,8 @@ export const EsquemasTab: React.FC = () => {
                   onClick={() => setSelectedBrand(brand)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                     selectedBrand === brand
-                      ? 'bg-cyan-500 text-slate-950 font-bold'
-                      : 'text-slate-400 hover:text-white bg-slate-800/80'
+                      ? 'bg-[#00D287] text-slate-950 font-bold'
+                      : 'text-slate-400 hover:text-white bg-slate-900'
                   }`}
                 >
                   {brand}
@@ -238,16 +233,13 @@ export const EsquemasTab: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar modelo..."
-                className="pl-8 h-8 text-xs bg-slate-950 border-slate-700 text-slate-100 rounded-lg"
+                className="pl-8 h-8 text-xs bg-slate-950 border-slate-800 text-slate-100 rounded-lg"
               />
             </div>
           </div>
 
           {/* List of Models */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2 space-y-1.5 max-h-[420px] overflow-y-auto">
-            <div className="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
-              Aparelhos Disponíveis ({filteredSchematics.length})
-            </div>
+          <div className="bg-[#080c17] border border-white/5 rounded-xl p-2 space-y-1.5 max-h-[380px] overflow-y-auto">
             {filteredSchematics.map((item) => {
               const isSelected = selectedSchematic.id === item.id;
               return (
@@ -259,17 +251,17 @@ export const EsquemasTab: React.FC = () => {
                   }}
                   className={`w-full text-left p-2.5 rounded-xl text-xs transition-all flex flex-col gap-1 border ${
                     isSelected
-                      ? 'bg-cyan-950/60 border-cyan-500/50 text-white shadow-md'
-                      : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'
+                      ? 'bg-[#00D287]/15 border-[#00D287]/40 text-white font-semibold'
+                      : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-200">{item.model}</span>
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 border-slate-700">
+                    <Badge variant="outline" className="text-[9px] py-0 px-1 border-slate-800">
                       {item.brand}
                     </Badge>
                   </div>
-                  <span className="text-[10px] font-mono text-cyan-400 truncate">
+                  <span className="text-[10px] font-mono text-[#00D287] truncate">
                     {item.boardCode}
                   </span>
                 </button>
@@ -278,13 +270,12 @@ export const EsquemasTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Boardview & Diagnostic Data */}
+        {/* Right Column: Boardview */}
         <div className="lg:col-span-3 space-y-4">
-          {/* Main Boardview Simulator */}
-          <div className="bg-gradient-to-b from-[#0d1527] to-[#090e1a] border border-cyan-500/25 rounded-2xl p-4 sm:p-5 shadow-xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div className="bg-[#080c17] border border-[#00D287]/20 rounded-2xl p-4 sm:p-5 shadow-xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 flex items-center justify-center text-[#00D287] font-bold text-xs">
                   PCB
                 </div>
                 <div>
@@ -292,7 +283,7 @@ export const EsquemasTab: React.FC = () => {
                     {selectedSchematic.model}
                   </h3>
                   <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                    <span>Código: <strong className="text-cyan-300 font-mono">{selectedSchematic.boardCode}</strong></span>
+                    <span>Código: <strong className="text-[#00D287] font-mono">{selectedSchematic.boardCode}</strong></span>
                     <span>•</span>
                     <span>PMIC: <strong className="text-slate-200">{selectedSchematic.pmicModel}</strong></span>
                   </div>
@@ -301,26 +292,26 @@ export const EsquemasTab: React.FC = () => {
 
               {/* View controls */}
               <div className="flex items-center gap-2">
-                <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+                <div className="flex bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-xs">
                   <button
                     onClick={() => setBoardSide('top')}
-                    className={`px-2.5 py-1 rounded font-medium ${boardSide === 'top' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-2.5 py-1 rounded font-medium ${boardSide === 'top' ? 'bg-[#00D287] text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}
                   >
-                    Lado A (Top)
+                    Top
                   </button>
                   <button
                     onClick={() => setBoardSide('bottom')}
-                    className={`px-2.5 py-1 rounded font-medium ${boardSide === 'bottom' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-2.5 py-1 rounded font-medium ${boardSide === 'bottom' ? 'bg-[#00D287] text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}
                   >
-                    Lado B (Bottom)
+                    Bottom
                   </button>
                 </div>
 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setZoomLevel((z) => Math.min(z + 0.2, 1.6))}
-                  className="h-7 w-7 p-0 bg-slate-900 border-slate-700 text-slate-300"
+                  onClick={() => setZoomLevel((z) => Math.min(z + 0.2, 1.4))}
+                  className="h-7 w-7 p-0 bg-slate-900 border-slate-800 text-slate-300"
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
                 </Button>
@@ -328,55 +319,36 @@ export const EsquemasTab: React.FC = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => setZoomLevel((z) => Math.max(z - 0.2, 0.8))}
-                  className="h-7 w-7 p-0 bg-slate-900 border-slate-700 text-slate-300"
+                  className="h-7 w-7 p-0 bg-slate-900 border-slate-800 text-slate-300"
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
 
-            {/* Interactive Blueprint Motherboard Area */}
-            <div className="mt-4 relative min-h-[300px] sm:min-h-[360px] bg-[#050914] rounded-xl border border-cyan-500/20 overflow-hidden flex items-center justify-center p-4">
-              {/* Circuit Grid Background */}
+            {/* Motherboard Area */}
+            <div className="mt-4 relative min-h-[280px] bg-[#050811] rounded-xl border border-white/5 overflow-hidden flex items-center justify-center p-4">
               <div 
-                className="absolute inset-0 opacity-15"
-                style={{
-                  backgroundImage: `radial-gradient(circle, #06b6d4 1px, transparent 1px)`,
-                  backgroundSize: '20px 20px',
-                }}
-              />
-
-              {/* Motherboard Graphic Outline */}
-              <div 
-                className="relative w-full max-w-lg aspect-[16/9] border-2 border-cyan-500/40 rounded-xl bg-gradient-to-br from-emerald-950/20 via-slate-950/80 to-cyan-950/30 shadow-2xl p-4 transition-transform duration-200"
+                className="relative w-full max-w-md aspect-[16/9] border border-[#00D287]/40 rounded-xl bg-gradient-to-br from-emerald-950/20 via-slate-950 to-emerald-950/30 p-4 transition-transform duration-200"
                 style={{ transform: `scale(${zoomLevel})` }}
               >
-                {/* Circuit Traces Mockup */}
-                <div className="absolute inset-3 border border-dashed border-cyan-500/20 rounded-lg pointer-events-none" />
-                
-                {/* Simulated CPU / SoC */}
-                <div className="absolute top-[25%] left-[55%] w-24 h-24 rounded-lg bg-slate-900/90 border-2 border-cyan-400/50 flex flex-col items-center justify-center p-2 text-center shadow-lg">
-                  <Cpu className="w-5 h-5 text-cyan-400 mb-1" />
-                  <span className="text-[10px] font-mono text-cyan-200 font-bold leading-tight truncate w-full">
+                {/* Simulated CPU */}
+                <div className="absolute top-[25%] left-[55%] w-20 h-20 rounded-lg bg-slate-900/90 border border-[#00D287]/40 flex flex-col items-center justify-center p-2 text-center shadow-lg">
+                  <Cpu className="w-4 h-4 text-[#00D287] mb-1" />
+                  <span className="text-[9px] font-mono text-[#00D287] font-bold truncate w-full">
                     {selectedSchematic.cpuModel}
                   </span>
-                  <span className="text-[8px] text-slate-400">AP / SOC</span>
                 </div>
 
                 {/* Simulated PMIC */}
-                <div className="absolute top-[25%] left-[32%] w-16 h-16 rounded-lg bg-slate-900/90 border-2 border-amber-400/50 flex flex-col items-center justify-center p-1 text-center shadow-lg">
-                  <Zap className="w-4 h-4 text-amber-400 mb-0.5" />
-                  <span className="text-[9px] font-mono text-amber-200 font-bold truncate w-full">
+                <div className="absolute top-[25%] left-[30%] w-14 h-14 rounded-lg bg-slate-900/90 border border-amber-400/40 flex flex-col items-center justify-center p-1 text-center shadow-lg">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 mb-0.5" />
+                  <span className="text-[8px] font-mono text-amber-200 font-bold truncate w-full">
                     PMIC
                   </span>
                 </div>
 
-                {/* Simulated Type-C Port */}
-                <div className="absolute bottom-2 left-[18%] w-16 h-8 rounded-md bg-slate-800 border border-slate-600 flex items-center justify-center text-[9px] text-slate-300 font-mono">
-                  Type-C FPC
-                </div>
-
-                {/* Test Points Overlay */}
+                {/* Test Points */}
                 {selectedSchematic.testPoints.map((tp) => {
                   const isActive = activeTestPoint?.id === tp.id;
                   return (
@@ -384,14 +356,14 @@ export const EsquemasTab: React.FC = () => {
                       key={tp.id}
                       onClick={() => setActiveTestPoint(tp)}
                       style={{ top: `${tp.y}%`, left: `${tp.x}%` }}
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 group flex items-center justify-center z-10 transition-transform ${
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-transform ${
                         isActive ? 'scale-125 z-20' : 'hover:scale-110'
                       }`}
                     >
-                      <span className={`relative flex h-5 w-5 rounded-full items-center justify-center border-2 text-[9px] font-bold font-mono shadow-md ${
+                      <span className={`flex h-5 w-5 rounded-full items-center justify-center border text-[9px] font-bold font-mono shadow-md ${
                         isActive
-                          ? 'bg-cyan-500 border-white text-slate-950 ring-4 ring-cyan-500/40'
-                          : 'bg-slate-900 border-cyan-400 text-cyan-300 hover:border-white'
+                          ? 'bg-[#00D287] border-white text-slate-950 ring-4 ring-[#00D287]/30'
+                          : 'bg-slate-900 border-[#00D287] text-[#00D287]'
                       }`}>
                         {tp.id}
                       </span>
@@ -400,64 +372,62 @@ export const EsquemasTab: React.FC = () => {
                 })}
               </div>
 
-              {/* Instructions Pill */}
-              <div className="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-lg text-xs text-slate-300 flex items-center gap-2 backdrop-blur-md">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Clique em um Ponto de Teste (TP) para ver a voltagem e condução reversa</span>
+              <div className="absolute bottom-3 left-3 bg-slate-950/80 border border-white/5 px-2.5 py-1 rounded-lg text-[11px] text-slate-400 flex items-center gap-1.5 backdrop-blur-md">
+                <Sparkles className="w-3 h-3 text-[#00D287]" />
+                <span>Clique em um ponto de teste (TP)</span>
               </div>
             </div>
 
-            {/* Selected Test Point Details Panel */}
+            {/* Test Point Info */}
             {activeTestPoint && (
-              <div className="mt-4 p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="space-y-1">
+              <div className="mt-4 p-3.5 rounded-xl bg-slate-950 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <div>
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-cyan-500 text-slate-950 font-mono font-bold text-xs">
+                    <Badge className="bg-[#00D287] text-slate-950 font-mono font-bold text-xs">
                       {activeTestPoint.id}: {activeTestPoint.name}
                     </Badge>
-                    <span className="text-xs text-slate-300 font-medium">{activeTestPoint.line}</span>
+                    <span className="text-xs text-slate-300">{activeTestPoint.line}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                    <strong className="text-cyan-300">Dica de Diagnóstico:</strong> {activeTestPoint.tip}
+                  <p className="text-xs text-slate-400 mt-1">
+                    <strong className="text-[#00D287]">Dica:</strong> {activeTestPoint.tip}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-4 bg-[#080c17] px-3.5 py-2 rounded-xl border border-white/5">
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-slate-500 font-semibold">Tensão Normal</div>
-                    <div className="text-sm font-bold text-emerald-400 font-mono">{activeTestPoint.normalVoltage}</div>
+                    <div className="text-[9px] uppercase text-slate-500 font-semibold">Tensão</div>
+                    <div className="text-xs font-bold text-emerald-400 font-mono">{activeTestPoint.normalVoltage}</div>
                   </div>
-                  <div className="h-6 w-px bg-slate-800" />
+                  <div className="h-5 w-px bg-slate-800" />
                   <div className="text-center">
-                    <div className="text-[10px] uppercase text-slate-500 font-semibold">Condução Reversa</div>
-                    <div className="text-sm font-bold text-cyan-400 font-mono">{activeTestPoint.diodeValue}</div>
+                    <div className="text-[9px] uppercase text-slate-500 font-semibold">Condução Reversa</div>
+                    <div className="text-xs font-bold text-[#00D287] font-mono">{activeTestPoint.diodeValue}</div>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Chronic Issues & Rapid Solutions Table */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5">
+          {/* Chronic Issues */}
+          <div className="bg-[#080c17] border border-white/5 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Flame className="w-4 h-4 text-amber-400" />
-                Defeitos Crônicos Frequentes & Solução Rápida
+              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                Defeitos Crônicos Comuns
               </h4>
-              <span className="text-xs text-slate-400">Base técnica com validação de laboratório</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {selectedSchematic.chronicIssues.map((issue, idx) => (
-                <div key={idx} className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between text-slate-200">
-                    <span className="font-semibold text-rose-300">Defeito: {issue.symptom}</span>
-                    <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30">
-                      Componente: {issue.probableComponent}
+                <div key={idx} className="bg-slate-950 border border-white/5 rounded-xl p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between text-slate-200 font-semibold">
+                    <span className="text-rose-300">Falha: {issue.symptom}</span>
+                    <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/20">
+                      {issue.probableComponent}
                     </Badge>
                   </div>
                   <div className="text-slate-400">
-                    <strong className="text-emerald-400">Solução Recomendada:</strong> {issue.solution}
+                    <strong className="text-[#00D287]">Solução:</strong> {issue.solution}
                   </div>
                 </div>
               ))}

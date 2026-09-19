@@ -201,10 +201,10 @@ export const CatalogoTab: React.FC<CatalogoTabProps> = ({ onGoToAurusSimulator }
 
         <Button
           onClick={onGoToAurusSimulator}
-          className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-xs h-10 px-4 rounded-xl shadow-lg shadow-emerald-500/20"
+          className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-extrabold text-xs h-9 px-4 rounded-xl shadow-lg shadow-[#00D287]/20"
         >
-          <Zap className="w-4 h-4 mr-1.5 fill-current" />
-          Simular no AurusSmart
+          <Zap className="w-3.5 h-3.5 mr-1.5 fill-current" />
+          Simular Financiamento
         </Button>
       </div>
 
@@ -218,7 +218,7 @@ export const CatalogoTab: React.FC<CatalogoTabProps> = ({ onGoToAurusSimulator }
               onClick={() => setSelectedBrand(brand)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                 selectedBrand === brand
-                  ? 'bg-cyan-500 text-slate-950 font-bold'
+                  ? 'bg-[#00D287] text-slate-950 font-bold'
                   : 'text-slate-400 hover:text-white bg-slate-800/80'
               }`}
             >
@@ -329,7 +329,7 @@ export const CatalogoTab: React.FC<CatalogoTabProps> = ({ onGoToAurusSimulator }
                 <Button
                   onClick={onGoToAurusSimulator}
                   size="sm"
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-8 px-2"
+                  className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 px-2"
                 >
                   <Zap className="w-3.5 h-3.5 mr-1 fill-current" />
                   Simular

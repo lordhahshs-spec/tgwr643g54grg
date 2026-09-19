@@ -7,8 +7,7 @@ import { CatalogoTab } from '@/components/tabs/CatalogoTab';
 import { TradeInTab } from '@/components/tabs/TradeInTab';
 import { CalculadoraLucroTab } from '@/components/tabs/CalculadoraLucroTab';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
-import { Menu, Zap, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
 
 const Index: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('venda-android');
@@ -18,7 +17,7 @@ const Index: React.FC = () => {
   const currentTabConfig = NAVIGATION_TABS.find((t) => t.id === activeTab) || NAVIGATION_TABS[0];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#070b14] text-slate-100 antialiased">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#050811] text-slate-100 antialiased">
       {/* Lateral Navigation Sidebar */}
       <SidebarNavigation
         activeTab={activeTab}
@@ -32,62 +31,38 @@ const Index: React.FC = () => {
       {/* Main Content Area */}
       <div 
         className={`flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out
-          ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}
+          ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}
         `}
       >
-        {/* Top Navbar Header (Visible especially on mobile and compact screens) */}
-        <header className="h-14 flex-shrink-0 bg-[#0b1120]/90 border-b border-cyan-500/15 px-4 flex items-center justify-between backdrop-blur-md z-30">
-          <div className="flex items-center gap-3">
-            {/* Mobile Sidebar Hamburger Toggle */}
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
-              aria-label="Abrir Menu de Navegação"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+        {/* Mobile Header (only on small screens so user can open sidebar) */}
+        <div className="lg:hidden h-12 flex-shrink-0 bg-[#080c17] border-b border-white/5 px-4 flex items-center justify-between z-30">
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="p-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white"
+            aria-label="Menu"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
 
-            {/* Current Active Tab Info */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 hidden sm:inline">Módulo:</span>
-              <span className="text-sm sm:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-                {currentTabConfig.label}
-              </span>
-              {currentTabConfig.badge && (
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${currentTabConfig.badgeColor || 'bg-slate-800 text-slate-300'}`}>
-                  {currentTabConfig.badge}
-                </span>
-              )}
-            </div>
-          </div>
+          <span className="text-xs font-semibold text-white">
+            {currentTabConfig.label}
+          </span>
 
-          {/* Quick Header Right Actions */}
-          <div className="flex items-center gap-2.5">
-            {activeTab !== 'venda-android' && (
-              <Button
-                onClick={() => setActiveTab('venda-android')}
-                size="sm"
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-8 px-3 rounded-lg shadow-sm shadow-cyan-500/20"
-              >
-                <Zap className="w-3.5 h-3.5 mr-1 fill-current" />
-                <span>Simulador Aurus</span>
-              </Button>
-            )}
+          <div className="w-6" />
+        </div>
 
-            <a
-              href="https://aurussmart.com.br/#simulador"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-900 border border-transparent hover:border-cyan-500/30 transition-colors"
-              title="Abrir aurussmart.com.br em nova aba"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </header>
+        {/* Desktop Header for secondary tabs (hidden for Venda de Android so it takes 100% full screen) */}
+        {activeTab !== 'venda-android' && (
+          <header className="hidden lg:flex h-12 flex-shrink-0 bg-[#080c17]/90 border-b border-white/5 px-6 items-center justify-between backdrop-blur-md z-20">
+            <h1 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#00D287]" />
+              {currentTabConfig.label}
+            </h1>
+          </header>
+        )}
 
         {/* Tab Content Display Area */}
-        <main className="flex-1 h-[calc(100vh-3.5rem)] overflow-hidden relative">
+        <main className="flex-1 h-full overflow-hidden relative">
           {activeTab === 'venda-android' && <VendaAndroidTab />}
           {activeTab === 'cursos' && <CursosTab />}
           {activeTab === 'esquemas' && <EsquemasTab />}
