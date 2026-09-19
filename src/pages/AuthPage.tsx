@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  User,
-  FileText,
-  Mail,
-  Lock,
-  ArrowRight,
-  Zap,
-  Eye,
+import { 
+  Building2, 
+  User, 
+  FileText, 
+  Mail, 
+  Lock, 
+  ArrowRight, 
+  Zap, 
+  Eye, 
   EyeOff,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ export const AuthPage: React.FC = () => {
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Form Fields as requested
   const [companyName, setCompanyName] = useState<string>('');
@@ -43,67 +45,70 @@ export const AuthPage: React.FC = () => {
     setCnpj(formatCNPJ(e.target.value));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setIsSubmitting(true);
 
-    if (isRegisterMode) {
-      if (!companyName.trim() || !ownerName.trim() || !cnpj.trim() || !email.trim() || !password.trim()) {
-        setErrorMessage('Por favor, preencha todos os campos obrigatórios.');
-        return;
-      }
+    try {
+      if (isRegisterMode) {
+        if (!companyName.trim() || !ownerName.trim() || !cnpj.trim() || !email.trim() || !password.trim()) {
+          setErrorMessage('Por favor, preencha todos os campos obrigatórios.');
+          setIsSubmitting(false);
+          return;
+        }
 
-      const account = leadAuthService.registerAccount({
-        companyName,
-        ownerName,
-        cnpj,
-        email,
-        password,
-      });
+        const { user, error } = await leadAuthService.registerAccount({
+          companyName,
+          ownerName,
+          cnpj,
+          email,
+          password,
+        });
 
-      // Redirect immediately into the platform
-      navigate('/app');
-    } else {
-      // Login mode
-      if (!email.trim() || !password.trim()) {
-        setErrorMessage('Por favor, digite seu e-mail e senha.');
-        return;
-      }
+        if (error || !user) {
+          setErrorMessage(error || 'Erro ao registrar conta no Supabase.');
+          setIsSubmitting(false);
+          return;
+        }
 
-      // Check admin shortcut
-      if (email.toLowerCase() === 'admin@auruspay.com') {
-        leadAuthService.login('admin@auruspay.com');
-        navigate('/admin');
-        return;
-      }
+        // Redirect immediately into the platform
+        navigate('/app');
+      } else {
+        // Login mode
+        if (!email.trim() || !password.trim()) {
+          setErrorMessage('Por favor, digite seu e-mail e senha.');
+          setIsSubmitting(false);
+          return;
+        }
 
-      const user = leadAuthService.login(email, password);
-      if (user) {
+        // Check admin login
+        if (email.toLowerCase() === 'admin@auruspay.com') {
+          const { user } = await leadAuthService.login('admin@auruspay.com', password);
+          if (user && user.role === 'admin') {
+            navigate('/admin');
+            return;
+          }
+        }
+
+        const { user, error } = await leadAuthService.login(email, password);
+        if (error || !user) {
+          setErrorMessage(error || 'Credenciais inválidas.');
+          setIsSubmitting(false);
+          return;
+        }
+
         if (user.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/app');
         }
-      } else {
-        // Automatically create session for demo if not found, or show friendly notice
-        const newAcc = leadAuthService.registerAccount({
-          companyName: companyName || 'Minha Loja de Celulares',
-          ownerName: ownerName || 'Proprietário',
-          cnpj: cnpj || '00.000.000/0001-00',
-          email,
-          password,
-        });
-        navigate('/app');
       }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Ocorreu um erro ao conectar com o banco de dados.');
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const fillExampleData = () => {
-    setCompanyName('CellMaster Tech & Acessórios');
-    setOwnerName('Eduardo Silveira');
-    setCnpj('38.920.144/0001-85');
-    setEmail('eduardo@cellmaster.com.br');
-    setPassword('123456');
   };
 
   return (
@@ -144,7 +149,7 @@ export const AuthPage: React.FC = () => {
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] text-[11px] font-semibold mb-2">
               <Sparkles className="w-3 h-3" />
-              <span>Acesso à Plataforma</span>
+              <span>Conexão Supabase Oficial</span>
             </div>
             
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -153,7 +158,7 @@ export const AuthPage: React.FC = () => {
             
             <p className="text-xs text-slate-400 mt-1">
               {isRegisterMode 
-                ? 'Preencha os dados da sua loja para liberar o simulador e módulos.'
+                ? 'Preencha os dados reais da sua loja para liberar o simulador e módulos.'
                 : 'Acesse seu painel com seu e-mail e senha cadastrados.'}
             </p>
           </div>
@@ -205,7 +210,7 @@ export const AuthPage: React.FC = () => {
                       required
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="Ex: Smart Cell Manutenção e Vendas"
+                      placeholder="Nome da sua loja de celulares"
                       className="pl-9 h-10 text-xs bg-slate-950 border-slate-800 text-slate-100 rounded-xl focus:border-[#00D287]"
                     />
                   </div>
@@ -222,7 +227,7 @@ export const AuthPage: React.FC = () => {
                       required
                       value={ownerName}
                       onChange={(e) => setOwnerName(e.target.value)}
-                      placeholder="Ex: Carlos Eduardo de Oliveira"
+                      placeholder="Seu nome completo"
                       className="pl-9 h-10 text-xs bg-slate-950 border-slate-800 text-slate-100 rounded-xl focus:border-[#00D287]"
                     />
                   </div>
@@ -251,7 +256,7 @@ export const AuthPage: React.FC = () => {
             {/* Email */}
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-1">
-                E-mail Comercial:
+                E-mail:
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -260,7 +265,7 @@ export const AuthPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="contato@sualoja.com.br"
+                  placeholder="seuemail@exemplo.com"
                   className="pl-9 h-10 text-xs bg-slate-950 border-slate-800 text-slate-100 rounded-xl focus:border-[#00D287]"
                 />
               </div>
@@ -292,7 +297,7 @@ export const AuthPage: React.FC = () => {
             </div>
 
             {errorMessage && (
-              <p className="text-xs text-rose-400 text-center font-medium bg-rose-950/40 border border-rose-800/50 p-2 rounded-xl">
+              <p className="text-xs text-rose-400 text-center font-medium bg-rose-950/40 border border-rose-800/50 p-2.5 rounded-xl">
                 {errorMessage}
               </p>
             )}
@@ -300,25 +305,22 @@ export const AuthPage: React.FC = () => {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full h-11 bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs sm:text-sm tracking-tight rounded-xl shadow-lg shadow-[#00D287]/20 transition-all mt-2"
+              disabled={isSubmitting}
+              className="w-full h-11 bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs sm:text-sm tracking-tight rounded-xl shadow-lg shadow-[#00D287]/20 transition-all mt-2 disabled:opacity-50"
             >
-              <span>{isRegisterMode ? 'Cadastrar e Acessar Plataforma' : 'Entrar na Minha Conta'}</span>
-              <ArrowRight className="w-4 h-4 ml-1.5" />
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Salvando no Supabase...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  {isRegisterMode ? 'Cadastrar e Acessar Plataforma' : 'Entrar na Minha Conta'}
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
             </Button>
           </form>
-
-          {/* Quick Example Fill Helper */}
-          {isRegisterMode && (
-            <div className="mt-4 pt-3 border-t border-white/5 text-center">
-              <button
-                type="button"
-                onClick={fillExampleData}
-                className="text-[11px] text-slate-500 hover:text-[#00D287] transition-colors"
-              >
-                Preencher dados de exemplo para teste rápido
-              </button>
-            </div>
-          )}
         </div>
       </main>
 

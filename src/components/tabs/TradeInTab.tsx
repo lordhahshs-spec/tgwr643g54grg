@@ -4,63 +4,12 @@ import {
   CheckCircle2, 
   Copy, 
   Check, 
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-
-interface TradeInOption {
-  brand: string;
-  models: {
-    name: string;
-    baseTradeValue: number;
-  }[];
-}
-
-const TRADE_BRANDS: TradeInOption[] = [
-  {
-    brand: 'Samsung',
-    models: [
-      { name: 'Galaxy S23 Ultra (256GB)', baseTradeValue: 3200 },
-      { name: 'Galaxy S23 (128GB)', baseTradeValue: 2100 },
-      { name: 'Galaxy S22 (128GB)', baseTradeValue: 1500 },
-      { name: 'Galaxy S21 FE (128GB)', baseTradeValue: 1100 },
-      { name: 'Galaxy A54 (128GB)', baseTradeValue: 850 },
-      { name: 'Galaxy A53 (128GB)', baseTradeValue: 650 },
-      { name: 'Galaxy A34 (128GB)', baseTradeValue: 600 },
-    ],
-  },
-  {
-    brand: 'Apple',
-    models: [
-      { name: 'iPhone 14 Pro (128GB)', baseTradeValue: 3900 },
-      { name: 'iPhone 14 (128GB)', baseTradeValue: 2800 },
-      { name: 'iPhone 13 (128GB)', baseTradeValue: 2200 },
-      { name: 'iPhone 12 (128GB)', baseTradeValue: 1650 },
-      { name: 'iPhone 11 (128GB)', baseTradeValue: 1200 },
-      { name: 'iPhone XR (64GB)', baseTradeValue: 750 },
-    ],
-  },
-  {
-    brand: 'Motorola',
-    models: [
-      { name: 'Edge 40 (256GB)', baseTradeValue: 1200 },
-      { name: 'Moto G84 (256GB)', baseTradeValue: 750 },
-      { name: 'Moto G73 (128GB)', baseTradeValue: 550 },
-      { name: 'Moto G54 (128GB)', baseTradeValue: 480 },
-    ],
-  },
-  {
-    brand: 'Xiaomi',
-    models: [
-      { name: 'Poco F5 (256GB)', baseTradeValue: 1350 },
-      { name: 'Redmi Note 12 Pro (256GB)', baseTradeValue: 900 },
-      { name: 'Redmi Note 12 (128GB)', baseTradeValue: 600 },
-      { name: 'Redmi 12 (128GB)', baseTradeValue: 450 },
-    ],
-  },
-];
 
 interface TradeInTabProps {
   onGoToAurusSimulator: () => void;
@@ -68,24 +17,19 @@ interface TradeInTabProps {
 
 export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) => {
   const [selectedBrand, setSelectedBrand] = useState<string>('Samsung');
-  const [selectedModelName, setSelectedModelName] = useState<string>(TRADE_BRANDS[0].models[0].name);
+  const [clientModelName, setClientModelName] = useState<string>('Galaxy A54 5G 128GB');
+  const [baseMarketValue, setBaseMarketValue] = useState<number>(900);
   
   const [screenCondition, setScreenCondition] = useState<'perfeita' | 'riscos' | 'trincada'>('perfeita');
   const [housingCondition, setHousingCondition] = useState<'impecavel' | 'marcas' | 'amassado'>('impecavel');
   const [batteryHealthy, setBatteryHealthy] = useState<boolean>(true);
   const [camerasWorking, setCamerasWorking] = useState<boolean>(true);
-  const [faceIdFingerprint, setFaceIdFingerprint] = useState<boolean>(true);
-  const [hasChargerBox, setHasChargerBox] = useState<boolean>(true);
 
-  const [desiredNewPhonePrice, setDesiredNewPhonePrice] = useState<number>(3499);
+  const [desiredNewPhonePrice, setDesiredNewPhonePrice] = useState<number>(2499);
   const [copiedProposal, setCopiedProposal] = useState<boolean>(false);
 
-  const currentBrandModels = TRADE_BRANDS.find((b) => b.brand === selectedBrand)?.models || [];
-  const currentModel = currentBrandModels.find((m) => m.name === selectedModelName) || currentBrandModels[0];
-
   const calculateFinalValue = () => {
-    if (!currentModel) return 0;
-    let value = currentModel.baseTradeValue;
+    let value = baseMarketValue;
 
     if (screenCondition === 'riscos') value -= value * 0.12;
     if (screenCondition === 'trincada') value -= value * 0.40;
@@ -95,10 +39,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
 
     if (!batteryHealthy) value -= 150;
     if (!camerasWorking) value -= 250;
-    if (!faceIdFingerprint) value -= 180;
-    if (hasChargerBox) value += 60;
 
-    return Math.max(Math.round(value / 10) * 10, 150);
+    return Math.max(Math.round(value / 10) * 10, 100);
   };
 
   const calculatedValue = calculateFinalValue();
@@ -106,7 +48,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
 
   const handleCopyProposal = () => {
     const text = `📋 *AVALIAÇÃO DE TROCA (TRADE-IN)*\n\n` +
-      `📱 *Aparelho do Cliente:* ${selectedModelName}\n` +
+      `📱 *Aparelho do Cliente:* ${selectedBrand} ${clientModelName}\n` +
       `🔍 *Estado da Tela:* ${screenCondition === 'perfeita' ? 'Impecável' : screenCondition === 'riscos' ? 'Riscos Leves' : 'Trincada/Quebrada'}\n` +
       `🔋 *Bateria & Câmeras:* ${batteryHealthy && camerasWorking ? '100% Funcionando' : 'Atenção técnica'}\n` +
       `💰 *Valor de Avaliação do Usado:* R$ ${calculatedValue.toLocaleString('pt-BR')}\n\n` +
@@ -126,15 +68,15 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
         <div className="flex items-center gap-2 mb-1.5">
           <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-xs">
             <Repeat className="w-3.5 h-3.5 mr-1" />
-            Trade-In
+            Trade-In Real
           </Badge>
-          <span className="text-xs text-slate-400">Avaliação de Usados como Entrada</span>
+          <span className="text-xs text-slate-400">Avaliação do Aparelho Usado do Cliente</span>
         </div>
         <h1 className="text-xl sm:text-2xl font-black text-white">
           Simulador de Troca <span className="text-[#00D287]">(Usado como Entrada)</span>
         </h1>
         <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-          Calcule o valor justo do celular usado do cliente com base nas condições físicas e use o valor para abater a entrada no parcelamento.
+          Avalie as condições do smartphone trazido pelo cliente e abata o valor calculado na compra do novo aparelho.
         </p>
       </div>
 
@@ -144,43 +86,47 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
           <div className="bg-[#080c17] border border-white/5 rounded-2xl p-4 sm:p-5 space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-[#00D287] flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-[#00D287]/20 text-[#00D287] flex items-center justify-center text-[10px]">1</span>
-              Selecione o Aparelho Usado
+              Dados do Aparelho do Cliente
             </span>
 
             {/* Brand Switcher */}
             <div className="flex gap-2">
-              {TRADE_BRANDS.map((b) => (
+              {['Samsung', 'Apple', 'Motorola', 'Xiaomi', 'Outros'].map((brand) => (
                 <button
-                  key={b.brand}
-                  onClick={() => {
-                    setSelectedBrand(b.brand);
-                    setSelectedModelName(b.models[0].name);
-                  }}
+                  key={brand}
+                  onClick={() => setSelectedBrand(brand)}
                   className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                    selectedBrand === b.brand
+                    selectedBrand === brand
                       ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
                       : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                   }`}
                 >
-                  {b.brand}
+                  {brand}
                 </button>
               ))}
             </div>
 
-            {/* Model Select */}
-            <div>
-              <label className="text-xs text-slate-400 block mb-1.5">Modelo específico:</label>
-              <select
-                value={selectedModelName}
-                onChange={(e) => setSelectedModelName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:border-[#00D287] outline-none"
-              >
-                {currentBrandModels.map((m) => (
-                  <option key={m.name} value={m.name}>
-                    {m.name} (Tabela base: R$ {m.baseTradeValue.toLocaleString('pt-BR')})
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Modelo do Celular:</label>
+                <Input
+                  value={clientModelName}
+                  onChange={(e) => setClientModelName(e.target.value)}
+                  placeholder="Ex: Galaxy S21 FE 128GB"
+                  className="bg-slate-950 border-slate-800 text-xs text-slate-100 rounded-xl focus:border-[#00D287]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Valor de Tabela Base (R$):</label>
+                <Input
+                  type="number"
+                  value={baseMarketValue}
+                  onChange={(e) => setBaseMarketValue(Number(e.target.value) || 0)}
+                  placeholder="900"
+                  className="bg-slate-950 border-slate-800 text-xs text-slate-100 rounded-xl focus:border-[#00D287]"
+                />
+              </div>
             </div>
           </div>
 
@@ -276,7 +222,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
                 Resultado da Avaliação
               </div>
               <h3 className="text-base font-bold text-white mt-1">
-                {selectedModelName}
+                {selectedBrand} {clientModelName}
               </h3>
             </div>
 
@@ -294,7 +240,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
             {/* Desired Phone */}
             <div className="space-y-3 pt-2">
               <label className="text-xs font-semibold text-slate-300 block">
-                Valor do Smartphone Novo (R$):
+                Valor do Smartphone Novo Escolhido (R$):
               </label>
               <Input
                 type="number"
@@ -313,7 +259,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
                   <span>- R$ {calculatedValue.toLocaleString('pt-BR')}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-800 flex justify-between text-sm font-bold text-white">
-                  <span>Saldo a Pagar:</span>
+                  <span>Saldo Restante a Pagar:</span>
                   <span className="text-[#00D287]">R$ {remainingDifference.toLocaleString('pt-BR')}</span>
                 </div>
               </div>
@@ -343,7 +289,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
                 className="w-full bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs h-9 shadow-md shadow-[#00D287]/20"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1.5 fill-current" />
-                Simular Saldo
+                Simular Saldo no Aurus
               </Button>
             </div>
           </div>

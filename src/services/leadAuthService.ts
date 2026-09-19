@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+
 export interface UserAccount {
   id: string;
   companyName: string;
@@ -7,117 +9,158 @@ export interface UserAccount {
   password?: string;
   role: 'lead' | 'admin';
   status: 'ativo' | 'analise' | 'bloqueado';
+  banReason?: string;
   createdAt: string;
 }
 
-const STORAGE_KEY = 'aurus_user_accounts';
 const CURRENT_USER_KEY = 'aurus_current_user';
 
-const SEED_ACCOUNTS: UserAccount[] = [
-  {
-    id: 'usr-1',
-    companyName: 'TechCell Soluções & Vendas',
-    ownerName: 'Rafael Mendonça',
-    cnpj: '42.891.203/0001-92',
-    email: 'rafael@techcell.com.br',
-    role: 'lead',
-    status: 'ativo',
-    createdAt: '2025-02-18T14:32:00Z',
-  },
-  {
-    id: 'usr-2',
-    companyName: 'SmartPhone Express',
-    ownerName: 'Camila Duarte',
-    cnpj: '35.112.980/0001-44',
-    email: 'camila@smartphonexpress.com',
-    role: 'lead',
-    status: 'ativo',
-    createdAt: '2025-02-21T09:15:00Z',
-  },
-  {
-    id: 'usr-3',
-    companyName: 'Bancada Android Pro',
-    ownerName: 'Lucas Vinícius',
-    cnpj: '28.441.602/0001-18',
-    email: 'lucas@bancadapro.com.br',
-    role: 'lead',
-    status: 'ativo',
-    createdAt: '2025-02-23T16:45:00Z',
-  },
-  {
-    id: 'usr-4',
-    companyName: 'MegaCell Assistência & Acessórios',
-    ownerName: 'Guilherme Santos',
-    cnpj: '19.330.405/0001-09',
-    email: 'contato@megacell.com.br',
-    role: 'lead',
-    status: 'analise',
-    createdAt: '2025-02-24T11:20:00Z',
-  },
-  {
-    id: 'usr-admin',
-    companyName: 'AurusPay Master Central',
-    ownerName: 'Administrador Geral',
-    cnpj: '00.000.000/0001-00',
-    email: 'admin@auruspay.com',
-    password: 'admin',
-    role: 'admin',
-    status: 'ativo',
-    createdAt: '2025-01-01T00:00:00Z',
-  }
-];
-
 export const leadAuthService = {
-  getAccounts(): UserAccount[] {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_ACCOUNTS));
-        return SEED_ACCOUNTS;
-      }
-      return JSON.parse(stored);
-    } catch {
-      return SEED_ACCOUNTS;
-    }
+  // Clear any old fake leads from localStorage
+  cleanupLegacyFakeData() {
+    localStorage.removeItem('aurus_user_accounts');
   },
 
-  registerAccount(data: {
+  async getAccounts(): Promise<UserAccount[]> {
+    this.cleanupLegacyFakeData();
+    const { data, error } = await supabase
+      .from('user_accounts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao buscar contas:', error);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      companyName: row.company_name,
+      ownerName: row.owner_name,
+      cnpj: row.cnpj,
+      email: row.email,
+      password: row.password,
+      role: row.role || 'lead',
+      status: row.status || 'ativo',
+      banReason: row.ban_reason || undefined,
+      createdAt: row.created_at,
+    }));
+  },
+
+  async registerAccount(data: {
     companyName: string;
     ownerName: string;
     cnpj: string;
     email: string;
     password: string;
-  }): UserAccount {
-    const accounts = this.getAccounts();
-    const newAccount: UserAccount = {
-      id: `usr-${Date.now()}`,
-      companyName: data.companyName.trim(),
-      ownerName: data.ownerName.trim(),
-      cnpj: data.cnpj.trim(),
-      email: data.email.trim().toLowerCase(),
-      password: data.password,
-      role: 'lead',
-      status: 'ativo',
-      createdAt: new Date().toISOString(),
+  }): Promise<{ user?: UserAccount; error?: string }> {
+    this.cleanupLegacyFakeData();
+    const cleanEmail = data.email.trim().toLowerCase();
+
+    // Check if email already exists
+    const { data: existing } = await supabase
+      .from('user_accounts')
+      .select('id')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (existing) {
+      return { error: 'Este e-mail já está cadastrado. Por favor faça login.' };
+    }
+
+    const { data: inserted, error } = await supabase
+      .from('user_accounts')
+      .insert({
+        company_name: data.companyName.trim(),
+        owner_name: data.ownerName.trim(),
+        cnpj: data.cnpj.trim(),
+        email: cleanEmail,
+        password: data.password,
+        role: 'lead',
+        status: 'ativo',
+      })
+      .select()
+      .single();
+
+    if (error || !inserted) {
+      console.error('[leadAuthService] Erro ao cadastrar:', error);
+      return { error: 'Não foi possível cadastrar a conta. Verifique os dados.' };
+    }
+
+    const user: UserAccount = {
+      id: inserted.id,
+      companyName: inserted.company_name,
+      ownerName: inserted.owner_name,
+      cnpj: inserted.cnpj,
+      email: inserted.email,
+      role: inserted.role || 'lead',
+      status: inserted.status || 'ativo',
+      createdAt: inserted.created_at,
     };
 
-    const updated = [newAccount, ...accounts];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    this.setCurrentUser(newAccount);
-    return newAccount;
+    this.setCurrentUser(user);
+    return { user };
   },
 
-  login(email: string, password?: string): UserAccount | null {
-    const accounts = this.getAccounts();
+  async login(email: string, password?: string): Promise<{ user?: UserAccount; error?: string }> {
+    this.cleanupLegacyFakeData();
     const cleanEmail = email.trim().toLowerCase();
-    
-    // Check if user exists
-    const user = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
-    if (user) {
-      this.setCurrentUser(user);
-      return user;
+
+    const { data, error } = await supabase
+      .from('user_accounts')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (error || !data) {
+      return { error: 'Conta não encontrada. Verifique o e-mail digitado ou cadastre-se.' };
     }
-    return null;
+
+    if (password && data.password && data.password !== password) {
+      return { error: 'Senha incorreta. Tente novamente.' };
+    }
+
+    const user: UserAccount = {
+      id: data.id,
+      companyName: data.company_name,
+      ownerName: data.owner_name,
+      cnpj: data.cnpj,
+      email: data.email,
+      role: data.role || 'lead',
+      status: data.status || 'ativo',
+      banReason: data.ban_reason || undefined,
+      createdAt: data.created_at,
+    };
+
+    this.setCurrentUser(user);
+    return { user };
+  },
+
+  async checkUserStatus(id: string): Promise<{ status: 'ativo' | 'analise' | 'bloqueado'; banReason?: string }> {
+    const { data, error } = await supabase
+      .from('user_accounts')
+      .select('status, ban_reason')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) {
+      return { status: 'ativo' };
+    }
+
+    // Update local storage if ban status changed
+    const current = this.getCurrentUser();
+    if (current && current.id === id) {
+      if (current.status !== data.status || current.banReason !== data.ban_reason) {
+        current.status = data.status;
+        current.banReason = data.ban_reason;
+        this.setCurrentUser(current);
+      }
+    }
+
+    return {
+      status: data.status,
+      banReason: data.ban_reason,
+    };
   },
 
   getCurrentUser(): UserAccount | null {
@@ -125,13 +168,6 @@ export const leadAuthService = {
       const stored = localStorage.getItem(CURRENT_USER_KEY);
       if (stored) {
         return JSON.parse(stored);
-      }
-      // Return first active account as fallback default if available
-      const accounts = this.getAccounts();
-      const defaultUser = accounts.find((a) => a.role === 'lead') || accounts[0];
-      if (defaultUser) {
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(defaultUser));
-        return defaultUser;
       }
       return null;
     } catch {
@@ -151,22 +187,42 @@ export const leadAuthService = {
     localStorage.removeItem(CURRENT_USER_KEY);
   },
 
-  deleteAccount(id: string): void {
-    const accounts = this.getAccounts().filter((a) => a.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  async deleteAccount(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('user_accounts')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao deletar conta:', error);
+      return false;
+    }
+
     const current = this.getCurrentUser();
     if (current && current.id === id) {
       this.logout();
     }
+    return true;
   },
 
-  updateStatus(id: string, status: 'ativo' | 'analise' | 'bloqueado'): void {
-    const accounts = this.getAccounts().map((a) => {
-      if (a.id === id) {
-        return { ...a, status };
-      }
-      return a;
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  async updateStatus(id: string, status: 'ativo' | 'analise' | 'bloqueado', banReason?: string): Promise<boolean> {
+    const updatePayload: any = { status };
+    if (status === 'bloqueado') {
+      updatePayload.ban_reason = banReason || 'Suspensão aplicada pela administração.';
+    } else {
+      updatePayload.ban_reason = null;
+    }
+
+    const { error } = await supabase
+      .from('user_accounts')
+      .update(updatePayload)
+      .eq('id', id);
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao atualizar status:', error);
+      return false;
+    }
+
+    return true;
   }
 };
