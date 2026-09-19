@@ -161,16 +161,34 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           </nav>
         </div>
 
-        {/* Minimal Bottom Status Indicator */}
-        <div className="p-3 border-t border-white/5">
+        {/* Minimal Bottom Status Indicator and VSL Link */}
+        <div className="p-3 border-t border-white/5 space-y-1">
           {(!isCollapsed || isMobileOpen) ? (
-            <div className="flex items-center gap-2 px-2 py-1.5 text-[11px] text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-[#00D287] shadow-sm shadow-[#00D287]" />
-              <span className="truncate font-medium">Sistema Conectado</span>
-            </div>
+            <>
+              <a
+                href="/"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] text-[11px] transition-colors"
+                title="Voltar para a página de apresentação VSL"
+              >
+                <Zap className="w-3.5 h-3.5 text-[#00D287]" />
+                <span className="truncate">Ver Apresentação VSL</span>
+              </a>
+
+              <div className="flex items-center gap-2 px-2.5 py-1 text-[11px] text-slate-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" />
+                <span className="truncate">Sistema Conectado</span>
+              </div>
+            </>
           ) : (
-            <div className="flex justify-center py-1">
-              <span className="w-2 h-2 rounded-full bg-[#00D287]" title="Conectado" />
+            <div className="flex flex-col items-center gap-2 py-1">
+              <a
+                href="/"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#00D287] hover:bg-white/[0.04]"
+                title="Ver Apresentação VSL"
+              >
+                <Zap className="w-3.5 h-3.5" />
+              </a>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" title="Conectado" />
             </div>
           )}
         </div>
