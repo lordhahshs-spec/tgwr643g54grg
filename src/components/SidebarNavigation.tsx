@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Smartphone, 
   GraduationCap, 
@@ -9,10 +9,13 @@ import {
   ChevronLeft, 
   ChevronRight,
   Zap,
-  Layers
+  Layers,
+  Shield,
+  LogOut
 } from 'lucide-react';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 
 interface SidebarNavigationProps {
   activeTab: TabId;
@@ -31,6 +34,12 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   isMobileOpen,
   onCloseMobile,
 }) => {
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+
+  useEffect(() => {
+    setCurrentUser(leadAuthService.getCurrentUser());
+  }, []);
+
   const getIcon = (iconName: string, active: boolean) => {
     const className = `w-4 h-4 transition-colors ${
       active ? 'text-[#00D287]' : 'text-slate-400 group-hover:text-white'
@@ -92,8 +101,8 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                   <span className="font-extrabold text-sm tracking-tight text-white leading-tight">
                     Aurus<span className="text-[#00D287]">Pay</span>
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium tracking-wide">
-                    Portal de Vendas
+                  <span className="text-[10px] text-slate-400 font-medium tracking-wide truncate">
+                    {currentUser?.companyName || 'Portal de Vendas'}
                   </span>
                 </div>
               )}
@@ -108,6 +117,28 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
               {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
             </button>
           </div>
+
+          {/* User Profile Mini Badge (When expanded) */}
+          {(!isCollapsed || isMobileOpen) && currentUser && (
+            <div className="px-3 pt-3 pb-1">
+              <div className="bg-slate-950/80 border border-white/5 rounded-xl p-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-md bg-[#00D287]/15 text-[#00D287] flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {currentUser.ownerName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-semibold text-white truncate leading-tight">
+                      {currentUser.ownerName}
+                    </span>
+                    <span className="text-[10px] text-slate-400 truncate">
+                      {currentUser.cnpj || 'CNPJ Verificado'}
+                    </span>
+                  </div>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-[#00D287]" title="Conectado" />
+              </div>
+            </div>
+          )}
 
           {/* Navigation Tabs - Clean, Compact, Zero Scrollbars */}
           <nav className="p-3 space-y-1 overflow-hidden">
@@ -161,33 +192,51 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           </nav>
         </div>
 
-        {/* Minimal Bottom Status Indicator and VSL Link */}
+        {/* Minimal Bottom Status & Admin Links */}
         <div className="p-3 border-t border-white/5 space-y-1">
           {(!isCollapsed || isMobileOpen) ? (
             <>
+              {/* Admin Panel Direct Shortcut */}
               <a
-                href="/"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] text-[11px] transition-colors"
-                title="Voltar para a página de apresentação VSL"
+                href="/admin"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-[#00D287] hover:bg-white/[0.04] text-[11px] transition-colors font-medium"
+                title="Acessar Gestão de Usuários e Painel Geral"
               >
-                <Zap className="w-3.5 h-3.5 text-[#00D287]" />
-                <span className="truncate">Ver Apresentação VSL</span>
+                <Shield className="w-3.5 h-3.5 text-[#00D287]" />
+                <span className="truncate">Painel Administrativo</span>
               </a>
 
-              <div className="flex items-center gap-2 px-2.5 py-1 text-[11px] text-slate-500">
+              {/* Trocar de Conta */}
+              <a
+                href="/login"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] text-[11px] transition-colors"
+                title="Cadastrar outra loja ou alternar conta"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="truncate">Trocar de Conta</span>
+              </a>
+
+              <div className="flex items-center gap-2 px-2.5 py-1 text-[10px] text-slate-500">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" />
                 <span className="truncate">Sistema Conectado</span>
               </div>
             </>
           ) : (
             <div className="flex flex-col items-center gap-2 py-1">
-              <a
-                href="/"
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#00D287] hover:bg-white/[0.04]"
-                title="Ver Apresentação VSL"
-              >
-                <Zap className="w-3.5 h-3.5" />
-              </a>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <a
+                    href="/admin"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#00D287] hover:bg-white/[0.04]"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-[#0b101f] text-slate-100 border-[#00D287]/20 text-xs">
+                  Painel Admin
+                </TooltipContent>
+              </Tooltip>
+
               <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" title="Conectado" />
             </div>
           )}

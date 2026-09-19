@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import VSLPage from "./pages/VSL";
+import AuthPage from "./pages/AuthPage";
+import AdminPage from "./pages/AdminPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -16,12 +18,19 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* VSL Landing Page (Página anterior à plataforma) */}
+          {/* 1. Página de VSL Inicial */}
           <Route path="/" element={<VSLPage />} />
           
-          {/* Plataforma Principal com Barra Lateral, Simulador e Módulos */}
+          {/* 2. Aba de Login / Cadastro pós-VSL (Nome da Empresa, Nome do Dono, CNPJ, Email, Senha) */}
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/cadastro" element={<AuthPage />} />
+
+          {/* 3. Plataforma Principal da Loja com Simulador e Módulos */}
           <Route path="/app" element={<Index />} />
           <Route path="/plataforma" element={<Index />} />
+
+          {/* 4. Painel Administrativo Geral com Gestão de Usuários */}
+          <Route path="/admin" element={<AdminPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

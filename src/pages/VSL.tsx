@@ -61,12 +61,8 @@ export const VSLPage: React.FC = () => {
   };
 
   const handleCheckoutClick = () => {
-    if (checkoutUrl && checkoutUrl.trim() !== '') {
-      window.open(checkoutUrl, '_blank');
-    } else {
-      // Abre o modal onde o administrador ou lead pode prosseguir para o checkout ou testar a plataforma
-      setIsCheckoutModalOpen(true);
-    }
+    // Redireciona imediatamente para a aba de cadastro/login pós-VSL
+    navigate('/login');
   };
 
   const handleWhatsAppClick = () => {
@@ -176,13 +172,13 @@ export const VSLPage: React.FC = () => {
 
         {/* Action Buttons Section (Checkout & WhatsApp) */}
         <div className="w-full mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          {/* Direct Checkout CTA Button */}
+          {/* Direct Access CTA Button */}
           <button
             onClick={handleCheckoutClick}
             className="w-full sm:flex-1 py-4 px-6 rounded-2xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-sm sm:text-base tracking-tight shadow-xl shadow-[#00D287]/25 hover:shadow-[#00D287]/40 transition-all flex items-center justify-center gap-2 group transform active:scale-95"
           >
-            <CreditCard className="w-5 h-5 flex-shrink-0 text-slate-950" />
-            <span>IR DIRETO PRO CHECKOUT</span>
+            <Lock className="w-5 h-5 flex-shrink-0 text-slate-950" />
+            <span>LIBERAR MEU ACESSO AGORA</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
 
