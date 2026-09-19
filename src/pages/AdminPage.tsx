@@ -13,10 +13,15 @@ import {
   Zap, 
   ArrowLeft, 
   Building2, 
-  Eye,
-  AlertTriangle,
-  ShoppingBag,
-  RotateCw
+  Eye, 
+  AlertTriangle, 
+  ShoppingBag, 
+  RotateCw, 
+  Cpu, 
+  FileText, 
+  Edit, 
+  Upload,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,23 +29,23 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { catalogService, CatalogDevice } from '@/services/catalogService';
+import { schematicService, ElectricSchematic } from '@/services/schematicService';
 
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
-  const [adminTab, setAdminTab] = useState<'users' | 'catalog'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'schematics' | 'catalog'>('users');
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
   const [devices, setDevices] = useState<CatalogDevice[]>([]);
+  const [schematics, setSchematics] = useState<ElectricSchematic[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
-  // Modal Details & Create
+  // Users Modals
   const [selectedAccountForModal, setSelectedAccountForModal] = useState<UserAccount | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
-
-  // Ban Confirmation Modal
   const [accountToBan, setAccountToBan] = useState<UserAccount | null>(null);
   const [banReasonInput, setBanReasonInput] = useState<string>('Violação dos termos de conformidade e irregularidade cadastral.');
 
@@ -50,6 +55,20 @@ export const AdminPage: React.FC = () => {
   const [newCnpj, setNewCnpj] = useState<string>('');
   const [newEmail, setNewEmail] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
+
+  // Schematics Modals & Form
+  const [isAddSchematicModalOpen, setIsAddSchematicModalOpen] = useState<boolean>(false);
+  const [editingSchematic, setEditingSchematic] = useState<ElectricSchematic | null>(null);
+  const [previewSchematic, setPreviewSchematic] = useState<ElectricSchematic | null>(null);
+
+  const [schematicTitle, setSchematicTitle] = useState<string>('');
+  const [schematicBrand, setSchematicBrand] = useState<string>('Samsung');
+  const [schematicModel, setSchematicModel] = useState<string>('');
+  const [schematicDescription, setSchematicDescription] = useState<string>('');
+  const [schematicPdfData, setSchematicPdfData] = useState<string>('');
+  const [schematicFileName, setSchematicFileName] = useState<string>('');
+  const [schematicFileSize, setSchematicFileSize] = useState<string>('');
+  const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
 
   useEffect(() => {
     loadAllData();
@@ -61,9 +80,12 @@ export const AdminPage: React.FC = () => {
     setAccounts(accs);
     const devs = await catalogService.getDevices();
     setDevices(devs);
+    const schs = await schematicService.getSchematics();
+    setSchematics(schs);
     setLoading(false);
   };
 
+  // User methods
   const handleOpenBanModal = (account: UserAccount) => {
     setAccountToBan(account);
     setBanReasonInput('Irregularidade cadastral ou descumprimento das diretrizes da AurusPay.');
@@ -91,13 +113,6 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const handleDeleteDevice = async (id: string) => {
-    if (confirm('Deseja excluir este aparelho do estoque?')) {
-      await catalogService.deleteDevice(id);
-      await loadAllData();
-    }
-  };
-
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompany.trim() || !newOwner.trim() || !newEmail.trim()) return;
@@ -119,15 +134,113 @@ export const AdminPage: React.FC = () => {
     await loadAllData();
   };
 
+  // Schematics methods
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingFile(true);
+    setSchematicFileName(file.name);
+
+    // Format size
+    const sizeInKb = Math.round(file.size / 1024);
+    setSchematicFileSize(sizeInKb > 1024 ? `${(sizeInKb / 1024).toFixed(1)} MB` : `${sizeInKb} KB`);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setSchematicPdfData(result);
+      setIsProcessingFile(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleOpenAddSchematic = () => {
+    setEditingSchematic(null);
+    setSchematicTitle('');
+    setSchematicBrand('Samsung');
+    setSchematicModel('');
+    setSchematicDescription('');
+    setSchematicPdfData('');
+    setSchematicFileName('');
+    setSchematicFileSize('');
+    setIsAddSchematicModalOpen(true);
+  };
+
+  const handleOpenEditSchematic = (schematic: ElectricSchematic) => {
+    setEditingSchematic(schematic);
+    setSchematicTitle(schematic.title);
+    setSchematicBrand(schematic.brand);
+    setSchematicModel(schematic.model);
+    setSchematicDescription(schematic.description || '');
+    setSchematicPdfData(schematic.pdfUrl);
+    setSchematicFileName(schematic.fileName || 'esquema.pdf');
+    setSchematicFileSize(schematic.fileSize || '');
+    setIsAddSchematicModalOpen(true);
+  };
+
+  const handleSaveSchematic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schematicTitle.trim() || !schematicModel.trim() || !schematicPdfData) {
+      alert('Por favor, preencha o título, o modelo e faça o upload do arquivo PDF.');
+      return;
+    }
+
+    if (editingSchematic) {
+      // Update
+      await schematicService.updateSchematic(editingSchematic.id, {
+        title: schematicTitle,
+        brand: schematicBrand,
+        model: schematicModel,
+        description: schematicDescription,
+        pdfUrl: schematicPdfData,
+        fileName: schematicFileName,
+        fileSize: schematicFileSize,
+      });
+    } else {
+      // Add new
+      await schematicService.addSchematic({
+        title: schematicTitle,
+        brand: schematicBrand,
+        model: schematicModel,
+        description: schematicDescription,
+        pdfUrl: schematicPdfData,
+        fileName: schematicFileName,
+        fileSize: schematicFileSize,
+      });
+    }
+
+    setIsAddSchematicModalOpen(false);
+    setEditingSchematic(null);
+    await loadAllData();
+  };
+
+  const handleDeleteSchematic = async (id: string) => {
+    if (confirm('Deseja excluir este esquema elétrico permanentemente?')) {
+      await schematicService.deleteSchematic(id);
+      await loadAllData();
+    }
+  };
+
+  // Filters
   const filteredAccounts = accounts.filter((acc) => {
     const matchesStatus = selectedStatusFilter === 'todos' || acc.status === selectedStatusFilter;
     const query = searchQuery.toLowerCase();
-    const matchesQuery = 
+    return matchesStatus && (
       acc.companyName.toLowerCase().includes(query) ||
       acc.ownerName.toLowerCase().includes(query) ||
       acc.cnpj.toLowerCase().includes(query) ||
-      acc.email.toLowerCase().includes(query);
-    return matchesStatus && matchesQuery;
+      acc.email.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredSchematics = schematics.filter((s) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      s.title.toLowerCase().includes(q) ||
+      s.brand.toLowerCase().includes(q) ||
+      s.model.toLowerCase().includes(q)
+    );
   });
 
   const totalAtivos = accounts.filter((a) => a.status === 'ativo').length;
@@ -169,7 +282,7 @@ export const AdminPage: React.FC = () => {
                     </Badge>
                   </div>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    Gestão em Tempo Real
+                    Gestão Geral
                   </span>
                 </div>
               )}
@@ -187,7 +300,10 @@ export const AdminPage: React.FC = () => {
           <nav className="p-3 space-y-1">
             {/* Gestão de Usuários */}
             <button
-              onClick={() => setAdminTab('users')}
+              onClick={() => {
+                setAdminTab('users');
+                setSearchQuery('');
+              }}
               className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
                 ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
                 ${adminTab === 'users'
@@ -205,9 +321,35 @@ export const AdminPage: React.FC = () => {
               )}
             </button>
 
-            {/* Catálogo de Aparelhos (Admin view) */}
+            {/* Controle de Esquemas Elétricos */}
             <button
-              onClick={() => setAdminTab('catalog')}
+              onClick={() => {
+                setAdminTab('schematics');
+                setSearchQuery('');
+              }}
+              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
+                ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
+                ${adminTab === 'schematics'
+                  ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] border border-transparent'
+                }
+              `}
+            >
+              {adminTab === 'schematics' && (
+                <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
+              )}
+              <Cpu className="w-4 h-4 flex-shrink-0" />
+              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                <span className="truncate">Controle de Esquemas Elétricos ({schematics.length})</span>
+              )}
+            </button>
+
+            {/* Estoque de Celulares */}
+            <button
+              onClick={() => {
+                setAdminTab('catalog');
+                setSearchQuery('');
+              }}
               className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
                 ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
                 ${adminTab === 'catalog'
@@ -266,12 +408,19 @@ export const AdminPage: React.FC = () => {
             </button>
 
             <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-              {adminTab === 'users' ? (
+              {adminTab === 'users' && (
                 <>
                   <Users className="w-4 h-4 text-[#00D287]" />
-                  <span>Gestão de Contas Reais (Supabase)</span>
+                  <span>Gestão de Usuários & Contas Reais</span>
                 </>
-              ) : (
+              )}
+              {adminTab === 'schematics' && (
+                <>
+                  <Cpu className="w-4 h-4 text-[#00D287]" />
+                  <span>Controle de Esquemas Elétricos (PDF)</span>
+                </>
+              )}
+              {adminTab === 'catalog' && (
                 <>
                   <ShoppingBag className="w-4 h-4 text-[#00D287]" />
                   <span>Estoque Real de Celulares</span>
@@ -286,11 +435,12 @@ export const AdminPage: React.FC = () => {
               variant="outline"
               size="sm"
               className="bg-slate-900 border-white/10 text-slate-300 hover:text-white text-xs h-8 px-2.5 rounded-lg"
+              title="Recarregar dados"
             >
               <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#00D287]' : ''}`} />
             </Button>
 
-            {adminTab === 'users' ? (
+            {adminTab === 'users' && (
               <Button
                 onClick={() => setIsCreateModalOpen(true)}
                 size="sm"
@@ -299,13 +449,16 @@ export const AdminPage: React.FC = () => {
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 Cadastrar Lead
               </Button>
-            ) : (
+            )}
+
+            {adminTab === 'schematics' && (
               <Button
-                onClick={() => navigate('/app')}
+                onClick={handleOpenAddSchematic}
                 size="sm"
-                className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 px-3 rounded-lg shadow-sm"
+                className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 px-3 rounded-lg shadow-sm shadow-[#00D287]/20"
               >
-                Ver na Plataforma
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Adicionar Esquema Elétrico (PDF)
               </Button>
             )}
           </div>
@@ -313,7 +466,8 @@ export const AdminPage: React.FC = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#050811]">
-          {adminTab === 'users' ? (
+          {/* TAB 1: USERS */}
+          {adminTab === 'users' && (
             <>
               {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -354,7 +508,6 @@ export const AdminPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Status Filter */}
                 <div className="flex items-center gap-1.5 overflow-x-auto">
                   {[
                     { id: 'todos', label: 'Todos' },
@@ -376,7 +529,7 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Accounts List Table */}
+              {/* Accounts Table */}
               <div className="bg-[#080c17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -460,16 +613,14 @@ export const AdminPage: React.FC = () => {
 
                             <td className="p-3.5 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {/* Details */}
                                 <button
                                   onClick={() => setSelectedAccountForModal(account)}
                                   className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                                  title="Ver Dados Cadastrais"
+                                  title="Ver Dados"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-[#00D287]" />
                                 </button>
 
-                                {/* Ban / Unban Toggle with Real Lockout */}
                                 {account.status === 'bloqueado' ? (
                                   <button
                                     onClick={() => handleUnban(account.id)}
@@ -490,7 +641,6 @@ export const AdminPage: React.FC = () => {
                                   </button>
                                 )}
 
-                                {/* Delete Account */}
                                 <button
                                   onClick={() => handleDelete(account.id)}
                                   className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 transition-colors"
@@ -508,8 +658,156 @@ export const AdminPage: React.FC = () => {
                 )}
               </div>
             </>
-          ) : (
-            /* Catalog Devices Management Subtab */
+          )}
+
+          {/* TAB 2: SCHEMATICS MANAGEMENT (Controle de Esquemas Elétricos) */}
+          {adminTab === 'schematics' && (
+            <div className="space-y-4">
+              {/* Header card */}
+              <div className="bg-[#080c17] border border-[#00D287]/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-xs">
+                      Controle Central de Manuais
+                    </Badge>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    Esquemas Elétricos em PDF (Supabase)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                    Adicione, edite e remova diagramas e manuais de serviço técnico. O arquivo PDF é visualizado diretamente na aba de Esquemas da plataforma pelo cliente.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleOpenAddSchematic}
+                  className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-9 px-4 rounded-xl shadow-md shadow-[#00D287]/20 flex-shrink-0"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Novo Esquema (PDF)
+                </Button>
+              </div>
+
+              {/* Search */}
+              <div className="relative max-w-md">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Pesquisar por modelo, marca ou título..."
+                  className="pl-9 h-9 text-xs bg-slate-950 border-slate-800 text-slate-100 rounded-xl focus:border-[#00D287]"
+                />
+              </div>
+
+              {/* Schematics List */}
+              <div className="bg-[#080c17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    Esquemas Elétricos Cadastrados ({filteredSchematics.length})
+                  </h4>
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    Carregando esquemas do Supabase...
+                  </div>
+                ) : filteredSchematics.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400 text-xs flex flex-col items-center">
+                    <FileText className="w-8 h-8 text-slate-600 mb-2" />
+                    <p className="text-white font-bold">Nenhum esquema elétrico cadastrado ainda.</p>
+                    <p className="text-slate-500 mt-1">Clique em "Novo Esquema (PDF)" para enviar o primeiro arquivo.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/5 bg-slate-950/60 text-slate-400 font-bold uppercase text-[10px]">
+                          <th className="p-3.5">Título do Esquema</th>
+                          <th className="p-3.5">Marca</th>
+                          <th className="p-3.5">Modelo</th>
+                          <th className="p-3.5">Arquivo PDF</th>
+                          <th className="p-3.5">Data Envio</th>
+                          <th className="p-3.5 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {filteredSchematics.map((s) => (
+                          <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="p-3.5 font-bold text-white">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                                <div className="truncate max-w-[220px]">
+                                  <div className="truncate text-white font-bold">{s.title}</div>
+                                  {s.description && (
+                                    <div className="text-[10px] text-slate-400 truncate">{s.description}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3.5">
+                              <Badge variant="outline" className="text-[10px] border-white/10 bg-slate-900 text-slate-300">
+                                {s.brand}
+                              </Badge>
+                            </td>
+
+                            <td className="p-3.5 font-mono text-slate-200 text-[11px]">
+                              {s.model}
+                            </td>
+
+                            <td className="p-3.5 text-slate-400 text-[11px]">
+                              <span className="text-[#00D287] font-medium">{s.fileName || 'PDF Document'}</span>
+                              {s.fileSize && <span className="text-slate-500 ml-1.5">({s.fileSize})</span>}
+                            </td>
+
+                            <td className="p-3.5 text-slate-400 text-[11px]">
+                              {new Date(s.createdAt).toLocaleDateString('pt-BR')}
+                            </td>
+
+                            <td className="p-3.5 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* Preview PDF */}
+                                <button
+                                  onClick={() => setPreviewSchematic(s)}
+                                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                                  title="Pré-visualizar PDF"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#00D287]" />
+                                </button>
+
+                                {/* Edit */}
+                                <button
+                                  onClick={() => handleOpenEditSchematic(s)}
+                                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                                  title="Editar Esquema"
+                                >
+                                  <Edit className="w-3.5 h-3.5 text-amber-400" />
+                                </button>
+
+                                {/* Delete */}
+                                <button
+                                  onClick={() => handleDeleteSchematic(s.id)}
+                                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 transition-colors"
+                                  title="Excluir Esquema"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: CATALOG DEVICES */}
+          {adminTab === 'catalog' && (
             <div className="space-y-4">
               <div className="bg-[#080c17] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
                 <div>
@@ -538,13 +836,6 @@ export const AdminPage: React.FC = () => {
                         <div className="text-slate-400">{d.brand} • {d.storage}</div>
                         <div className="text-[#00D287] font-bold mt-1">R$ {d.price.toFixed(2)}</div>
                       </div>
-                      <button
-                        onClick={() => handleDeleteDevice(d.id)}
-                        className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-rose-400"
-                        title="Remover do estoque"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -553,6 +844,187 @@ export const AdminPage: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* ADD / EDIT SCHEMATIC MODAL */}
+      <Dialog open={isAddSchematicModalOpen} onOpenChange={setIsAddSchematicModalOpen}>
+        <DialogContent className="max-w-lg bg-[#080c17] border border-[#00D287]/30 text-slate-100 rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-white flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-[#00D287]" />
+              {editingSchematic ? 'Editar Esquema Elétrico' : 'Adicionar Esquema Elétrico (PDF)'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400 pt-1">
+              Informe a marca, modelo e envie o arquivo PDF do esquema elétrico para o banco de dados.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveSchematic} className="space-y-3.5 mt-3 text-xs">
+            {/* Título do Esquema */}
+            <div>
+              <label className="font-semibold text-slate-300 block mb-1">
+                Título do Esquema Elétrico (Modelo + Marca):
+              </label>
+              <Input
+                required
+                value={schematicTitle}
+                onChange={(e) => setSchematicTitle(e.target.value)}
+                placeholder="Ex: Esquema Elétrico Samsung Galaxy S23 Ultra"
+                className="bg-slate-950 border-slate-800 text-xs text-slate-100 rounded-xl focus:border-[#00D287]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Marca */}
+              <div>
+                <label className="font-semibold text-slate-300 block mb-1">Marca:</label>
+                <select
+                  value={schematicBrand}
+                  onChange={(e) => setSchematicBrand(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 text-xs outline-none focus:border-[#00D287]"
+                >
+                  <option value="Samsung">Samsung</option>
+                  <option value="Motorola">Motorola</option>
+                  <option value="Xiaomi">Xiaomi</option>
+                  <option value="Apple">Apple</option>
+                  <option value="LG">LG</option>
+                  <option value="Realme">Realme</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+
+              {/* Modelo */}
+              <div>
+                <label className="font-semibold text-slate-300 block mb-1">Modelo / Código:</label>
+                <Input
+                  required
+                  value={schematicModel}
+                  onChange={(e) => setSchematicModel(e.target.value)}
+                  placeholder="Ex: SM-S918B ou Moto G84"
+                  className="bg-slate-950 border-slate-800 text-xs text-slate-100 rounded-xl focus:border-[#00D287]"
+                />
+              </div>
+            </div>
+
+            {/* Descrição / Observações */}
+            <div>
+              <label className="font-semibold text-slate-300 block mb-1">Descrição / Notas Técnicas (Opcional):</label>
+              <Input
+                value={schematicDescription}
+                onChange={(e) => setSchematicDescription(e.target.value)}
+                placeholder="Ex: Diagrama em blocos, linhas de tensão VCC e layout de componentes"
+                className="bg-slate-950 border-slate-800 text-xs text-slate-100 rounded-xl focus:border-[#00D287]"
+              />
+            </div>
+
+            {/* PDF File Upload or URL */}
+            <div className="bg-slate-950/80 border border-white/5 p-3.5 rounded-xl space-y-2">
+              <label className="font-semibold text-slate-300 block">
+                Arquivo do Esquema Elétrico em PDF:
+              </label>
+
+              <div className="flex flex-col gap-2">
+                <label className="flex flex-col items-center justify-center p-4 border border-dashed border-[#00D287]/40 rounded-xl cursor-pointer hover:bg-[#00D287]/5 transition-colors">
+                  <Upload className="w-6 h-6 text-[#00D287] mb-1.5" />
+                  <span className="text-xs font-bold text-white">
+                    {schematicFileName ? schematicFileName : 'Clique para selecionar o PDF do seu computador'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">
+                    {schematicFileSize ? `Tamanho: ${schematicFileSize}` : 'Formato aceito: .pdf (Manuais, boardviews e diagramas)'}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+
+                <div className="text-[11px] text-slate-500 text-center">ou insira a URL direta do arquivo PDF:</div>
+
+                <Input
+                  value={schematicPdfData.startsWith('data:') ? '' : schematicPdfData}
+                  onChange={(e) => {
+                    setSchematicPdfData(e.target.value);
+                    if (!schematicFileName) setSchematicFileName('esquema_online.pdf');
+                  }}
+                  placeholder="https://exemplo.com/esquema_tecnico.pdf"
+                  className="bg-slate-950 border-slate-800 text-xs text-slate-100 rounded-xl focus:border-[#00D287]"
+                />
+              </div>
+
+              {isProcessingFile && (
+                <p className="text-[11px] text-[#00D287] animate-pulse">
+                  Processando arquivo PDF...
+                </p>
+              )}
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <Button
+                type="submit"
+                disabled={isProcessingFile || !schematicPdfData}
+                className="flex-1 bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-10 rounded-xl disabled:opacity-50"
+              >
+                {editingSchematic ? 'Atualizar Esquema' : 'Salvar no Supabase'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddSchematicModalOpen(false)}
+                className="bg-slate-900 border-slate-800 text-slate-300 text-xs h-10 rounded-xl"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF PREVIEW MODAL IN ADMIN */}
+      <Dialog open={!!previewSchematic} onOpenChange={(open) => !open && setPreviewSchematic(null)}>
+        <DialogContent className="max-w-5xl h-[88vh] bg-[#080c17] border border-[#00D287]/30 text-slate-100 rounded-2xl p-4 flex flex-col">
+          {previewSchematic && (
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+              <div className="flex items-center justify-between pb-3 border-b border-white/5 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#00D287]" />
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{previewSchematic.title}</h3>
+                    <p className="text-xs text-slate-400">{previewSchematic.brand} • {previewSchematic.model}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={previewSchematic.pdfUrl}
+                    download={previewSchematic.fileName || `${previewSchematic.model}_esquema.pdf`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-xs text-slate-200 hover:text-white"
+                  >
+                    <span>Download PDF</span>
+                  </a>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setPreviewSchematic(null)}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Embedded PDF Viewer */}
+              <div className="flex-1 mt-3 w-full bg-slate-950 rounded-xl overflow-hidden border border-white/5">
+                <iframe
+                  src={previewSchematic.pdfUrl}
+                  title={previewSchematic.title}
+                  className="w-full h-full border-0"
+                />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Ban Confirmation Modal */}
       <Dialog open={!!accountToBan} onOpenChange={(open) => !open && setAccountToBan(null)}>
