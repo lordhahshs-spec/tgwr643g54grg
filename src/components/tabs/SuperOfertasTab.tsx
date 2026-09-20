@@ -333,7 +333,12 @@ export const SuperOfertasTab: React.FC = () => {
               )}
             </section>
 
-            {/* Feed Contínuo de Ofertas (Sem divisão ou título intermediário) */}
+            {/* Linha Minimalista de Divisão nas Cores da Plataforma */}
+            <div className="relative py-1 w-full">
+              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#00D287]/40 to-transparent" />
+            </div>
+
+            {/* Feed de Ofertas */}
             <section className="space-y-4">
               {loading ? (
                 <div className="py-16 text-center space-y-3">
