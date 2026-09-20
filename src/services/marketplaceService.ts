@@ -67,26 +67,60 @@ export const marketplaceService = {
       return [];
     }
 
-    return (data || []).map(item => ({
-      id: item.id,
-      sellerId: item.seller_id,
-      sellerCompany: item.seller_company,
-      sellerOwner: item.seller_owner,
-      title: item.title,
-      category: item.category as OfferCategory,
-      subcategory: item.subcategory,
-      condition: item.condition as OfferCondition,
-      description: item.description,
-      details: item.details,
-      price: Number(item.price),
-      freeShipping: Boolean(item.free_shipping),
-      shippingCost: Number(item.shipping_cost || 0),
-      images: Array.isArray(item.images) ? item.images : [],
-      status: item.status as OfferStatus,
-      views: Number(item.views || 0),
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }));
+    // Busca vendas reais registradas
+    const { data: orders } = await supabase
+      .from('marketplace_orders')
+      .select('offer_id');
+
+    const salesMap: Record<string, number> = {};
+    (orders || []).forEach(o => {
+      if (o.offer_id) salesMap[o.offer_id] = (salesMap[o.offer_id] || 0) + 1;
+    });
+
+    // Busca avaliações reais registradas
+    const { data: reviews } = await supabase
+      .from('marketplace_reviews')
+      .select('offer_id, rating');
+
+    const reviewsMap: Record<string, { total: number; count: number }> = {};
+    (reviews || []).forEach(r => {
+      if (r.offer_id) {
+        if (!reviewsMap[r.offer_id]) reviewsMap[r.offer_id] = { total: 0, count: 0 };
+        reviewsMap[r.offer_id].total += Number(r.rating || 0);
+        reviewsMap[r.offer_id].count += 1;
+      }
+    });
+
+    return (data || []).map(item => {
+      const revData = reviewsMap[item.id];
+      const avgRating = revData && revData.count > 0
+        ? Number((revData.total / revData.count).toFixed(1))
+        : null;
+
+      return {
+        id: item.id,
+        sellerId: item.seller_id,
+        sellerCompany: item.seller_company,
+        sellerOwner: item.seller_owner,
+        title: item.title,
+        category: item.category as OfferCategory,
+        subcategory: item.subcategory,
+        condition: item.condition as OfferCondition,
+        description: item.description,
+        details: item.details,
+        price: Number(item.price),
+        freeShipping: Boolean(item.free_shipping),
+        shippingCost: Number(item.shipping_cost || 0),
+        images: Array.isArray(item.images) ? item.images : [],
+        status: item.status as OfferStatus,
+        views: Number(item.views || 0),
+        salesCount: salesMap[item.id] || 0,
+        rating: avgRating,
+        reviewsCount: revData?.count || 0,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      };
+    });
   },
 
   // Busca exclusivamente ofertas com interações REAIS no banco de dados (views, favoritos ou pedidos)
@@ -155,6 +189,22 @@ export const marketplaceService = {
       await supabase.from('marketplace_offers').update({ views: (data.views || 0) + 1 }).eq('id', id);
     });
 
+    // Busca vendas reais
+    const { count: ordersCount } = await supabase
+      .from('marketplace_orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('offer_id', id);
+
+    // Busca avaliações reais
+    const { data: revList } = await supabase
+      .from('marketplace_reviews')
+      .select('rating')
+      .eq('offer_id', id);
+
+    const revTotal = (revList || []).reduce((acc, curr) => acc + Number(curr.rating || 0), 0);
+    const revCount = (revList || []).length;
+    const avgRating = revCount > 0 ? Number((revTotal / revCount).toFixed(1)) : null;
+
     return {
       id: data.id,
       sellerId: data.seller_id,
@@ -172,6 +222,9 @@ export const marketplaceService = {
       images: Array.isArray(data.images) ? data.images : [],
       status: data.status as OfferStatus,
       views: Number(data.views || 0) + 1,
+      salesCount: ordersCount || 0,
+      rating: avgRating,
+      reviewsCount: revCount,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

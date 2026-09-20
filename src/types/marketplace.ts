@@ -61,6 +61,9 @@ export interface MarketplaceOffer {
   images: string[];
   status: OfferStatus;
   views: number;
+  salesCount?: number;
+  rating?: number | null;
+  reviewsCount?: number;
   createdAt: string;
   updatedAt?: string;
 }

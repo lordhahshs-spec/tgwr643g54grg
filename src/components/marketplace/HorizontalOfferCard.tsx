@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { Heart, Truck, Zap, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Heart, Truck, Star, Building2, ShieldCheck } from 'lucide-react';
 
 interface HorizontalOfferCardProps {
   offer: MarketplaceOffer;
@@ -23,106 +23,133 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
   };
 
   const primaryImage = offer.images?.[0] || '';
-  const installment12x = (offer.price / 12);
+  const installment12x = offer.price / 12;
+
+  // Vendas reais do banco de dados (zero dados fictícios)
+  const salesCount = offer.salesCount || 0;
+
+  // Avaliações reais do banco de dados (zero dados fictícios)
+  const hasReviews = Boolean(offer.rating && offer.reviewsCount && offer.reviewsCount > 0);
 
   return (
     <div
       onClick={() => onSelect(offer)}
-      className="group relative w-full bg-[#080c17] hover:bg-[#0c1222] border border-white/5 hover:border-[#00D287]/40 rounded-2xl p-3.5 sm:p-5 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:shadow-[#00D287]/5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6"
+      className="group relative bg-[#080c17] hover:bg-[#0c1224] border border-white/5 hover:border-[#00D287]/40 rounded-2xl p-3 sm:p-4 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:shadow-[#00D287]/5 flex flex-col justify-between h-full"
     >
-      {/* Product Image Frame - Standardized square/portrait Mercado Livre style */}
-      <div className="relative w-full sm:w-40 sm:h-40 h-52 rounded-xl bg-[#040711] flex-shrink-0 overflow-hidden flex items-center justify-center p-2 border border-white/5">
-        {primaryImage ? (
-          <img
-            src={primaryImage}
-            alt={offer.title}
-            className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300 ease-out"
-            loading="lazy"
-          />
-        ) : (
-          <div className="text-slate-600 text-xs">Sem foto</div>
-        )}
+      <div>
+        {/* Imagem do Produto - Formato Padronizado Mercado Livre */}
+        <div className="relative w-full aspect-square rounded-xl bg-[#040711] overflow-hidden flex items-center justify-center p-2 mb-3 border border-white/5">
+          {primaryImage ? (
+            <img
+              src={primaryImage}
+              alt={offer.title}
+              className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300 ease-out"
+              loading="lazy"
+            />
+          ) : (
+            <div className="text-slate-600 text-xs">Sem foto</div>
+          )}
 
-        {/* Status overlay if not published */}
-        {offer.status !== 'publicada' && (
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/20 px-2.5 py-1 rounded border border-red-500/30">
-              {offer.status === 'vendida' ? 'Vendido' : 'Pausado'}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Product Details - Clean Mercado Livre Hierarchy */}
-      <div className="flex-1 flex flex-col justify-between min-w-0 h-full space-y-2.5">
-        {/* Top Meta Line: Condition + Store */}
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-400 truncate">
-            <span className="font-semibold text-slate-300">{offer.condition}</span>
-            <span>•</span>
-            <span className="truncate">Vendido por <strong className="text-slate-200 font-medium">{offer.sellerCompany}</strong></span>
-          </div>
-
-          {/* Favorite Button */}
+          {/* Botão de Favorito */}
           <button
             type="button"
             onClick={(e) => onToggleFavorite(offer.id, e)}
-            className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+            className={`absolute top-2 right-2 p-1.5 rounded-lg backdrop-blur-md transition-colors z-10 ${
               isFavorite
-                ? 'text-rose-500 bg-rose-500/10'
-                : 'text-slate-500 hover:text-white hover:bg-white/5'
+                ? 'text-rose-500 bg-rose-500/15 border border-rose-500/30'
+                : 'text-slate-400 hover:text-white bg-black/40 hover:bg-black/60 border border-white/10'
             }`}
             title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
           >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500' : ''}`} />
+            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500' : ''}`} />
           </button>
+
+          {/* Badge de indisponibilidade se não estiver publicada */}
+          {offer.status !== 'publicada' && (
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center z-10">
+              <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/20 px-2 py-0.5 rounded border border-red-500/30">
+                {offer.status === 'vendida' ? 'Vendido' : 'Pausado'}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Product Title */}
-        <h3 className="text-sm sm:text-base font-semibold text-white leading-snug line-clamp-2 group-hover:text-[#00D287] transition-colors">
+        {/* Linha 1: Condição + Quantidade Vendida Real */}
+        <div className="text-[11px] text-slate-400 font-medium truncate mb-1">
+          <span>{offer.condition}</span>
+          <span className="mx-1">•</span>
+          {salesCount > 0 ? (
+            <span className="text-slate-300 font-semibold">
+              +{salesCount} {salesCount === 1 ? 'vendido' : 'vendidos'}
+            </span>
+          ) : (
+            <span className="text-slate-400">Nenhum vendido ainda</span>
+          )}
+        </div>
+
+        {/* Linha 2: Título do Produto */}
+        <h3 className="text-xs sm:text-sm font-semibold text-white leading-snug line-clamp-2 group-hover:text-[#00D287] transition-colors min-h-[36px]">
           {offer.title}
         </h3>
 
-        {/* Price & Commercial Conditions */}
-        <div className="pt-1 space-y-0.5">
-          <div className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none">
+        {/* Linha 3: Avaliação Real (Sem inventar estrelas) */}
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {hasReviews ? (
+            <div className="flex items-center gap-1 text-xs">
+              <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                {offer.rating}
+              </span>
+              <span className="text-slate-400 text-[11px]">({offer.reviewsCount})</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+              <Star className="w-3 h-3 text-slate-500" />
+              <span>Sem avaliação</span>
+            </div>
+          )}
+        </div>
+
+        {/* Linha 4: Preço Principal */}
+        <div className="mt-2.5">
+          <div className="text-lg sm:text-xl font-black text-white tracking-tight leading-none">
             {formatBRL(offer.price)}
           </div>
-
-          <div className="text-[11px] text-slate-400">
-            em <span className="text-slate-300 font-medium">12x de {formatBRL(installment12x)}</span> sem acréscimo de lojista
+          <div className="text-[11px] text-slate-400 mt-1">
+            em <span className="text-slate-300 font-medium">12x de {formatBRL(installment12x)}</span> sem juros
           </div>
         </div>
 
-        {/* Shipping & Escrow Protection Row */}
-        <div className="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-3">
-            {offer.freeShipping ? (
-              <span className="flex items-center gap-1 font-bold text-[#00D287] text-xs">
-                <Truck className="w-3.5 h-3.5" />
-                Frete grátis
-              </span>
-            ) : offer.shippingCost ? (
-              <span className="text-xs text-slate-400">
-                + {formatBRL(offer.shippingCost)} frete
-              </span>
-            ) : (
-              <span className="text-xs text-slate-500">
-                Frete a calcular
-              </span>
-            )}
-
-            <span className="hidden sm:flex items-center gap-1 text-[11px] text-slate-500">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#00D287]" />
-              Custódia AurusPay
+        {/* Linha 5: Frete */}
+        <div className="mt-2">
+          {offer.freeShipping ? (
+            <span className="inline-flex items-center gap-1 font-bold text-[#00D287] text-xs">
+              <Truck className="w-3.5 h-3.5" />
+              Frete grátis
             </span>
-          </div>
-
-          <div className="flex items-center gap-1 text-xs text-[#00D287] font-semibold group-hover:translate-x-1 transition-transform">
-            <span>Ver oferta</span>
-            <ChevronRight className="w-4 h-4" />
-          </div>
+          ) : offer.shippingCost ? (
+            <span className="text-xs text-slate-400 font-medium">
+              + {formatBRL(offer.shippingCost)} frete
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">
+              Frete a combinar
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* Linha Inferior: Loja Vendedora */}
+      <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="flex items-center gap-1 min-w-0 truncate">
+          <Building2 className="w-3 h-3 text-slate-400 flex-shrink-0" />
+          <span className="truncate">por <strong className="text-slate-300 font-medium">{offer.sellerCompany}</strong></span>
+        </div>
+
+        <span className="text-[10px] text-[#00D287] font-semibold flex-shrink-0 flex items-center gap-0.5">
+          <ShieldCheck className="w-3 h-3" />
+          B2B
+        </span>
       </div>
     </div>
   );

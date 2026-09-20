@@ -201,14 +201,13 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 <span className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500/20 text-[#00D287] border border-emerald-500/30">
                   {offer.condition}
                 </span>
-                <span className="px-3 py-1 text-xs font-medium rounded-lg bg-slate-900 text-slate-300 border border-white/10">
-                  {offer.category}
+                <span className="px-2.5 py-1 text-xs text-slate-300 font-medium">
+                  {offer.salesCount && offer.salesCount > 0 ? `+${offer.salesCount} vendidos` : 'Nenhum vendido ainda'}
                 </span>
-                {offer.subcategory && (
-                  <span className="px-3 py-1 text-xs font-medium rounded-lg bg-slate-900 text-slate-400 border border-white/5">
-                    {offer.subcategory}
-                  </span>
-                )}
+                <span className="text-slate-600">•</span>
+                <span className="px-2.5 py-1 text-xs text-slate-400">
+                  {offer.rating && offer.reviewsCount && offer.reviewsCount > 0 ? `★ ${offer.rating} (${offer.reviewsCount} avaliações)` : 'Sem avaliações ainda'}
+                </span>
               </div>
 
               {/* Title */}

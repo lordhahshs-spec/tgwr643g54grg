@@ -374,7 +374,7 @@ export const SuperOfertasTab: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                   {regularOffers.map((offer) => (
                     <HorizontalOfferCard
                       key={offer.id}
