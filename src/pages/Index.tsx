@@ -22,20 +22,24 @@ const Index: React.FC = () => {
   const [isBanned, setIsBanned] = useState<boolean>(false);
 
   useEffect(() => {
-    // Initial user check
-    const user = leadAuthService.getCurrentUser();
-    if (!user) {
-      // If not logged in, send to login/cadastro
-      navigate('/login');
-      return;
-    }
-    setCurrentUser(user);
-    if (user.status === 'bloqueado') {
-      setIsBanned(true);
-    }
+    // Initial user check & auto-sync real UUID with Supabase
+    const initUser = async () => {
+      const user = await leadAuthService.syncCurrentUserWithDatabase() || leadAuthService.getCurrentUser();
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      setCurrentUser(user);
+      if (user.status === 'bloqueado') {
+        setIsBanned(true);
+      }
+    };
+
+    initUser();
 
     // Real-time ban status check against Supabase
     const interval = setInterval(async () => {
+      const user = leadAuthService.getCurrentUser();
       if (user?.id) {
         const { status, banReason } = await leadAuthService.checkUserStatus(user.id);
         if (status === 'bloqueado') {

@@ -167,12 +167,80 @@ export const leadAuthService = {
     try {
       const stored = localStorage.getItem(CURRENT_USER_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const user: UserAccount = JSON.parse(stored);
+        // Sanitização automática: se o ID for resquício de mock antigo (ex: "usr-1"), substitui pelo UUID real
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id || '');
+        if (!isUuid) {
+          if (user.email?.toLowerCase() === 'admin@auruspay.com') {
+            user.id = '43c63d10-68ba-4a82-b7e3-4ba18db6c7a1';
+            localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+          }
+        }
+        return user;
       }
       return null;
     } catch {
       return null;
     }
+  },
+
+  async syncCurrentUserWithDatabase(): Promise<UserAccount | null> {
+    const current = this.getCurrentUser();
+    if (!current) return null;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(current.id || '');
+    
+    // Se o ID já é um UUID válido, valida se a conta existe
+    if (isUuid) {
+      const { data } = await supabase
+        .from('user_accounts')
+        .select('*')
+        .eq('id', current.id)
+        .maybeSingle();
+
+      if (data) {
+        const synced: UserAccount = {
+          id: data.id,
+          companyName: data.company_name,
+          ownerName: data.owner_name,
+          cnpj: data.cnpj,
+          email: data.email,
+          role: data.role || 'lead',
+          status: data.status || 'ativo',
+          banReason: data.ban_reason || undefined,
+          createdAt: data.created_at,
+        };
+        this.setCurrentUser(synced);
+        return synced;
+      }
+    }
+
+    // Se o ID não for UUID válido ou não foi encontrado por ID, busca por e-mail
+    if (current.email) {
+      const { data: userByEmail } = await supabase
+        .from('user_accounts')
+        .select('*')
+        .eq('email', current.email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (userByEmail) {
+        const synced: UserAccount = {
+          id: userByEmail.id,
+          companyName: userByEmail.company_name,
+          ownerName: userByEmail.owner_name,
+          cnpj: userByEmail.cnpj,
+          email: userByEmail.email,
+          role: userByEmail.role || 'lead',
+          status: userByEmail.status || 'ativo',
+          banReason: userByEmail.ban_reason || undefined,
+          createdAt: userByEmail.created_at,
+        };
+        this.setCurrentUser(synced);
+        return synced;
+      }
+    }
+
+    return current;
   },
 
   setCurrentUser(user: UserAccount | null) {

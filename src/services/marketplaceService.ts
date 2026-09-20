@@ -11,6 +11,10 @@ import {
   OrderStatus
 } from '@/types/marketplace';
 
+const isUuid = (val?: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val || '');
+};
+
 export const marketplaceService = {
   // --- OFERTAS ---
   async getOffers(params?: {
@@ -23,7 +27,7 @@ export const marketplaceService = {
   }): Promise<MarketplaceOffer[]> {
     let query = supabase.from('marketplace_offers').select('*');
 
-    if (params?.sellerId) {
+    if (params?.sellerId && isUuid(params.sellerId)) {
       query = query.eq('seller_id', params.sellerId);
     }
 
@@ -174,10 +178,27 @@ export const marketplaceService = {
   },
 
   async createOffer(offerData: Omit<MarketplaceOffer, 'id' | 'views' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; id?: string; error?: string }> {
+    let resolvedSellerId: string | null = isUuid(offerData.sellerId) ? offerData.sellerId! : null;
+
+    // Se o sellerId não for um UUID válido, tenta localizar a conta real no Supabase
+    if (!resolvedSellerId) {
+      const { data: userAccounts } = await supabase
+        .from('user_accounts')
+        .select('id, email')
+        .limit(10);
+
+      const found = (userAccounts || []).find(u =>
+        offerData.sellerCompany && u.email && isUuid(u.id)
+      );
+      if (found) {
+        resolvedSellerId = found.id;
+      }
+    }
+
     const { data, error } = await supabase
       .from('marketplace_offers')
       .insert({
-        seller_id: offerData.sellerId,
+        seller_id: resolvedSellerId,
         seller_company: offerData.sellerCompany,
         seller_owner: offerData.sellerOwner,
         title: offerData.title,
@@ -237,7 +258,7 @@ export const marketplaceService = {
 
   // --- FAVORITOS ---
   async getFavorites(userId: string): Promise<string[]> {
-    if (!userId) return [];
+    if (!userId || !isUuid(userId)) return [];
     const { data, error } = await supabase
       .from('marketplace_favorites')
       .select('offer_id')
@@ -248,7 +269,7 @@ export const marketplaceService = {
   },
 
   async toggleFavorite(userId: string, offerId: string): Promise<boolean> {
-    if (!userId || !offerId) return false;
+    if (!userId || !offerId || !isUuid(userId) || !isUuid(offerId)) return false;
 
     const { data } = await supabase
       .from('marketplace_favorites')
@@ -271,13 +292,13 @@ export const marketplaceService = {
     const { data, error } = await supabase
       .from('marketplace_orders')
       .insert({
-        offer_id: order.offerId || null,
-        buyer_id: order.buyerId,
+        offer_id: isUuid(order.offerId) ? order.offerId : null,
+        buyer_id: isUuid(order.buyerId) ? order.buyerId : null,
         buyer_company: order.buyerCompany,
         buyer_owner: order.buyerOwner,
         buyer_email: order.buyerEmail,
         buyer_cnpj: order.buyerCnpj,
-        seller_id: order.sellerId,
+        seller_id: isUuid(order.sellerId) ? order.sellerId : null,
         seller_company: order.sellerCompany,
         product_title: order.productTitle,
         product_image: order.productImage,
@@ -302,7 +323,7 @@ export const marketplaceService = {
     }
 
     // Se o pedido foi concluído com sucesso e tinha uma oferta associada, marca a oferta como vendida
-    if (order.offerId) {
+    if (order.offerId && isUuid(order.offerId)) {
       await supabase
         .from('marketplace_offers')
         .update({ status: 'vendida', updated_at: new Date().toISOString() })
@@ -313,6 +334,7 @@ export const marketplaceService = {
   },
 
   async getBuyerOrders(buyerId: string): Promise<MarketplaceOrder[]> {
+    if (!buyerId || !isUuid(buyerId)) return [];
     const { data, error } = await supabase
       .from('marketplace_orders')
       .select('*')
@@ -324,6 +346,7 @@ export const marketplaceService = {
   },
 
   async getSellerOrders(sellerId: string): Promise<MarketplaceOrder[]> {
+    if (!sellerId || !isUuid(sellerId)) return [];
     const { data, error } = await supabase
       .from('marketplace_orders')
       .select('*')

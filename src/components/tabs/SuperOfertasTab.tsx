@@ -79,9 +79,15 @@ export const SuperOfertasTab: React.FC = () => {
   useEffect(() => {
     const user = leadAuthService.getCurrentUser();
     setCurrentUser(user);
-    if (user) {
+    if (user?.id) {
       loadFavorites(user.id);
     }
+    leadAuthService.syncCurrentUserWithDatabase().then((synced) => {
+      if (synced) {
+        setCurrentUser(synced);
+        loadFavorites(synced.id);
+      }
+    });
     loadData();
   }, []);
 
