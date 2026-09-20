@@ -102,7 +102,7 @@ const Index: React.FC = () => {
         </div>
 
         {/* Desktop Header for secondary tabs */}
-        {activeTab !== 'venda-android' && (
+        {activeTab !== 'venda-android' && activeTab !== 'super-ofertas' && (
           <header className="hidden lg:flex h-12 flex-shrink-0 bg-[#080c17]/90 border-b border-white/5 px-6 items-center justify-between backdrop-blur-md z-20">
             <h1 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#00D287]" />

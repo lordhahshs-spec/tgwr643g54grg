@@ -1,6 +1,6 @@
-export type TabId = 
-  | 'super-ofertas'
+export type TabId =
   | 'venda-android'
+  | 'super-ofertas'
   | 'cursos'
   | 'esquemas'
   | 'catalogo'
@@ -16,15 +16,15 @@ export interface TabItem {
 
 export const NAVIGATION_TABS: TabItem[] = [
   {
+    id: 'venda-android',
+    label: 'Venda de Android',
+    iconName: 'Smartphone',
+  },
+  {
     id: 'super-ofertas',
     label: 'Super Ofertas',
     iconName: 'Flame',
     badge: 'B2B',
-  },
-  {
-    id: 'venda-android',
-    label: 'Venda de Android',
-    iconName: 'Smartphone',
   },
   {
     id: 'cursos',

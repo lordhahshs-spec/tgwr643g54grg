@@ -137,68 +137,88 @@ export const SuperOfertasTab: React.FC = () => {
 
   return (
     <div className="w-full h-full overflow-y-auto bg-[#050811] text-slate-100 custom-scrollbar">
-      {/* Top Header Bar */}
-      <div className="relative border-b border-[#00D287]/15 bg-gradient-to-r from-[#070c18] via-[#0a1224] to-[#070c18] px-4 sm:px-8 py-6 overflow-hidden">
-        <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30">
-                <Flame className="w-3.5 h-3.5 fill-[#00D287]" />
-                Super Ofertas • B2B
-              </span>
-              <span className="text-xs text-slate-400 hidden sm:inline">Lojista para Lojista</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
-              Marketplace <span className="text-[#00D287]">Super Ofertas</span>
-            </h1>
+      {/* Sleek Top Header Bar (Compact, No Double Headers) */}
+      <header className="sticky top-0 z-30 h-14 bg-[#080c17]/95 border-b border-white/5 px-4 sm:px-8 flex items-center justify-between backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#00D287]" />
+            <span className="text-sm font-extrabold text-white tracking-tight">
+              Super <span className="text-[#00D287]">Ofertas</span>
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase">
+              B2B
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Botão Gerador de Ofertas de Exemplo */}
+          {/* Segmented View Switcher */}
+          <div className="hidden sm:flex items-center bg-[#050811] p-1 rounded-xl border border-white/5 ml-2">
             <button
-              onClick={handleGenerateSamples}
-              disabled={isGeneratingSamples}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-[#00D287]/25 to-teal-500/20 hover:from-emerald-500/35 hover:to-teal-500/35 text-[#00D287] border border-[#00D287]/40 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-[#00D287]/15 disabled:opacity-50 active:scale-95"
-              title="Criar exemplos nos formatos Stories 9:16 e Feed Horizontal"
-            >
-              <Sparkles className="w-4 h-4 text-[#00D287] animate-pulse" />
-              <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
-            </button>
-
-            {currentUser && (
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#00D287]/25 transition-all transform active:scale-95"
-              >
-                <Plus className="w-4 h-4 text-slate-950" />
-                <span>Criar Super Oferta</span>
-              </button>
-            )}
-
-            {(hotOffers.length > 0 || regularOffers.length > 0) && (
-              <button
-                onClick={handleClearAllOffers}
-                className="p-2.5 rounded-2xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors"
-                title="Limpar todas as ofertas (testar tela vazia)"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-
-            <button
-              onClick={() => setActiveView(activeView === 'explorar' ? 'painel' : 'explorar')}
-              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border transition-all flex items-center gap-2 ${
-                activeView === 'painel'
-                  ? 'bg-slate-800 text-[#00D287] border-[#00D287]/40'
-                  : 'bg-slate-950/80 hover:bg-slate-900 text-slate-300 border-white/10'
+              onClick={() => setActiveView('explorar')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeView === 'explorar'
+                  ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Package className="w-4 h-4" />
-              <span>{activeView === 'explorar' ? 'Meu Painel' : 'Ver Vitrine'}</span>
+              <Flame className="w-3.5 h-3.5" />
+              <span>Vitrine</span>
+            </button>
+            <button
+              onClick={() => setActiveView('painel')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeView === 'painel'
+                  ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Meu Painel</span>
             </button>
           </div>
         </div>
-      </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleGenerateSamples}
+            disabled={isGeneratingSamples}
+            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
+            title="Criar exemplos nos formatos Stories 9:16 e Feed Horizontal"
+          >
+            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            <span className="hidden md:inline">{isGeneratingSamples ? 'Gerando...' : 'Gerar Exemplos'}</span>
+          </button>
+
+          {currentUser && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-[#00D287]/25 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Criar Oferta</span>
+            </button>
+          )}
+
+          {(hotOffers.length > 0 || regularOffers.length > 0) && (
+            <button
+              onClick={handleClearAllOffers}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors"
+              title="Limpar todas as ofertas (testar tela vazia)"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Mobile view toggle */}
+          <button
+            onClick={() => setActiveView(activeView === 'explorar' ? 'painel' : 'explorar')}
+            className="sm:hidden p-2 rounded-xl bg-slate-900 text-slate-300 border border-white/10"
+            title="Alternar Painel / Vitrine"
+          >
+            <Package className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 space-y-10">
