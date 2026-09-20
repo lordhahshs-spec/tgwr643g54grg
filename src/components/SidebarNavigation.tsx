@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Smartphone, 
-  GraduationCap, 
-  Cpu, 
-  ShoppingBag, 
-  Repeat, 
-  Calculator, 
-  ChevronLeft, 
+import {
+  Smartphone,
+  GraduationCap,
+  Cpu,
+  ShoppingBag,
+  Repeat,
+  Calculator,
+  ChevronLeft,
   ChevronRight,
   Zap,
   Layers,
   Shield,
-  LogOut
+  LogOut,
+  Flame
 } from 'lucide-react';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -46,6 +47,8 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     }`;
 
     switch (iconName) {
+      case 'Flame':
+        return <Flame className={`${className} ${active ? 'text-[#00D287]' : 'text-emerald-400 group-hover:text-emerald-300'}`} />;
       case 'Smartphone':
         return <Smartphone className={className} />;
       case 'GraduationCap':
@@ -167,9 +170,16 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                   </div>
 
                   {(!isCollapsed || isMobileOpen) && (
-                    <span className="truncate tracking-tight">
-                      {tab.label}
-                    </span>
+                    <div className="flex items-center justify-between flex-1 min-w-0">
+                      <span className="truncate tracking-tight">
+                        {tab.label}
+                      </span>
+                      {tab.badge && (
+                        <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </button>
               );

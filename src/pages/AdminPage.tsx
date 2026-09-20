@@ -18,10 +18,11 @@ import {
   ShoppingBag, 
   RotateCw, 
   Cpu, 
-  FileText, 
-  Edit, 
+  FileText,
+  Edit,
   Upload,
-  X
+  X,
+  Flame
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,10 +31,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { catalogService, CatalogDevice } from '@/services/catalogService';
 import { schematicService, ElectricSchematic } from '@/services/schematicService';
+import { MarketplaceAdminSection } from '@/components/admin/MarketplaceAdminSection';
 
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
-  const [adminTab, setAdminTab] = useState<'users' | 'schematics' | 'catalog'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'schematics' | 'catalog' | 'marketplace'>('users');
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
   const [devices, setDevices] = useState<CatalogDevice[]>([]);
   const [schematics, setSchematics] = useState<ElectricSchematic[]>([]);
@@ -366,6 +368,32 @@ export const AdminPage: React.FC = () => {
                 <span className="truncate">Estoque de Aparelhos ({devices.length})</span>
               )}
             </button>
+
+            {/* Marketplace B2B Super Ofertas */}
+            <button
+              onClick={() => {
+                setAdminTab('marketplace');
+                setSearchQuery('');
+              }}
+              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
+                ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
+                ${adminTab === 'marketplace'
+                  ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] border border-transparent'
+                }
+              `}
+            >
+              {adminTab === 'marketplace' && (
+                <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
+              )}
+              <Flame className="w-4 h-4 text-[#00D287] flex-shrink-0" />
+              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">Super Ofertas B2B</span>
+                  <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-[#00D287]/20 text-[#00D287]">B2B</span>
+                </div>
+              )}
+            </button>
           </nav>
         </div>
 
@@ -424,6 +452,12 @@ export const AdminPage: React.FC = () => {
                 <>
                   <ShoppingBag className="w-4 h-4 text-[#00D287]" />
                   <span>Estoque Real de Celulares</span>
+                </>
+              )}
+              {adminTab === 'marketplace' && (
+                <>
+                  <Flame className="w-4 h-4 text-[#00D287]" />
+                  <span>Moderação Marketplace B2B (Super Ofertas)</span>
                 </>
               )}
             </h1>
@@ -841,6 +875,11 @@ export const AdminPage: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB 4: MARKETPLACE B2B (SUPER OFERTAS) */}
+          {adminTab === 'marketplace' && (
+            <MarketplaceAdminSection />
           )}
         </main>
       </div>

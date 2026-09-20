@@ -7,6 +7,7 @@ import { EsquemasTab } from '@/components/tabs/EsquemasTab';
 import { CatalogoTab } from '@/components/tabs/CatalogoTab';
 import { TradeInTab } from '@/components/tabs/TradeInTab';
 import { CalculadoraLucroTab } from '@/components/tabs/CalculadoraLucroTab';
+import { SuperOfertasTab } from '@/components/tabs/SuperOfertasTab';
 import { BannedScreen } from '@/components/BannedScreen';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
@@ -14,7 +15,7 @@ import { Menu } from 'lucide-react';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabId>('venda-android');
+  const [activeTab, setActiveTab] = useState<TabId>('super-ofertas');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
@@ -114,6 +115,7 @@ const Index: React.FC = () => {
 
         {/* Tab Content Display Area */}
         <main className="flex-1 h-full overflow-hidden relative">
+          {activeTab === 'super-ofertas' && <SuperOfertasTab />}
           {activeTab === 'venda-android' && <VendaAndroidTab />}
           {activeTab === 'cursos' && <CursosTab />}
           {activeTab === 'esquemas' && <EsquemasTab />}
