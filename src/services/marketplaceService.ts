@@ -85,6 +85,57 @@ export const marketplaceService = {
     }));
   },
 
+  // Busca exclusivamente ofertas com interações REAIS no banco de dados (views, favoritos ou pedidos)
+  async getHotOffers(): Promise<MarketplaceOffer[]> {
+    // 1. Busca ofertas publicadas
+    const allOffers = await this.getOffers({ status: 'publicada' });
+    if (allOffers.length === 0) return [];
+
+    // 2. Busca favoritos reais
+    const { data: favs } = await supabase
+      .from('marketplace_favorites')
+      .select('offer_id');
+
+    // 3. Busca pedidos reais
+    const { data: orders } = await supabase
+      .from('marketplace_orders')
+      .select('offer_id');
+
+    const favCounts: Record<string, number> = {};
+    (favs || []).forEach(f => {
+      if (f.offer_id) favCounts[f.offer_id] = (favCounts[f.offer_id] || 0) + 1;
+    });
+
+    const orderCounts: Record<string, number> = {};
+    (orders || []).forEach(o => {
+      if (o.offer_id) orderCounts[o.offer_id] = (orderCounts[o.offer_id] || 0) + 1;
+    });
+
+    // Calcula pontuação exclusivamente com dados reais existentes
+    const scoredOffers = allOffers.map(offer => {
+      const realFavorites = favCounts[offer.id] || 0;
+      const realOrders = orderCounts[offer.id] || 0;
+      const realViews = offer.views || 0;
+
+      // Score puramente baseado em dados reais
+      const score = (realOrders * 5) + (realFavorites * 2) + realViews;
+
+      return {
+        offer,
+        score,
+        hasRealInteraction: score > 0
+      };
+    });
+
+    // Retorna apenas as ofertas que realmente possuem interação real registrada
+    const hotList = scoredOffers
+      .filter(item => item.hasRealInteraction)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.offer);
+
+    return hotList;
+  },
+
   async getOfferById(id: string): Promise<MarketplaceOffer | null> {
     const { data, error } = await supabase
       .from('marketplace_offers')

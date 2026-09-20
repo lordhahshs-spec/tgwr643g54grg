@@ -232,7 +232,7 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                     <img
                       src={offer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400'}
                       alt=""
-                      className="w-16 h-16 rounded-xl object-cover bg-slate-950 flex-shrink-0"
+                      className="w-16 h-22 rounded-xl object-cover object-center bg-slate-950 flex-shrink-0 border border-white/5"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">

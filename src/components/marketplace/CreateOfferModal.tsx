@@ -252,39 +252,31 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                       <UploadCloud className="w-4 h-4 text-[#00D287]" />
-                      Fotos Reais do Produto
+                      Fotos Reais do Produto (Formato 9:16 Vertical / Stories)
                       <span className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
-                        images.length >= 3 
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                        images.length >= 3
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                           : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                       }`}>
                         {images.length}/3 fotos mínimas
                       </span>
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Para segurança dos lojistas compradores, cada oferta exige no mínimo 3 fotos nítidas.
+                      Proporção recomendada: <strong className="text-white">9:16 (Vertical / Stories de Celular)</strong>. As fotos devem ser nítidas e enquadradas sem distorção.
                     </p>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={addQuickPresetPhotos}
-                    className="text-xs text-[#00D287] hover:underline flex items-center gap-1 font-semibold"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Usar 3 fotos de teste
-                  </button>
                 </div>
 
-                {/* Image Previews Grid */}
+                {/* Image Previews Grid with 9:16 Aspect Ratio */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {images.map((img, idx) => (
-                    <div 
-                      key={idx} 
-                      className="relative aspect-square rounded-xl overflow-hidden bg-slate-950 border border-white/10 group"
+                    <div
+                      key={idx}
+                      className="relative aspect-[9/16] rounded-xl overflow-hidden bg-slate-950 border border-white/10 group"
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute top-1.5 left-1.5 bg-black/70 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
-                        #{idx + 1}
+                      <img src={img} alt="" className="w-full h-full object-cover object-center" />
+                      <div className="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
+                        #{idx + 1} • 9:16
                       </div>
                       <button
                         type="button"
@@ -298,7 +290,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
                   ))}
 
                   {/* Add Image Card (File upload) */}
-                  <label className="relative aspect-square rounded-xl border-2 border-dashed border-[#00D287]/40 hover:border-[#00D287] bg-[#00D287]/5 hover:bg-[#00D287]/10 flex flex-col items-center justify-center cursor-pointer transition-colors p-3 text-center">
+                  <label className="relative aspect-[9/16] rounded-xl border-2 border-dashed border-[#00D287]/40 hover:border-[#00D287] bg-[#00D287]/5 hover:bg-[#00D287]/10 flex flex-col items-center justify-center cursor-pointer transition-colors p-3 text-center">
                     <input
                       type="file"
                       accept="image/*"
@@ -307,8 +299,9 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
                       className="hidden"
                     />
                     <Plus className="w-6 h-6 text-[#00D287] mb-1" />
-                    <span className="text-xs font-bold text-white">Upload Foto</span>
-                    <span className="text-[10px] text-slate-400">ou arraste arquivo</span>
+                    <span className="text-xs font-bold text-white">Adicionar Foto</span>
+                    <span className="text-[10px] text-emerald-400 font-semibold mt-1">Formato 9:16</span>
+                    <span className="text-[9px] text-slate-500">ou arraste arquivo</span>
                   </label>
                 </div>
 
@@ -511,21 +504,35 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
               </div>
 
               {/* Preview Card Showcase */}
-              <div className="p-6 rounded-2xl bg-[#0a0f1e] border border-white/10 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-950 border border-white/10">
-                    <img src={images[0]} alt="" className="w-full h-full object-cover" />
+              <div className="p-6 rounded-2xl bg-[#0a0f1e] border border-white/10 grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-5 flex flex-col items-center">
+                  <span className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Preview Story (9:16)</span>
+                  <div className="w-48 aspect-[9/16] rounded-2xl overflow-hidden bg-slate-950 border border-white/10 relative shadow-xl">
+                    <img src={images[0]} alt="" className="w-full h-full object-cover object-center" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none" />
+                    <div className="absolute bottom-0 inset-x-0 p-3 text-left space-y-1">
+                      <h4 className="text-xs font-bold text-white line-clamp-2 leading-tight">{title}</h4>
+                      <div className="text-sm font-black text-[#00D287]">
+                        {formatBRL(parseFloat(price.replace(',', '.')) || 0)}
+                      </div>
+                      <div className="text-[10px] text-emerald-300">
+                        {freeShipping ? 'Frete grátis' : shippingCost ? `+ ${shippingCost} frete` : ''}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {currentUser.companyName}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2 mt-2">
-                    {images.slice(1).map((img, idx) => (
-                      <div key={idx} className="w-16 h-16 rounded-lg overflow-hidden border border-white/10">
-                        <img src={img} alt="" className="w-full h-full object-cover" />
+                  <div className="flex gap-2 mt-3 overflow-x-auto max-w-full">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="w-12 h-16 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
+                        <img src={img} alt="" className="w-full h-full object-cover object-center" />
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="md:col-span-7 space-y-3">
                   <div className="flex gap-2">
                     <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-[#00D287] font-bold">
                       {condition}
@@ -542,7 +549,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
                   </div>
 
                   <div className="text-xs text-slate-400">
-                    {freeShipping ? '✓ Frete Grátis para todo o Brasil' : `+ Frete de ${shippingCost || 'R$ 0,00'}`}
+                    {freeShipping ? '✓ Frete Grátis incluso' : `+ Frete de ${shippingCost || 'R$ 0,00'}`}
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5 text-xs text-slate-300 whitespace-pre-line">
