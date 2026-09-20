@@ -256,6 +256,200 @@ export const marketplaceService = {
     return !error;
   },
 
+  // Gera ofertas de exemplo para demonstrar tanto o formato Stories (Ofertas Quentes) quanto o formato Horizontal
+  async generateSampleOffers(currentUserId?: string): Promise<boolean> {
+    // Localiza um UUID válido de vendedor
+    let sellerId = isUuid(currentUserId) ? currentUserId! : null;
+    if (!sellerId) {
+      const { data } = await supabase.from('user_accounts').select('id').limit(1).maybeSingle();
+      if (data?.id && isUuid(data.id)) {
+        sellerId = data.id;
+      }
+    }
+
+    const samples = [
+      // OFERTAS QUENTES (com visualizações reais para aparecerem nos Stories 9:16)
+      {
+        seller_id: sellerId,
+        seller_company: 'Global Peças & Distribuição SP',
+        seller_owner: 'Carlos Eduardo',
+        title: 'Lote 10x Telas OLED iPhone 13 Pro 120Hz Grade A+',
+        category: 'Telas',
+        subcategory: 'Apple iPhone',
+        condition: 'Novo',
+        description: 'Lote fechado com 10 unidades de telas OLED 120Hz sem dead pixels. Testadas em bancada com garantia de 90 dias para lojistas parceiros.',
+        details: 'Part: OLED-IP13P-OEM. Acompanha vedação impermeável e kit de proteção para transporte seguro.',
+        price: 2490.00,
+        free_shipping: true,
+        shipping_cost: 0,
+        images: [
+          'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 84
+      },
+      {
+        seller_id: sellerId,
+        seller_company: 'TechLab Assistência Especializada',
+        seller_owner: 'Rodrigo Ramos',
+        title: 'Estação de Retrabalho e Solda Sugon 8620DX 1300W 220V',
+        category: 'Ferramentas',
+        subcategory: 'Estações de Solda',
+        condition: 'Seminovo',
+        description: 'Estação de ar quente profissional Sugon 8620DX original. Apenas 3 meses de uso em bancada limpa, completa com 4 bocais e sensor magnético.',
+        details: 'Potência 1300W real, fluxo de ar com memória rápida de 4 canais. Ideal para reballing de CPU e memórias.',
+        price: 1850.00,
+        free_shipping: false,
+        shipping_cost: 45.00,
+        images: [
+          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 120
+      },
+      {
+        seller_id: sellerId,
+        seller_company: 'SmartCenter Distribuidora',
+        seller_owner: 'Juliana Mendes',
+        title: 'Placa Mãe Samsung Galaxy S22 Ultra 256GB Nacional 100% Testada',
+        category: 'Componentes',
+        subcategory: 'Placas Principais',
+        condition: 'Usado',
+        description: 'Placa nacional homologada pela Anatel, sem bloqueios de operadora ou IMEI. Face ID, biometria e câmeras testadas.',
+        details: 'Sem conta vinculada, pronta para montagem imediata. 30 dias de garantia.',
+        price: 1190.00,
+        free_shipping: true,
+        shipping_cost: 0,
+        images: [
+          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 65
+      },
+      {
+        seller_id: sellerId,
+        seller_company: 'MaxPower Baterias Premium',
+        seller_owner: 'Fernando Albuquerque',
+        title: 'Kit 20x Baterias Linha iPhone (11, 12, 13, 14) 0 Ciclos TI Chip',
+        category: 'Baterias',
+        subcategory: 'iPhone',
+        condition: 'Novo',
+        description: 'Lote com 20 baterias novas de altíssima densidade com chip TI original. Sem mensagem de peça desconhecida quando programadas.',
+        details: 'Composição: 5x iPhone 11, 5x iPhone 12, 5x iPhone 13, 5x iPhone 14. Inclui fita adesiva original.',
+        price: 1480.00,
+        free_shipping: true,
+        shipping_cost: 0,
+        images: [
+          'https://images.unsplash.com/photo-1619725002198-6a689b72f41d?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 95
+      },
+
+      // DEMAIS OFERTAS (Formato Horizontal Retangular)
+      {
+        seller_id: sellerId,
+        seller_company: 'Bancada Express Ferramentas',
+        seller_owner: 'Marcos Vinicius',
+        title: 'Separadora de LCD com Bomba de Sucção a Vácuo Mechanic 968',
+        category: 'Máquinas',
+        subcategory: 'Separadoras',
+        condition: 'Seminovo',
+        description: 'Máquina separadora de touch e display com display digital de temperatura e vácuo integrado potente. Funcionamento perfeito.',
+        details: 'Voltagem: 110V/220V Bi-volt. Superfície em liga de alumínio térmica.',
+        price: 490.00,
+        free_shipping: false,
+        shipping_cost: 32.00,
+        images: [
+          'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 0
+      },
+      {
+        seller_id: sellerId,
+        seller_company: 'Mega Componentes Brasil',
+        seller_owner: 'Luciano Silva',
+        title: 'Pacote 50x Conectores de Carga Tipo-C SMD Universal Fita Reforçada',
+        category: 'Conectores',
+        subcategory: 'Tipo-C',
+        condition: 'Novo',
+        description: 'Lote de conectores USB Type-C padrão para reposição em bancada. Terminais com banho de ouro para soldagem perfeita.',
+        details: 'Fita selada de fábrica. Compatível com dezenas de modelos Motorola, Xiaomi e Samsung.',
+        price: 189.00,
+        free_shipping: true,
+        shipping_cost: 0,
+        images: [
+          'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 0
+      },
+      {
+        seller_id: sellerId,
+        seller_company: 'Micro Solda Lab Equipamentos',
+        seller_owner: 'Gabriel Barbosa',
+        title: 'Microscópio Óptico Trinocular Mechanic MC75T com Câmera 4K HDMI',
+        category: 'Ferramentas',
+        subcategory: 'Microscópios',
+        condition: 'Novo',
+        description: 'Microscópio trinocular profissional completo com braço articulado reforçado, lente Barlow 0.5x, iluminador LED 56 pontos e câmera 4K.',
+        details: 'Zoom óptico contínuo 7X a 45X. Saída HDMI direta para monitor ou TV de bancada.',
+        price: 2890.00,
+        free_shipping: true,
+        shipping_cost: 0,
+        images: [
+          'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 0
+      },
+      {
+        seller_id: sellerId,
+        seller_company: 'Centro Peças & Distribuição',
+        seller_owner: 'Patrícia Rocha',
+        title: 'Lote 5x Carcaças Completas iPhone 12 Original sem Riscos com Gaveta',
+        category: 'Lotes',
+        subcategory: 'Carcaças',
+        condition: 'Seminovo',
+        description: 'Lote com 5 carcaças retiradas de aparelhos vitrine sem marcas de queda. Acompanha botões laterais, flex de volume/power e gaveta de SIM.',
+        details: 'Cores: 2x Azul, 2x Preto, 1x Branco. Originais Apple sem empenamento.',
+        price: 950.00,
+        free_shipping: false,
+        shipping_cost: 28.00,
+        images: [
+          'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&auto=format&fit=crop&q=80'
+        ],
+        status: 'publicada',
+        views: 0
+      }
+    ];
+
+    const { error } = await supabase.from('marketplace_offers').insert(samples);
+    return !error;
+  },
+
+  async clearAllOffers(): Promise<boolean> {
+    const { error } = await supabase.from('marketplace_offers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    return !error;
+  },
+
   // --- FAVORITOS ---
   async getFavorites(userId: string): Promise<string[]> {
     if (!userId || !isUuid(userId)) return [];

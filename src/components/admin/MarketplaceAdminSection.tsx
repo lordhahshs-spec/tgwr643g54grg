@@ -14,7 +14,8 @@ import {
   Package,
   DollarSign,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
@@ -138,6 +139,24 @@ export const MarketplaceAdminSection: React.FC = () => {
     }
   };
 
+  const handleGenerateSamples = async () => {
+    const success = await marketplaceService.generateSampleOffers();
+    if (success) {
+      toast.success('Ofertas de exemplo geradas no banco com sucesso!');
+      loadData();
+    } else {
+      toast.error('Erro ao gerar ofertas de exemplo.');
+    }
+  };
+
+  const handleClearAllOffers = async () => {
+    if (window.confirm('Deseja excluir todas as ofertas cadastradas?')) {
+      await marketplaceService.clearAllOffers();
+      toast.info('Todas as ofertas foram removidas.');
+      loadData();
+    }
+  };
+
   const filteredOffers = offers.filter(o => 
     o.title.toLowerCase().includes(search.toLowerCase()) ||
     o.sellerCompany.toLowerCase().includes(search.toLowerCase()) ||
@@ -158,6 +177,24 @@ export const MarketplaceAdminSection: React.FC = () => {
           <p className="text-xs text-slate-400 mt-1">
             Controle de intermediação, custódia de transações entre lojistas e moderação de anúncios.
           </p>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              onClick={handleGenerateSamples}
+              className="px-3 py-1.5 rounded-xl bg-[#00D287]/20 hover:bg-[#00D287]/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Gerar Ofertas de Exemplo
+            </button>
+            {offers.length > 0 && (
+              <button
+                onClick={handleClearAllOffers}
+                className="px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Limpar Ofertas
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Subtabs Menu */}

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Flame, 
-  Search, 
-  Plus, 
-  Package, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Flame,
+  Search,
+  Plus,
+  Package,
+  ChevronLeft,
+  ChevronRight,
   RefreshCw,
   ShoppingBag,
   Sparkles,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Trash2
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
@@ -72,9 +73,36 @@ export const SuperOfertasTab: React.FC = () => {
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
   const [selectedOfferForCheckout, setSelectedOfferForCheckout] = useState<MarketplaceOffer | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isGeneratingSamples, setIsGeneratingSamples] = useState(false);
 
   // Carousel ref for smooth horizontal scrolling
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  const handleGenerateSamples = async () => {
+    setIsGeneratingSamples(true);
+    try {
+      const success = await marketplaceService.generateSampleOffers(currentUser?.id);
+      if (success) {
+        toast.success('8 ofertas de exemplo geradas com sucesso! (Stories 9:16 e Feed Horizontal)');
+        await loadData();
+      } else {
+        toast.error('Erro ao gerar ofertas de exemplo.');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao conectar ao banco de dados.');
+    } finally {
+      setIsGeneratingSamples(false);
+    }
+  };
+
+  const handleClearAllOffers = async () => {
+    if (window.confirm('Deseja excluir todas as ofertas para testar o estado vazio?')) {
+      await marketplaceService.clearAllOffers();
+      toast.info('Todas as ofertas foram removidas.');
+      await loadData();
+    }
+  };
 
   useEffect(() => {
     const user = leadAuthService.getCurrentUser();
@@ -174,14 +202,35 @@ export const SuperOfertasTab: React.FC = () => {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Botão Gerador de Ofertas de Exemplo */}
+            <button
+              onClick={handleGenerateSamples}
+              disabled={isGeneratingSamples}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-[#00D287]/25 to-teal-500/20 hover:from-emerald-500/35 hover:to-teal-500/35 text-[#00D287] border border-[#00D287]/40 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-[#00D287]/15 disabled:opacity-50 active:scale-95"
+              title="Criar exemplos nos formatos Stories 9:16 e Feed Horizontal"
+            >
+              <Sparkles className="w-4 h-4 text-[#00D287] animate-pulse" />
+              <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
+            </button>
+
             {currentUser && (
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="px-5 py-2.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#00D287]/25 transition-all transform active:scale-95"
+                className="px-4 py-2.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#00D287]/25 transition-all transform active:scale-95"
               >
                 <Plus className="w-4 h-4 text-slate-950" />
                 <span>Criar Super Oferta</span>
+              </button>
+            )}
+
+            {(hotOffers.length > 0 || regularOffers.length > 0) && (
+              <button
+                onClick={handleClearAllOffers}
+                className="p-2.5 rounded-2xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors"
+                title="Limpar todas as ofertas (testar tela vazia)"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
 
@@ -290,14 +339,25 @@ export const SuperOfertasTab: React.FC = () => {
                     </div>
                   </div>
 
-                  {currentUser && (
+                  <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 flex-shrink-0">
                     <button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-[#00D287] border border-[#00D287]/30 text-xs font-bold transition-all flex-shrink-0"
+                      onClick={handleGenerateSamples}
+                      disabled={isGeneratingSamples}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold transition-all flex items-center gap-1.5"
                     >
-                      Cadastrar Oferta
+                      <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
+                      Gerar Exemplos (Stories & Feed)
                     </button>
-                  )}
+
+                    {currentUser && (
+                      <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-white/10 text-xs font-bold transition-all"
+                      >
+                        Cadastrar Oferta
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </section>
@@ -412,15 +472,26 @@ export const SuperOfertasTab: React.FC = () => {
                         : 'Seja o primeiro lojista a publicar uma oferta no Marketplace B2B!'}
                     </p>
                   </div>
-                  {currentUser && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                     <button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="px-5 py-2.5 rounded-xl bg-[#00D287] text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/20"
+                      onClick={handleGenerateSamples}
+                      disabled={isGeneratingSamples}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all"
                     >
-                      <Plus className="w-4 h-4" />
-                      Publicar Primeira Oferta
+                      <Sparkles className="w-4 h-4 text-[#00D287]" />
+                      <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
                     </button>
-                  )}
+
+                    {currentUser && (
+                      <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="px-5 py-2.5 rounded-xl bg-[#00D287] text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/20"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Publicar Primeira Oferta
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
