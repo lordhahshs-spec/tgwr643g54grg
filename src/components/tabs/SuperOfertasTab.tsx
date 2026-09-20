@@ -333,27 +333,8 @@ export const SuperOfertasTab: React.FC = () => {
               )}
             </section>
 
-            {/* ========================================================================= */}
-            {/* 2. SEÇÃO INFERIOR: DEMAIS OFERTAS / FEED HORIZONTAL ESCALONADO */}
-            {/* ========================================================================= */}
-            <section className="space-y-4 pt-4 border-t border-white/5">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
-                <div>
-                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight leading-none">
-                    Demais Ofertas
-                  </h2>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Explore todas as peças, equipamentos e lotes disponíveis na rede de lojistas
-                  </p>
-                </div>
-
-                <span className="text-xs text-slate-400 font-medium">
-                  {regularOffers.length} {regularOffers.length === 1 ? 'oferta disponível' : 'ofertas disponíveis'}
-                </span>
-              </div>
-
-              {/* Feed de Ofertas Horizontais com Efeito Escalonado */}
+            {/* Feed Contínuo de Ofertas (Sem divisão ou título intermediário) */}
+            <section className="space-y-4">
               {loading ? (
                 <div className="py-16 text-center space-y-3">
                   <RefreshCw className="w-6 h-6 text-[#00D287] animate-spin mx-auto" />
