@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Flame,
-  Search,
   Plus,
   Package,
   ChevronLeft,
@@ -9,14 +8,9 @@ import {
   RefreshCw,
   ShoppingBag,
   Sparkles,
-  SlidersHorizontal,
   Trash2
 } from 'lucide-react';
-import { 
-  MarketplaceOffer, 
-  OfferCategory, 
-  OfferCondition 
-} from '@/types/marketplace';
+import { MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { StoryOfferCard } from '@/components/marketplace/StoryOfferCard';
@@ -27,32 +21,6 @@ import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 import { MyMarketplacePanel } from '@/components/marketplace/MyMarketplacePanel';
 import { toast } from 'sonner';
 
-const CATEGORIES: (OfferCategory | 'Todas')[] = [
-  'Todas',
-  'Celulares',
-  'Peças',
-  'Telas',
-  'Baterias',
-  'Conectores',
-  'Acessórios',
-  'Ferramentas',
-  'Máquinas',
-  'Eletrônicos',
-  'Componentes',
-  'Lotes',
-  'Outros'
-];
-
-const CONDITIONS: (OfferCondition | 'Todas')[] = [
-  'Todas',
-  'Novo',
-  'Seminovo',
-  'Usado',
-  'Recondicionado',
-  'Com avaria',
-  'Para retirada de peças'
-];
-
 export const SuperOfertasTab: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [activeView, setActiveView] = useState<'explorar' | 'painel'>('explorar');
@@ -62,12 +30,6 @@ export const SuperOfertasTab: React.FC = () => {
   const [regularOffers, setRegularOffers] = useState<MarketplaceOffer[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Filters
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<OfferCategory | 'Todas'>('Todas');
-  const [selectedCondition, setSelectedCondition] = useState<OfferCondition | 'Todas'>('Todas');
-  const [sortBy, setSortBy] = useState<'recent' | 'price_asc' | 'price_desc' | 'views'>('recent');
 
   // Modals
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
@@ -131,12 +93,8 @@ export const SuperOfertasTab: React.FC = () => {
       const hot = await marketplaceService.getHotOffers();
       setHotOffers(hot);
 
-      // 2. Carrega lista geral com filtros aplicados
+      // 2. Carrega lista geral de ofertas
       const regular = await marketplaceService.getOffers({
-        search,
-        category: selectedCategory,
-        condition: selectedCondition,
-        sortBy,
         status: 'publicada',
       });
       setRegularOffers(regular);
@@ -147,13 +105,6 @@ export const SuperOfertasTab: React.FC = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadData();
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [search, selectedCategory, selectedCondition, sortBy]);
 
   const handleToggleFavorite = async (offerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -365,91 +316,21 @@ export const SuperOfertasTab: React.FC = () => {
             {/* ========================================================================= */}
             {/* 2. SEÇÃO INFERIOR: DEMAIS OFERTAS / FEED HORIZONTAL ESCALONADO */}
             {/* ========================================================================= */}
-            <section className="space-y-5 pt-4 border-t border-white/5">
-              {/* Header & Filter Controls */}
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-black text-white tracking-tight leading-none">
-                      Demais Ofertas
-                    </h2>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Explore todas as peças, equipamentos e lotes disponíveis na rede de lojistas
-                    </p>
-                  </div>
-
-                  <span className="text-xs text-slate-400 font-medium">
-                    {regularOffers.length} {regularOffers.length === 1 ? 'oferta disponível' : 'ofertas disponíveis'}
-                  </span>
+            <section className="space-y-4 pt-4 border-t border-white/5">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-white tracking-tight leading-none">
+                    Demais Ofertas
+                  </h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Explore todas as peças, equipamentos e lotes disponíveis na rede de lojistas
+                  </p>
                 </div>
 
-                {/* Filters Row */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                  <div className="md:col-span-6 relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Buscar por produto, lote, ferramenta, modelo..."
-                      className="w-full rounded-xl bg-[#090e1c] border border-white/10 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-[#00D287] focus:outline-none"
-                    />
-                    {search && (
-                      <button
-                        onClick={() => setSearch('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
-                      >
-                        Limpar
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="md:col-span-3">
-                    <select
-                      value={selectedCondition}
-                      onChange={(e: any) => setSelectedCondition(e.target.value)}
-                      className="w-full rounded-xl bg-[#090e1c] border border-white/10 px-3 py-2.5 text-xs sm:text-sm text-slate-200 focus:border-[#00D287] focus:outline-none"
-                    >
-                      <option value="Todas">Todas as Condições</option>
-                      {CONDITIONS.filter(c => c !== 'Todas').map((cond) => (
-                        <option key={cond} value={cond}>{cond}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-3">
-                    <select
-                      value={sortBy}
-                      onChange={(e: any) => setSortBy(e.target.value)}
-                      className="w-full rounded-xl bg-[#090e1c] border border-white/10 px-3 py-2.5 text-xs sm:text-sm text-slate-200 focus:border-[#00D287] focus:outline-none"
-                    >
-                      <option value="recent">Mais Recentes</option>
-                      <option value="price_asc">Menor Preço</option>
-                      <option value="price_desc">Maior Preço</option>
-                      <option value="views">Mais Visualizados</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Category Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {CATEGORIES.map((cat) => {
-                    const isSelected = selectedCategory === cat;
-                    return (
-                      <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                          isSelected
-                            ? 'bg-[#00D287]/20 border-[#00D287] text-[#00D287]'
-                            : 'bg-[#090e1c] border-white/5 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span className="text-xs text-slate-400 font-medium">
+                  {regularOffers.length} {regularOffers.length === 1 ? 'oferta disponível' : 'ofertas disponíveis'}
+                </span>
               </div>
 
               {/* Feed de Ofertas Horizontais com Efeito Escalonado */}
@@ -467,9 +348,7 @@ export const SuperOfertasTab: React.FC = () => {
                   <div>
                     <h3 className="text-base font-bold text-white">Nenhuma oferta cadastrada no momento</h3>
                     <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                      {search || selectedCategory !== 'Todas' || selectedCondition !== 'Todas'
-                        ? 'Nenhum item corresponde aos filtros selecionados. Tente redefinir a busca.'
-                        : 'Seja o primeiro lojista a publicar uma oferta no Marketplace B2B!'}
+                      Seja o primeiro lojista a publicar uma oferta no Marketplace B2B!
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
