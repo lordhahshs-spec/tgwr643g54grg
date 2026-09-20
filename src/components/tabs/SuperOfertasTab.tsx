@@ -374,15 +374,14 @@ export const SuperOfertasTab: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {regularOffers.map((offer, idx) => (
+                <div className="space-y-3">
+                  {regularOffers.map((offer) => (
                     <HorizontalOfferCard
                       key={offer.id}
                       offer={offer}
                       isFavorite={favorites.includes(offer.id)}
                       onToggleFavorite={handleToggleFavorite}
                       onSelect={(off) => setSelectedOfferForDetails(off)}
-                      isStepped={idx % 2 === 1}
                     />
                   ))}
                 </div>
