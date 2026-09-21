@@ -127,11 +127,28 @@ export const SuperOfertasTab: React.FC = () => {
     setSelectedOfferForCheckout(offer);
   };
 
+  // Dynamic Scroll States for Stories Carousel
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = () => {
+    if (carouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+      setCanScrollLeft(scrollLeft > 15);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 15);
+    }
+  };
+
+  useEffect(() => {
+    updateScrollState();
+  }, [hotOffers]);
+
   // Carousel navigation handlers
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
-      const scrollAmount = direction === 'left' ? -350 : 350;
+      const scrollAmount = direction === 'left' ? -380 : 380;
       carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      setTimeout(updateScrollState, 350);
     }
   };
 
@@ -251,49 +268,54 @@ export const SuperOfertasTab: React.FC = () => {
                     </p>
                   </div>
                 </div>
-
-                {/* Desktop Carousel Scroll Arrows */}
-                {hotOffers.length > 0 && (
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    <button
-                      onClick={() => scrollCarousel('left')}
-                      className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors"
-                      title="Anterior"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => scrollCarousel('right')}
-                      className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors"
-                      title="Próximo"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {/* Stories Carousel Content */}
+              {/* Stories Carousel Content with Dynamic Floating Buttons */}
               {loading ? (
                 <div className="flex items-center justify-center py-12 text-slate-400 text-xs">
                   <RefreshCw className="w-5 h-5 animate-spin mr-2 text-[#00D287]" />
                   Consultando ofertas do banco de dados...
                 </div>
               ) : hotOffers.length > 0 ? (
-                <div
-                  ref={carouselRef}
-                  className="flex items-center gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scroll-smooth no-scrollbar"
-                >
-                  {hotOffers.map((offer) => (
-                    <div key={offer.id} className="snap-start">
-                      <StoryOfferCard
-                        offer={offer}
-                        isFavorite={favorites.includes(offer.id)}
-                        onToggleFavorite={handleToggleFavorite}
-                        onSelect={(off) => setSelectedOfferForDetails(off)}
-                      />
-                    </div>
-                  ))}
+                <div className="relative group">
+                  {/* Botão Dinâmico Esquerdo Flutuante sobre os Stories */}
+                  {canScrollLeft && (
+                    <button
+                      onClick={() => scrollCarousel('left')}
+                      className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-slate-950/85 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/20 hover:border-[#00D287] shadow-2xl backdrop-blur-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-black/80"
+                      title="Voltar ofertas"
+                    >
+                      <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+                    </button>
+                  )}
+
+                  {/* Botão Dinâmico Direito Flutuante sobre os Stories */}
+                  {canScrollRight && (
+                    <button
+                      onClick={() => scrollCarousel('right')}
+                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-slate-950/85 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/20 hover:border-[#00D287] shadow-2xl backdrop-blur-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-black/80"
+                      title="Avançar ofertas"
+                    >
+                      <ChevronRight className="w-6 h-6 stroke-[2.5]" />
+                    </button>
+                  )}
+
+                  <div
+                    ref={carouselRef}
+                    onScroll={updateScrollState}
+                    className="flex items-center gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scroll-smooth no-scrollbar"
+                  >
+                    {hotOffers.map((offer) => (
+                      <div key={offer.id} className="snap-start">
+                        <StoryOfferCard
+                          offer={offer}
+                          isFavorite={favorites.includes(offer.id)}
+                          onToggleFavorite={handleToggleFavorite}
+                          onSelect={(off) => setSelectedOfferForDetails(off)}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 /* Estado Vazio Apropriado para Ofertas Quentes (Sem dados fictícios) */
