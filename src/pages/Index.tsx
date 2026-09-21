@@ -28,19 +28,8 @@ const Index: React.FC = () => {
     const initUser = async () => {
       const user = await leadAuthService.syncCurrentUserWithDatabase() || leadAuthService.getCurrentUser();
       if (!user) {
-        // Visitante acessando a demonstração sem login prévio
-        const guestDemoUser: UserAccount = {
-          id: 'demo-guest-user',
-          companyName: 'Lojista Visitante',
-          ownerName: 'Modo Demonstração',
-          cnpj: 'Acesso Degustação',
-          email: '',
-          role: 'lead',
-          status: 'ativo',
-          planStatus: 'demo',
-          createdAt: new Date().toISOString(),
-        };
-        setCurrentUser(guestDemoUser);
+        // Redireciona obrigatoriamente para a tela de cadastro/login
+        navigate('/login');
         return;
       }
       setCurrentUser(user);
@@ -54,7 +43,7 @@ const Index: React.FC = () => {
     // Real-time ban status check against Supabase
     const interval = setInterval(async () => {
       const user = leadAuthService.getCurrentUser();
-      if (user?.id && user.id !== 'demo-guest-user') {
+      if (user?.id) {
         const { status, banReason, planStatus } = await leadAuthService.checkUserStatus(user.id);
         if (status === 'bloqueado') {
           setIsBanned(true);
@@ -188,7 +177,7 @@ const Index: React.FC = () => {
       <UnlockPlatformModal
         isOpen={isUnlockModalOpen}
         onClose={() => setIsUnlockModalOpen(false)}
-        currentUser={currentUser?.id === 'demo-guest-user' ? null : currentUser}
+        currentUser={currentUser}
         initialReason={unlockReason}
         onSuccess={(updatedUser) => {
           setCurrentUser(updatedUser);

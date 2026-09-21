@@ -120,20 +120,28 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           {(!isCollapsed || isMobileOpen) && (
             <div className="px-3 pt-3 pb-1 space-y-1.5">
               <div className="bg-slate-950/80 border border-white/5 rounded-xl p-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-[#00D287]/15 text-[#00D287] flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {(currentUser?.ownerName || 'V').charAt(0).toUpperCase()}
-                  </div>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {currentUser?.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt=""
+                      className="w-7 h-7 rounded-lg object-contain bg-slate-900 border border-white/10 flex-shrink-0 p-0.5"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      {(currentUser?.tradeName || currentUser?.companyName || 'L').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-semibold text-white truncate leading-tight">
-                      {currentUser?.ownerName || 'Visitante'}
+                    <span className="text-xs font-bold text-white truncate leading-tight">
+                      {currentUser?.tradeName || currentUser?.companyName || 'Minha Loja'}
                     </span>
                     <span className="text-[10px] text-slate-400 truncate">
-                      {currentUser?.cnpj || 'Modo Demonstração'}
+                      {currentUser?.cnpj || 'CNPJ Verificado'}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {currentUser?.role === 'admin' ? (
                     <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
                       Admin

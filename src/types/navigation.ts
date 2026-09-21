@@ -14,8 +14,9 @@ export interface TabItem {
 export const NAVIGATION_TABS: TabItem[] = [
   {
     id: 'venda-android',
-    label: 'Venda de Android',
+    label: 'Balcão de Vendas (Boleto)',
     iconName: 'Smartphone',
+    badge: 'Bloqueio',
   },
   {
     id: 'super-ofertas',

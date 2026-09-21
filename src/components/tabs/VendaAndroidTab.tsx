@@ -38,7 +38,7 @@ export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false
             <div className="absolute inset-0 rounded-full border-3 border-[#00D287]/20 border-t-[#00D287] animate-spin" />
           </div>
           <p className="text-xs font-medium text-slate-400 mt-3 tracking-wide">
-            Carregando simulador...
+            Carregando sistema de balcão...
           </p>
         </div>
       )}
@@ -47,9 +47,9 @@ export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false
       <iframe
         key={iframeKey}
         src={aurusUrl}
-        title="Venda de Android"
+        title="Balcão de Vendas no Boleto"
         onLoad={() => setIsLoading(false)}
-        className={`w-full h-full border-0 bg-white transition-opacity ${isDemo ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}
+        className={`w-full h-full border-0 bg-white transition-opacity ${isDemo ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation"
       />
@@ -57,8 +57,8 @@ export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false
       {/* Demo Mode Lock Overlay */}
       {isDemo && (
         <DemoLockedOverlay
-          title="Simulador de Venda e Margem Android Bloqueado"
-          description="Você está na versão de demonstração. Para simular vendas em tempo real, calcular parcelamento e gerar propostas para clientes, desbloqueie seu acesso vitalício."
+          title="Balcão de Vendas no Boleto Bloqueado"
+          description="Sistema de balcão para venda de celulares parcelados no boleto com trava e bloqueio remoto anti-inadimplência. Desbloqueie sua conta para emitir vendas e gerenciar aparelhos."
           onUnlock={() => onUnlock?.()}
         />
       )}

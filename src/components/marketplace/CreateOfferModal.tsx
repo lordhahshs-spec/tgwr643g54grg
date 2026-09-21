@@ -166,7 +166,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
 
     const result = await marketplaceService.createOffer({
       sellerId: currentUser.id,
-      sellerCompany: currentUser.companyName,
+      sellerCompany: currentUser.tradeName || currentUser.companyName,
       sellerOwner: currentUser.ownerName,
       sellerEmail: currentUser.email,
       sellerCnpj: currentUser.cnpj,

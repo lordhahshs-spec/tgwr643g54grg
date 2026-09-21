@@ -2,8 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import VSLPage from "./pages/VSL";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import Index from "./pages/Index";
@@ -18,19 +17,18 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* 1. Página de VSL Inicial */}
-          <Route path="/" element={<VSLPage />} />
-          
-          {/* 2. Aba de Login / Cadastro pós-VSL (Nome da Empresa, Nome do Dono, CNPJ, Email, Senha) */}
+          {/* 1. Página Inicial de Acesso: Cadastro / Login da Loja */}
+          <Route path="/" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/cadastro" element={<AuthPage />} />
+          <Route path="/vsl" element={<Navigate to="/" replace />} />
 
-          {/* 3. Plataforma Principal da Loja com Simulador e Módulos */}
+          {/* 2. Plataforma Principal da Loja (Requer conta cadastrada; bloqueada se plano demo) */}
           <Route path="/app" element={<Index />} />
           <Route path="/plataforma" element={<Index />} />
           <Route path="/demo" element={<Index />} />
 
-          {/* 4. Painel Administrativo Geral com Gestão de Usuários */}
+          {/* 3. Painel Administrativo Geral (Acesso exclusivo master admin) */}
           <Route path="/admin" element={<AdminPage />} />
 
           {/* Fallback */}

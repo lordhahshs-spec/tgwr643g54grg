@@ -2,24 +2,28 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface UserAccount {
   id: string;
-  companyName: string;
-  ownerName: string;
+  companyName: string; // Nome da loja
+  tradeName?: string; // Nome fantasia da loja
+  ownerName: string; // Nome do responsável
   cnpj: string;
   email: string;
+  whatsapp?: string; // WhatsApp do lojista
+  avatarUrl?: string; // Imagem/logo da loja
   password?: string;
   role: 'lead' | 'admin';
   status: 'ativo' | 'analise' | 'bloqueado';
-  planStatus: 'demo' | 'ativo'; // 'demo' = degustação / não pagante; 'ativo' = acesso vitalício liberado
+  planStatus: 'demo' | 'ativo'; // 'demo' = bloqueado/não pagante; 'ativo' = vitalício liberado
   banReason?: string;
   createdAt: string;
 }
 
-const CURRENT_USER_KEY = 'aurus_current_user';
+const CURRENT_USER_KEY = 'cellhub_current_user';
 
 export const leadAuthService = {
   // Clear any old fake leads from localStorage
   cleanupLegacyFakeData() {
     localStorage.removeItem('aurus_user_accounts');
+    localStorage.removeItem('aurus_current_user');
   },
 
   isDemoMode(user: UserAccount | null): boolean {
@@ -43,9 +47,12 @@ export const leadAuthService = {
     return (data || []).map((row: any) => ({
       id: row.id,
       companyName: row.company_name,
-      ownerName: row.owner_name,
+      tradeName: row.trade_name || undefined,
+      ownerName: row.owner_name || row.trade_name || row.company_name,
       cnpj: row.cnpj,
       email: row.email,
+      whatsapp: row.whatsapp || undefined,
+      avatarUrl: row.avatar_url || undefined,
       password: row.password,
       role: row.role || 'lead',
       status: row.status || 'ativo',
@@ -57,9 +64,12 @@ export const leadAuthService = {
 
   async registerAccount(data: {
     companyName: string;
-    ownerName: string;
+    tradeName?: string;
+    ownerName?: string;
     cnpj: string;
     email: string;
+    whatsapp?: string;
+    avatarUrl?: string;
     password: string;
     initialPlanStatus?: 'demo' | 'ativo';
   }): Promise<{ user?: UserAccount; error?: string }> {
@@ -78,14 +88,18 @@ export const leadAuthService = {
     }
 
     const assignedPlan = data.initialPlanStatus || 'demo';
+    const ownerName = data.ownerName?.trim() || data.tradeName?.trim() || data.companyName.trim();
 
     const { data: inserted, error } = await supabase
       .from('user_accounts')
       .insert({
         company_name: data.companyName.trim(),
-        owner_name: data.ownerName.trim(),
+        trade_name: data.tradeName?.trim() || null,
+        owner_name: ownerName,
         cnpj: data.cnpj.trim(),
         email: cleanEmail,
+        whatsapp: data.whatsapp?.trim() || null,
+        avatar_url: data.avatarUrl || null,
         password: data.password,
         role: 'lead',
         status: 'ativo',
@@ -102,9 +116,12 @@ export const leadAuthService = {
     const user: UserAccount = {
       id: inserted.id,
       companyName: inserted.company_name,
+      tradeName: inserted.trade_name || undefined,
       ownerName: inserted.owner_name,
       cnpj: inserted.cnpj,
       email: inserted.email,
+      whatsapp: inserted.whatsapp || undefined,
+      avatarUrl: inserted.avatar_url || undefined,
       role: inserted.role || 'lead',
       status: inserted.status || 'ativo',
       planStatus: (inserted.plan_status as 'demo' | 'ativo') || assignedPlan,
@@ -136,9 +153,12 @@ export const leadAuthService = {
     const user: UserAccount = {
       id: data.id,
       companyName: data.company_name,
-      ownerName: data.owner_name,
+      tradeName: data.trade_name || undefined,
+      ownerName: data.owner_name || data.trade_name || data.company_name,
       cnpj: data.cnpj,
       email: data.email,
+      whatsapp: data.whatsapp || undefined,
+      avatarUrl: data.avatar_url || undefined,
       role: data.role || 'lead',
       status: data.status || 'ativo',
       planStatus: (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo'),
@@ -209,7 +229,11 @@ export const leadAuthService = {
 
   getCurrentUser(): UserAccount | null {
     try {
-      const stored = localStorage.getItem(CURRENT_USER_KEY);
+      let stored = localStorage.getItem(CURRENT_USER_KEY);
+      if (!stored) {
+        // Fallback for legacy key
+        stored = localStorage.getItem('aurus_current_user');
+      }
       if (stored) {
         const user: UserAccount = JSON.parse(stored);
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id || '');
@@ -248,9 +272,12 @@ export const leadAuthService = {
         const synced: UserAccount = {
           id: data.id,
           companyName: data.company_name,
-          ownerName: data.owner_name,
+          tradeName: data.trade_name || undefined,
+          ownerName: data.owner_name || data.trade_name || data.company_name,
           cnpj: data.cnpj,
           email: data.email,
+          whatsapp: data.whatsapp || undefined,
+          avatarUrl: data.avatar_url || undefined,
           role: data.role || 'lead',
           status: data.status || 'ativo',
           planStatus: (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo'),
@@ -274,9 +301,12 @@ export const leadAuthService = {
         const synced: UserAccount = {
           id: userByEmail.id,
           companyName: userByEmail.company_name,
-          ownerName: userByEmail.owner_name,
+          tradeName: userByEmail.trade_name || undefined,
+          ownerName: userByEmail.owner_name || userByEmail.trade_name || userByEmail.company_name,
           cnpj: userByEmail.cnpj,
           email: userByEmail.email,
+          whatsapp: userByEmail.whatsapp || undefined,
+          avatarUrl: userByEmail.avatar_url || undefined,
           role: userByEmail.role || 'lead',
           status: userByEmail.status || 'ativo',
           planStatus: (userByEmail.plan_status as 'demo' | 'ativo') || (userByEmail.role === 'admin' ? 'ativo' : 'demo'),
@@ -296,11 +326,13 @@ export const leadAuthService = {
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
     } else {
       localStorage.removeItem(CURRENT_USER_KEY);
+      localStorage.removeItem('aurus_current_user');
     }
   },
 
   logout() {
     localStorage.removeItem(CURRENT_USER_KEY);
+    localStorage.removeItem('aurus_current_user');
   },
 
   async deleteAccount(id: string): Promise<boolean> {
