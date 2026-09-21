@@ -284,12 +284,6 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
               <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" title="Conectado" />
             </div>
-                  Painel Admin
-                </TooltipContent>
-              </Tooltip>
-
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" title="Conectado" />
-            </div>
           )}
         </div>
       </aside>
