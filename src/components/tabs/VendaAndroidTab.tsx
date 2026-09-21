@@ -38,7 +38,7 @@ export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false
             <div className="absolute inset-0 rounded-full border-3 border-[#00D287]/20 border-t-[#00D287] animate-spin" />
           </div>
           <p className="text-xs font-medium text-slate-400 mt-3 tracking-wide">
-            Carregando sistema de balcão...
+            Carregando sistema de venda no boleto...
           </p>
         </div>
       )}
@@ -47,7 +47,7 @@ export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false
       <iframe
         key={iframeKey}
         src={aurusUrl}
-        title="Balcão de Vendas no Boleto"
+        title="Venda no Boleto"
         onLoad={() => setIsLoading(false)}
         className={`w-full h-full border-0 bg-white transition-opacity ${isDemo ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -57,8 +57,8 @@ export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false
       {/* Demo Mode Lock Overlay */}
       {isDemo && (
         <DemoLockedOverlay
-          title="Balcão de Vendas no Boleto Bloqueado"
-          description="Sistema de balcão para venda de celulares parcelados no boleto com trava e bloqueio remoto anti-inadimplência. Desbloqueie sua conta para emitir vendas e gerenciar aparelhos."
+          title="Venda no Boleto Bloqueada"
+          description="Sistema de crediário próprio para venda no boleto sem inadimplência: cadastro de clientes e aparelhos, controle de parcelas, recebimento e trava de bloqueio remoto."
           onUnlock={() => onUnlock?.()}
         />
       )}

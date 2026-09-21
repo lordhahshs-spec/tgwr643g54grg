@@ -150,7 +150,7 @@ const Index: React.FC = () => {
 
             {currentUser && (
               <div className="text-[11px] text-slate-400">
-                Loja: <strong className="text-white">{currentUser.companyName}</strong> ({currentUser.ownerName})
+                Loja: <strong className="text-white">{currentUser.tradeName || currentUser.companyName}</strong>
               </div>
             )}
           </header>
@@ -162,7 +162,7 @@ const Index: React.FC = () => {
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           )}
           {activeTab === 'venda-android' && (
-            <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Simulador de Vendas e Margem Android Bloqueado')} />
+            <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
           )}
           {activeTab === 'esquemas' && (
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />

@@ -108,7 +108,7 @@ export const UnlockPlatformModal: React.FC<UnlockPlatformModalProps> = ({
           <div className="space-y-2 text-xs text-slate-300">
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#00D287] flex-shrink-0" />
-              <span>Balcão de Vendas no Boleto com Bloqueio Remoto</span>
+              <span>Venda no Boleto (Crediário Próprio, Parcelamento & Bloqueio)</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#00D287] flex-shrink-0" />
