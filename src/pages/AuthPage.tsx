@@ -184,20 +184,8 @@ export const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#050811] text-slate-100 flex flex-col justify-between p-4 sm:p-6 selection:bg-[#00D287]/30">
       {/* Top Header */}
-      <header className="max-w-2xl mx-auto w-full flex items-center justify-between py-2">
+      <header className="max-w-2xl mx-auto w-full flex items-center justify-center py-3">
         <CellHubLogo size="md" />
-
-        <div className="flex items-center gap-2 text-xs">
-          <button
-            onClick={() => {
-              setIsRegisterMode(!isRegisterMode);
-              setErrorMessage('');
-            }}
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            {isRegisterMode ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastrar'}
-          </button>
-        </div>
       </header>
 
       {/* Main Container */}
