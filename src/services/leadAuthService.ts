@@ -306,6 +306,14 @@ export const leadAuthService = {
           status: data.status || 'ativo',
           planStatus: (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo'),
           banReason: data.ban_reason || undefined,
+          shippingZipCode: data.shipping_zip_code || undefined,
+          shippingStreet: data.shipping_street || undefined,
+          shippingNumber: data.shipping_number || undefined,
+          shippingComplement: data.shipping_complement || undefined,
+          shippingNeighborhood: data.shipping_neighborhood || undefined,
+          shippingCity: data.shipping_city || undefined,
+          shippingState: data.shipping_state || undefined,
+          shippingPhone: data.shipping_phone || undefined,
           createdAt: data.created_at,
         };
         this.setCurrentUser(synced);
@@ -335,6 +343,14 @@ export const leadAuthService = {
           status: userByEmail.status || 'ativo',
           planStatus: (userByEmail.plan_status as 'demo' | 'ativo') || (userByEmail.role === 'admin' ? 'ativo' : 'demo'),
           banReason: userByEmail.ban_reason || undefined,
+          shippingZipCode: userByEmail.shipping_zip_code || undefined,
+          shippingStreet: userByEmail.shipping_street || undefined,
+          shippingNumber: userByEmail.shipping_number || undefined,
+          shippingComplement: userByEmail.shipping_complement || undefined,
+          shippingNeighborhood: userByEmail.shipping_neighborhood || undefined,
+          shippingCity: userByEmail.shipping_city || undefined,
+          shippingState: userByEmail.shipping_state || undefined,
+          shippingPhone: userByEmail.shipping_phone || undefined,
           createdAt: userByEmail.created_at,
         };
         this.setCurrentUser(synced);
