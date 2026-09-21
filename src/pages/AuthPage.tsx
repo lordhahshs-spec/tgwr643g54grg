@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { leadAuthService } from '@/services/leadAuthService';
+import { CellHubLogo } from '@/components/CellHubLogo';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -115,14 +116,7 @@ export const AuthPage: React.FC = () => {
     <div className="min-h-screen bg-[#050811] text-slate-100 flex flex-col justify-between p-4 sm:p-6 selection:bg-[#00D287]/30">
       {/* Top Header */}
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#00D287] flex items-center justify-center text-slate-950 font-black shadow-md shadow-[#00D287]/30">
-            <Zap className="w-4 h-4 text-slate-950 fill-current" />
-          </div>
-          <span className="font-extrabold text-base tracking-tight text-white">
-            Aurus<span className="text-[#00D287]">Pay</span>
-          </span>
-        </div>
+        <CellHubLogo size="md" />
 
         <div className="flex items-center gap-2">
           <button
@@ -326,7 +320,7 @@ export const AuthPage: React.FC = () => {
 
       {/* Footer */}
       <footer className="text-center text-[11px] text-slate-500 py-2">
-        <p>AurusPay • Gestão e Vendas de Celulares</p>
+        <p>CellHub • Plataforma B2B de Celulares & Vendas</p>
       </footer>
     </div>
   );

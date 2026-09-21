@@ -78,7 +78,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
       offerId: offer.id,
       offerTitle: offer.title,
       reportedByUserId: currentUserId,
-      reportedByCompany: currentUserCompany || 'Lojista AurusPay',
+      reportedByCompany: currentUserCompany || 'Lojista CellHub',
       reason: reportReason,
       details: reportDetails,
     });
@@ -95,7 +95,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
 
   const handleWhatsAppContact = () => {
     const text = encodeURIComponent(
-      `Olá ${offer.sellerOwner} (${offer.sellerCompany}), vi sua oferta no Marketplace B2B AurusPay: "${offer.title}" no valor de ${formatBRL(offer.price)}. Gostaria de mais detalhes sobre a disponibilidade e envio!`
+      `Olá ${offer.sellerOwner} (${offer.sellerCompany}), vi sua oferta no Marketplace B2B CellHub: "${offer.title}" no valor de ${formatBRL(offer.price)}. Gostaria de mais detalhes sobre a disponibilidade e envio!`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
@@ -185,7 +185,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
             <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 flex flex-col gap-2">
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wide">
                 <ShieldCheck className="w-4 h-4 text-[#00D287]" />
-                Transação 100% Protegida AurusPay
+                Transação 100% Protegida CellHub
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
                 O valor pago pelo lojista comprador fica retido em custódia na plataforma até a confirmação do código de rastreio e entrega do produto em perfeito estado.

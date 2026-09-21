@@ -35,6 +35,7 @@ import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { catalogService, CatalogDevice } from '@/services/catalogService';
 import { schematicService, ElectricSchematic } from '@/services/schematicService';
 import { MarketplaceAdminSection } from '@/components/admin/MarketplaceAdminSection';
+import { CellHubLogo } from '@/components/CellHubLogo';
 
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
@@ -137,7 +138,7 @@ export const AdminPage: React.FC = () => {
   // User methods
   const handleOpenBanModal = (account: UserAccount) => {
     setAccountToBan(account);
-    setBanReasonInput('Irregularidade cadastral ou descumprimento das diretrizes da AurusPay.');
+    setBanReasonInput('Irregularidade cadastral ou descumprimento das diretrizes da CellHub.');
   };
 
   const handleConfirmBan = async () => {
@@ -316,24 +317,11 @@ export const AdminPage: React.FC = () => {
           {/* Header */}
           <div className="h-16 border-b border-white/5 flex items-center justify-between px-4">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#00D287] flex items-center justify-center text-slate-950 font-black shadow-md shadow-[#00D287]/20">
-                <Zap className="w-5 h-5 fill-current text-slate-950" />
-              </div>
-
-              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-sm tracking-tight text-white leading-tight">
-                      Aurus<span className="text-[#00D287]">Admin</span>
-                    </span>
-                    <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-[9px] px-1 py-0">
-                      SUPABASE
-                    </Badge>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    Gestão Geral
-                  </span>
-                </div>
+              <CellHubLogo size="sm" variant={isSidebarCollapsed && !isMobileSidebarOpen ? 'icon' : 'full'} />
+              {(!isSidebarCollapsed || isMobileOpen) && (
+                <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-[9px] px-1 py-0">
+                  ADMIN
+                </Badge>
               )}
             </div>
 
@@ -515,7 +503,7 @@ export const AdminPage: React.FC = () => {
               onClick={() => {
                 setAdminEditEmail(currentUser?.email || 'lordhahshs@gmail.com');
                 setAdminEditOwner(currentUser?.ownerName || 'Administrador Master');
-                setAdminEditCompany(currentUser?.companyName || 'AurusPay Master Admin');
+                setAdminEditCompany(currentUser?.companyName || 'CellHub Master Admin');
                 setIsEditAdminModalOpen(true);
               }}
               variant="outline"

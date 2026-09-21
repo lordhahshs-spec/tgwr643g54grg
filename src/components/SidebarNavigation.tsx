@@ -19,6 +19,7 @@ import {
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
+import { CellHubLogo } from '@/components/CellHubLogo';
 
 interface SidebarNavigationProps {
   activeTab: TabId;
@@ -98,21 +99,11 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="flex flex-col">
           {/* Brand Header */}
           <div className="h-16 border-b border-white/5 flex items-center justify-between px-4">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#00D287] flex items-center justify-center shadow-md shadow-[#00D287]/25 text-slate-950 font-black">
-                <Zap className="w-5 h-5 text-slate-950 fill-current" />
-              </div>
-
-              {(!isCollapsed || isMobileOpen) && (
-                <div className="flex flex-col min-w-0">
-                  <span className="font-extrabold text-sm tracking-tight text-white leading-tight">
-                    Aurus<span className="text-[#00D287]">Pay</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium tracking-wide truncate">
-                    {currentUser?.companyName || 'Portal de Vendas'}
-                  </span>
-                </div>
-              )}
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <CellHubLogo
+                size="sm"
+                variant={isCollapsed && !isMobileOpen ? 'icon' : 'full'}
+              />
             </div>
 
             {/* Collapse Toggle */}
@@ -162,7 +153,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
               {/* Botão de Desbloqueio se em modo demonstração */}
               {leadAuthService.isDemoMode(currentUser) && (
                 <button
-                  onClick={() => onUnlockModal?.('Desbloqueie o acesso vitalício à plataforma AurusPay')}
+                  onClick={() => onUnlockModal?.('Desbloqueie o acesso vitalício à plataforma CellHub')}
                   className="w-full py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-[#00D287]/20 to-teal-500/20 hover:from-[#00D287] hover:to-[#00b875] text-[#00D287] hover:text-slate-950 border border-[#00D287]/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all shadow-sm group cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#00D287] group-hover:text-slate-950" />

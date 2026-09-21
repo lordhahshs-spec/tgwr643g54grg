@@ -14,6 +14,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { CellHubLogo } from '@/components/CellHubLogo';
 
 export const VSLPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export const VSLPage: React.FC = () => {
 
   // WhatsApp number & message
   const whatsappNumber = "5511999999999"; // Substitua pelo seu WhatsApp
-  const whatsappMessage = encodeURIComponent("Olá! Assisti ao vídeo da VSL da AurusPay e quero liberar meu acesso à plataforma.");
+  const whatsappMessage = encodeURIComponent("Olá! Assisti ao vídeo da VSL da CellHub e quero liberar meu acesso à plataforma.");
 
   // Playback timer
   useEffect(() => {
@@ -73,6 +74,11 @@ export const VSLPage: React.FC = () => {
     <div className="min-h-screen bg-[#050811] text-slate-100 flex flex-col justify-between selection:bg-[#00D287]/30 selection:text-white px-4 py-8 sm:py-12">
       <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col items-center justify-center text-center">
         
+        {/* Brand Logo */}
+        <div className="mb-6 flex justify-center">
+          <CellHubLogo size="lg" />
+        </div>
+
         {/* Simple & Direct Headline */}
         <h1 className="text-2xl sm:text-4xl md:text-[40px] font-black text-white tracking-tight leading-snug sm:leading-tight">
           Como Destravar <span className="text-[#00D287]">Vendas de Android Diárias</span> e Multiplicar o Lucro da Sua Loja

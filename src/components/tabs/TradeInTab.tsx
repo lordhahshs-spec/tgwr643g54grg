@@ -289,7 +289,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
                 className="w-full bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs h-9 shadow-md shadow-[#00D287]/20"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1.5 fill-current" />
-                Simular Saldo no Aurus
+                Simular Venda do Aparelho
               </Button>
             </div>
           </div>

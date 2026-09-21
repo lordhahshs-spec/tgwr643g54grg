@@ -11,7 +11,7 @@ interface BannedScreenProps {
 export const BannedScreen: React.FC<BannedScreenProps> = ({ user, onLogout }) => {
   const whatsappNumber = "5511999999999";
   const whatsappText = encodeURIComponent(
-    `Olá, sou o responsável pela empresa ${user.companyName} (CNPJ: ${user.cnpj}) e recebi um aviso de suspensão de acesso na plataforma AurusPay. Gostaria de verificar a situação da minha conta.`
+    `Olá, sou o responsável pela empresa ${user.companyName} (CNPJ: ${user.cnpj}) e recebi um aviso de suspensão de acesso na plataforma CellHub. Gostaria de verificar a situação da minha conta.`
   );
 
   return (
@@ -37,7 +37,7 @@ export const BannedScreen: React.FC<BannedScreenProps> = ({ user, onLogout }) =>
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-            O acesso da sua empresa ao ecossistema AurusPay foi interrompido e a plataforma foi bloqueada preventivamente.
+            O acesso da sua empresa ao ecossistema CellHub foi interrompido e a plataforma foi bloqueada preventivamente.
           </p>
 
           {/* Account Details Box */}
@@ -64,7 +64,7 @@ export const BannedScreen: React.FC<BannedScreenProps> = ({ user, onLogout }) =>
               <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800/40 text-rose-200 text-xs font-medium leading-relaxed flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
                 <span>
-                  {user.banReason || 'Irregularidade cadastral ou descumprimento das diretrizes comerciais da AurusPay. Entre em contato com a equipe de compliance.'}
+                  {user.banReason || 'Irregularidade cadastral ou descumprimento das diretrizes comerciais da CellHub. Entre em contato com a equipe de compliance.'}
                 </span>
               </div>
             </div>

@@ -47,7 +47,7 @@ export const UnlockPlatformModal: React.FC<UnlockPlatformModalProps> = ({
 
   if (!isOpen) return null;
 
-  const pixCode = "00020126580014br.gov.bcb.pix013642891203000192520400005303986540597.005802BR5925AURUSPAY TECNOLOGIA B2B6009SAO PAULO62070503***6304E8A2";
+  const pixCode = "00020126580014br.gov.bcb.pix013642891203000192520400005303986540597.005802BR5925CELLHUB TECNOLOGIA B2B6009SAO PAULO62070503***6304E8A2";
 
   const handleCopyPix = () => {
     navigator.clipboard.writeText(pixCode);
@@ -334,7 +334,7 @@ export const UnlockPlatformModal: React.FC<UnlockPlatformModalProps> = ({
               <div className="mx-auto w-32 h-32 bg-white rounded-xl p-2 flex items-center justify-center shadow-lg">
                 <img 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixCode)}`} 
-                  alt="QR Code PIX AurusPay"
+                  alt="QR Code PIX CellHub"
                   className="w-full h-full object-contain"
                 />
               </div>

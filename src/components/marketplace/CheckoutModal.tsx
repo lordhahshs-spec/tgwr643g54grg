@@ -79,7 +79,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const sellerNetAmount = productPrice - platformFeeAmount;
   const totalAmount = productPrice + shippingCost;
 
-  const pixCode = `00020126580014br.gov.bcb.pix0136${offer.id}-auruspay520400005303986540${totalAmount.toFixed(2)}5802BR5925AurusPay Intermediacao6009Sao Paulo62070503***6304`;
+  const pixCode = `00020126580014br.gov.bcb.pix0136${offer.id}-cellhub520400005303986540${totalAmount.toFixed(2)}5802BR5925CellHub Intermediacao6009Sao Paulo62070503***6304`;
 
   const handleCopyPix = () => {
     if (navigator.clipboard) {
@@ -155,7 +155,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-white leading-none">
-                Checkout B2B Seguro • AurusPay Custódia
+                Checkout B2B Seguro • CellHub Custódia
               </h2>
               <p className="text-[11px] text-slate-400 mt-0.5">
                 Garantia de entrega: o vendedor só recebe após o envio comprovado
@@ -452,7 +452,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span className="text-slate-200">{offer.freeShipping ? 'Grátis' : formatBRL(shippingCost)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-400">
-                  <span>Taxa Operacional AurusPay ({feePercent}%):</span>
+                  <span>Taxa Operacional CellHub ({feePercent}%):</span>
                   <span className="text-emerald-400">{formatBRL(platformFeeAmount)}</span>
                 </div>
 

@@ -77,7 +77,7 @@ const Index: React.FC = () => {
   };
 
   const handleOpenUnlockModal = (reason?: string) => {
-    setUnlockReason(reason || 'Desbloqueie o acesso vitalício à plataforma AurusPay');
+    setUnlockReason(reason || 'Desbloqueie o acesso vitalício à plataforma CellHub');
     setIsUnlockModalOpen(true);
   };
 
@@ -125,7 +125,7 @@ const Index: React.FC = () => {
             </div>
 
             <button
-              onClick={() => handleOpenUnlockModal('Desbloqueie o acesso vitalício à plataforma AurusPay')}
+              onClick={() => handleOpenUnlockModal('Desbloqueie o acesso vitalício à plataforma CellHub')}
               className="px-3 py-1 rounded-lg bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm shadow-[#00D287]/20 transition-all cursor-pointer transform active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5 fill-current" />

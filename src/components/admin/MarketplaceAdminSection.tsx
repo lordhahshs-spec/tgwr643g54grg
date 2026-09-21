@@ -525,7 +525,7 @@ export const MarketplaceAdminSection: React.FC = () => {
         <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/5 max-w-lg space-y-4">
           <div className="flex items-center gap-2 text-white font-bold text-base">
             <Settings className="w-5 h-5 text-[#00D287]" />
-            Taxa de Intermediação AurusPay
+            Taxa de Intermediação CellHub
           </div>
           <p className="text-xs text-slate-400">
             Defina o percentual de retenção operacional cobrado sobre o valor bruto de cada venda realizada entre lojistas.
