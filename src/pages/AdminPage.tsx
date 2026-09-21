@@ -22,8 +22,11 @@ import {
   Edit,
   Upload,
   X,
-  Flame
+  Flame,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -72,9 +75,28 @@ export const AdminPage: React.FC = () => {
   const [schematicFileSize, setSchematicFileSize] = useState<string>('');
   const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
 
+  // Master Admin state
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [isEditAdminModalOpen, setIsEditAdminModalOpen] = useState<boolean>(false);
+  const [adminEditEmail, setAdminEditEmail] = useState<string>('');
+  const [adminEditPassword, setAdminEditPassword] = useState<string>('');
+  const [adminEditOwner, setAdminEditOwner] = useState<string>('');
+  const [adminEditCompany, setAdminEditCompany] = useState<string>('');
+  const [isSavingAdmin, setIsSavingAdmin] = useState<boolean>(false);
+
   useEffect(() => {
+    const current = leadAuthService.getCurrentUser();
+    if (!current || current.role !== 'admin') {
+      toast.error('Acesso restrito apenas ao Administrador Geral.');
+      navigate('/app');
+      return;
+    }
+    setCurrentUser(current);
+    setAdminEditEmail(current.email);
+    setAdminEditOwner(current.ownerName);
+    setAdminEditCompany(current.companyName);
     loadAllData();
-  }, []);
+  }, [navigate]);
 
   const loadAllData = async () => {
     setLoading(true);

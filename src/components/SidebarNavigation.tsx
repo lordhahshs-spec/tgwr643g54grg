@@ -12,7 +12,9 @@ import {
   Layers,
   Shield,
   LogOut,
-  Flame
+  Flame,
+  Sparkles,
+  Lock
 } from 'lucide-react';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -25,6 +27,7 @@ interface SidebarNavigationProps {
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
+  onUnlockModal?: (reason?: string) => void;
 }
 
 export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
@@ -34,6 +37,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   onToggleCollapse,
   isMobileOpen,
   onCloseMobile,
+  onUnlockModal,
 }) => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
@@ -122,24 +126,49 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           </div>
 
           {/* User Profile Mini Badge (When expanded) */}
-          {(!isCollapsed || isMobileOpen) && currentUser && (
-            <div className="px-3 pt-3 pb-1">
+          {(!isCollapsed || isMobileOpen) && (
+            <div className="px-3 pt-3 pb-1 space-y-1.5">
               <div className="bg-slate-950/80 border border-white/5 rounded-xl p-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-6 h-6 rounded-md bg-[#00D287]/15 text-[#00D287] flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {currentUser.ownerName.charAt(0).toUpperCase()}
+                    {(currentUser?.ownerName || 'V').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-semibold text-white truncate leading-tight">
-                      {currentUser.ownerName}
+                      {currentUser?.ownerName || 'Visitante'}
                     </span>
                     <span className="text-[10px] text-slate-400 truncate">
-                      {currentUser.cnpj || 'CNPJ Verificado'}
+                      {currentUser?.cnpj || 'Modo Demonstração'}
                     </span>
                   </div>
                 </div>
-                <span className="w-2 h-2 rounded-full bg-[#00D287]" title="Conectado" />
+                <div className="flex items-center gap-1">
+                  {currentUser?.role === 'admin' ? (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                      Admin
+                    </span>
+                  ) : currentUser?.planStatus === 'ativo' ? (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Vitalício
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      Demo
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Botão de Desbloqueio se em modo demonstração */}
+              {leadAuthService.isDemoMode(currentUser) && (
+                <button
+                  onClick={() => onUnlockModal?.('Desbloqueie o acesso vitalício à plataforma AurusPay')}
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-[#00D287]/20 to-teal-500/20 hover:from-[#00D287] hover:to-[#00b875] text-[#00D287] hover:text-slate-950 border border-[#00D287]/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all shadow-sm group cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#00D287] group-hover:text-slate-950" />
+                  <span className="truncate">Desbloquear Vitalício</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -206,15 +235,17 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="p-3 border-t border-white/5 space-y-1">
           {(!isCollapsed || isMobileOpen) ? (
             <>
-              {/* Admin Panel Direct Shortcut */}
-              <a
-                href="/admin"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-[#00D287] hover:bg-white/[0.04] text-[11px] transition-colors font-medium"
-                title="Acessar Gestão de Usuários e Painel Geral"
-              >
-                <Shield className="w-3.5 h-3.5 text-[#00D287]" />
-                <span className="truncate">Painel Administrativo</span>
-              </a>
+              {/* Admin Panel Direct Shortcut (ONLY visible to master admin) */}
+              {currentUser?.role === 'admin' && (
+                <a
+                  href="/admin"
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 text-[11px] transition-colors font-bold border border-purple-500/20"
+                  title="Acessar Gestão de Usuários e Painel Geral"
+                >
+                  <Shield className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="truncate">Painel Master Admin</span>
+                </a>
+              )}
 
               {/* Trocar de Conta */}
               <a
@@ -228,21 +259,31 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
               <div className="flex items-center gap-2 px-2.5 py-1 text-[10px] text-slate-500">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" />
-                <span className="truncate">Sistema Conectado</span>
+                <span className="truncate">
+                  {currentUser?.planStatus === 'ativo' ? 'Licença Vitalícia Ativa' : 'Modo Demonstração'}
+                </span>
               </div>
             </>
           ) : (
             <div className="flex flex-col items-center gap-2 py-1">
-              <Tooltip delayDuration={100}>
-                <TooltipTrigger asChild>
-                  <a
-                    href="/admin"
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#00D287] hover:bg-white/[0.04]"
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-[#0b101f] text-slate-100 border-[#00D287]/20 text-xs">
+              {currentUser?.role === 'admin' && (
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <a
+                      href="/admin"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                    >
+                      <Shield className="w-3.5 h-3.5" />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#0b101f] text-purple-300 border-purple-500/30 text-xs">
+                    Painel Admin
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" title="Conectado" />
+            </div>
                   Painel Admin
                 </TooltipContent>
               </Tooltip>

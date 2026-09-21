@@ -9,14 +9,20 @@ import {
   RotateCw,
   Plus,
   PackageOpen,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { schematicService, ElectricSchematic } from '@/services/schematicService';
 
-export const EsquemasTab: React.FC = () => {
+interface EsquemasTabProps {
+  isDemo?: boolean;
+  onUnlock?: (reason?: string) => void;
+}
+
+export const EsquemasTab: React.FC<EsquemasTabProps> = ({ isDemo = false, onUnlock }) => {
   const navigate = useNavigate();
   const [schematics, setSchematics] = useState<ElectricSchematic[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -227,7 +233,13 @@ export const EsquemasTab: React.FC = () => {
           {filteredSchematics.map((s) => (
             <div
               key={s.id}
-              onClick={() => setSelectedSchematic(s)}
+              onClick={() => {
+                if (isDemo) {
+                  onUnlock?.('A visualização e download de esquemas elétricos em PDF é exclusiva para membros com licença vitalícia.');
+                  return;
+                }
+                setSelectedSchematic(s);
+              }}
               className="group cursor-pointer rounded-2xl bg-[#080c17] border border-white/5 hover:border-[#00D287]/50 p-4 sm:p-5 flex flex-col justify-between transition-all hover:shadow-xl hover:shadow-[#00D287]/10"
             >
               <div>
@@ -264,8 +276,17 @@ export const EsquemasTab: React.FC = () => {
                 </div>
 
                 <span className="text-xs font-bold text-[#00D287] flex items-center gap-1 group-hover:underline">
-                  <span>Abrir PDF</span>
-                  <span>→</span>
+                  {isDemo ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-[#00D287]" />
+                      <span>Desbloquear PDF</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Abrir PDF</span>
+                      <span>→</span>
+                    </>
+                  )}
                 </span>
               </div>
             </div>

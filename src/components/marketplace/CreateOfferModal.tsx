@@ -168,6 +168,8 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
       sellerId: currentUser.id,
       sellerCompany: currentUser.companyName,
       sellerOwner: currentUser.ownerName,
+      sellerEmail: currentUser.email,
+      sellerCnpj: currentUser.cnpj,
       title: title.trim(),
       category,
       subcategory: subcategory.trim() || undefined,

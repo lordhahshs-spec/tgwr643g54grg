@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { RotateCw } from 'lucide-react';
+import { DemoLockedOverlay } from '@/components/demo/DemoLockedOverlay';
 
-export const VendaAndroidTab: React.FC = () => {
+interface VendaAndroidTabProps {
+  isDemo?: boolean;
+  onUnlock?: () => void;
+}
+
+export const VendaAndroidTab: React.FC<VendaAndroidTabProps> = ({ isDemo = false, onUnlock }) => {
   const [iframeKey, setIframeKey] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -15,13 +21,15 @@ export const VendaAndroidTab: React.FC = () => {
   return (
     <div className="relative w-full h-full bg-[#050811] overflow-hidden">
       {/* Discreet floating reload button on top right */}
-      <button
-        onClick={handleReload}
-        title="Recarregar tela"
-        className="absolute top-3 right-3 z-20 flex items-center justify-center w-8 h-8 rounded-lg bg-black/50 hover:bg-black/80 text-slate-400 hover:text-[#00D287] border border-white/10 backdrop-blur-md transition-all shadow-md"
-      >
-        <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#00D287]' : ''}`} />
-      </button>
+      {!isDemo && (
+        <button
+          onClick={handleReload}
+          title="Recarregar tela"
+          className="absolute top-3 right-3 z-20 flex items-center justify-center w-8 h-8 rounded-lg bg-black/50 hover:bg-black/80 text-slate-400 hover:text-[#00D287] border border-white/10 backdrop-blur-md transition-all shadow-md"
+        >
+          <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#00D287]' : ''}`} />
+        </button>
+      )}
 
       {/* Subtle loader while iframe is loading */}
       {isLoading && (
@@ -30,7 +38,7 @@ export const VendaAndroidTab: React.FC = () => {
             <div className="absolute inset-0 rounded-full border-3 border-[#00D287]/20 border-t-[#00D287] animate-spin" />
           </div>
           <p className="text-xs font-medium text-slate-400 mt-3 tracking-wide">
-            Carregando...
+            Carregando simulador...
           </p>
         </div>
       )}
@@ -41,10 +49,19 @@ export const VendaAndroidTab: React.FC = () => {
         src={aurusUrl}
         title="Venda de Android"
         onLoad={() => setIsLoading(false)}
-        className="w-full h-full border-0 bg-white"
+        className={`w-full h-full border-0 bg-white transition-opacity ${isDemo ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation"
       />
+
+      {/* Demo Mode Lock Overlay */}
+      {isDemo && (
+        <DemoLockedOverlay
+          title="Simulador de Venda e Margem Android Bloqueado"
+          description="Você está na versão de demonstração. Para simular vendas em tempo real, calcular parcelamento e gerar propostas para clientes, desbloqueie seu acesso vitalício."
+          onUnlock={() => onUnlock?.()}
+        />
+      )}
     </div>
   );
 };

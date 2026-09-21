@@ -21,7 +21,12 @@ import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 import { MyMarketplacePanel } from '@/components/marketplace/MyMarketplacePanel';
 import { toast } from 'sonner';
 
-export const SuperOfertasTab: React.FC = () => {
+interface SuperOfertasTabProps {
+  isDemo?: boolean;
+  onUnlock?: (reason?: string) => void;
+}
+
+export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false, onUnlock }) => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [activeView, setActiveView] = useState<'explorar' | 'painel'>('explorar');
 
@@ -123,6 +128,10 @@ export const SuperOfertasTab: React.FC = () => {
   };
 
   const handleOpenCheckout = (offer: MarketplaceOffer) => {
+    if (isDemo) {
+      onUnlock?.('Para comprar produtos no atacado com garantia e proteção B2B, desbloqueie sua licença vitalícia.');
+      return;
+    }
     setSelectedOfferForDetails(null);
     setSelectedOfferForCheckout(offer);
   };
@@ -181,7 +190,13 @@ export const SuperOfertasTab: React.FC = () => {
               <span>Vitrine</span>
             </button>
             <button
-              onClick={() => setActiveView('painel')}
+              onClick={() => {
+                if (isDemo) {
+                  onUnlock?.('O Painel de Lojista Vendedor requer uma licença vitalícia ativa.');
+                  return;
+                }
+                setActiveView('painel');
+              }}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeView === 'painel'
                   ? 'bg-[#00D287] text-slate-950 shadow-sm'
@@ -196,39 +211,54 @@ export const SuperOfertasTab: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Admin exclusive utilities */}
+          {currentUser?.role === 'admin' && (
+            <>
+              <button
+                onClick={handleGenerateSamples}
+                disabled={isGeneratingSamples}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
+                title="Criar exemplos nos formatos Stories 9:16 e Feed Horizontal"
+              >
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                <span className="hidden md:inline">{isGeneratingSamples ? 'Gerando...' : 'Gerar Exemplos'}</span>
+              </button>
+
+              {(hotOffers.length > 0 || regularOffers.length > 0) && (
+                <button
+                  onClick={handleClearAllOffers}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors"
+                  title="Limpar todas as ofertas (testar tela vazia)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </>
+          )}
+
           <button
-            onClick={handleGenerateSamples}
-            disabled={isGeneratingSamples}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
-            title="Criar exemplos nos formatos Stories 9:16 e Feed Horizontal"
+            onClick={() => {
+              if (isDemo) {
+                onUnlock?.('O anúncio e publicação de produtos no Marketplace B2B é exclusivo para lojas com plano vitalício ativo.');
+                return;
+              }
+              setIsCreateModalOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-[#00D287]/25 transition-all cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-            <span className="hidden md:inline">{isGeneratingSamples ? 'Gerando...' : 'Gerar Exemplos'}</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Criar Oferta</span>
           </button>
-
-          {currentUser && (
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-[#00D287]/25 transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Criar Oferta</span>
-            </button>
-          )}
-
-          {(hotOffers.length > 0 || regularOffers.length > 0) && (
-            <button
-              onClick={handleClearAllOffers}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors"
-              title="Limpar todas as ofertas (testar tela vazia)"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
 
           {/* Mobile view toggle */}
           <button
-            onClick={() => setActiveView(activeView === 'explorar' ? 'painel' : 'explorar')}
+            onClick={() => {
+              if (activeView === 'explorar' && isDemo) {
+                onUnlock?.('O Painel de Lojista Vendedor requer uma licença vitalícia ativa.');
+                return;
+              }
+              setActiveView(activeView === 'explorar' ? 'painel' : 'explorar');
+            }}
             className="sm:hidden p-2 rounded-xl bg-slate-900 text-slate-300 border border-white/10"
             title="Alternar Painel / Vitrine"
           >
@@ -333,23 +363,29 @@ export const SuperOfertasTab: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 flex-shrink-0">
-                    <button
-                      onClick={handleGenerateSamples}
-                      disabled={isGeneratingSamples}
-                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold transition-all flex items-center gap-1.5"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
-                      Gerar Exemplos (Stories & Feed)
-                    </button>
-
-                    {currentUser && (
+                    {currentUser?.role === 'admin' && (
                       <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-white/10 text-xs font-bold transition-all"
+                        onClick={handleGenerateSamples}
+                        disabled={isGeneratingSamples}
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold transition-all flex items-center gap-1.5"
                       >
-                        Cadastrar Oferta
+                        <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
+                        Gerar Exemplos (Stories & Feed)
                       </button>
                     )}
+
+                    <button
+                      onClick={() => {
+                        if (isDemo) {
+                          onUnlock?.('O anúncio e publicação de ofertas no Marketplace B2B é exclusivo para membros com licença vitalícia ativa.');
+                          return;
+                        }
+                        setIsCreateModalOpen(true);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-bold transition-all"
+                    >
+                      Cadastrar Oferta
+                    </button>
                   </div>
                 </div>
               )}
@@ -380,24 +416,30 @@ export const SuperOfertasTab: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                    <button
-                      onClick={handleGenerateSamples}
-                      disabled={isGeneratingSamples}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all"
-                    >
-                      <Sparkles className="w-4 h-4 text-[#00D287]" />
-                      <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
-                    </button>
-
-                    {currentUser && (
+                    {currentUser?.role === 'admin' && (
                       <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="px-5 py-2.5 rounded-xl bg-[#00D287] text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/20"
+                        onClick={handleGenerateSamples}
+                        disabled={isGeneratingSamples}
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all"
                       >
-                        <Plus className="w-4 h-4" />
-                        Publicar Primeira Oferta
+                        <Sparkles className="w-4 h-4 text-[#00D287]" />
+                        <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => {
+                        if (isDemo) {
+                          onUnlock?.('O anúncio e publicação de ofertas no Marketplace B2B é exclusivo para membros com licença vitalícia ativa.');
+                          return;
+                        }
+                        setIsCreateModalOpen(true);
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Publicar Primeira Oferta
+                    </button>
                   </div>
                 </div>
               ) : (

@@ -6,13 +6,20 @@ import {
   BookOpen, 
   CheckCircle2, 
   Download, 
-  Star, 
-  Search
+  Star,
+  Search,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+
+interface CursosTabProps {
+  isDemo?: boolean;
+  onUnlock?: (reason?: string) => void;
+}
 
 interface Course {
   id: string;
@@ -131,7 +138,7 @@ const COURSES_DATA: Course[] = [
   },
 ];
 
-export const CursosTab: React.FC = () => {
+export const CursosTab: React.FC<CursosTabProps> = ({ isDemo = false, onUnlock }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCourseModal, setActiveCourseModal] = useState<Course | null>(null);
@@ -258,13 +265,30 @@ export const CursosTab: React.FC = () => {
 
               <Button
                 onClick={() => {
+                  if (isDemo) {
+                    onUnlock?.('O acesso às videoaulas práticas e cursos técnicos é exclusivo para membros com licença vitalícia ativa.');
+                    return;
+                  }
                   setActiveCourseModal(course);
                   setActiveLesson(course.modules[0]?.lessons[0] || 'Aula 1');
                 }}
-                className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 px-3 rounded-lg"
+                className={`font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1 ${
+                  isDemo
+                    ? 'bg-slate-900 hover:bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30'
+                    : 'bg-[#00D287] hover:bg-[#00B875] text-slate-950'
+                }`}
               >
-                <Play className="w-3.5 h-3.5 mr-1 fill-current" />
-                Assistir
+                {isDemo ? (
+                  <>
+                    <Lock className="w-3.5 h-3.5 text-[#00D287]" />
+                    <span>Desbloquear Aula</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 mr-1 fill-current" />
+                    <span>Assistir</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -9,6 +9,7 @@ export interface UserAccount {
   password?: string;
   role: 'lead' | 'admin';
   status: 'ativo' | 'analise' | 'bloqueado';
+  planStatus: 'demo' | 'ativo'; // 'demo' = degustação / não pagante; 'ativo' = acesso vitalício liberado
   banReason?: string;
   createdAt: string;
 }
@@ -19,6 +20,12 @@ export const leadAuthService = {
   // Clear any old fake leads from localStorage
   cleanupLegacyFakeData() {
     localStorage.removeItem('aurus_user_accounts');
+  },
+
+  isDemoMode(user: UserAccount | null): boolean {
+    if (!user) return true;
+    if (user.role === 'admin') return false;
+    return user.planStatus !== 'ativo';
   },
 
   async getAccounts(): Promise<UserAccount[]> {
@@ -42,6 +49,7 @@ export const leadAuthService = {
       password: row.password,
       role: row.role || 'lead',
       status: row.status || 'ativo',
+      planStatus: (row.plan_status as 'demo' | 'ativo') || (row.role === 'admin' ? 'ativo' : 'demo'),
       banReason: row.ban_reason || undefined,
       createdAt: row.created_at,
     }));
@@ -53,6 +61,7 @@ export const leadAuthService = {
     cnpj: string;
     email: string;
     password: string;
+    initialPlanStatus?: 'demo' | 'ativo';
   }): Promise<{ user?: UserAccount; error?: string }> {
     this.cleanupLegacyFakeData();
     const cleanEmail = data.email.trim().toLowerCase();
@@ -68,6 +77,8 @@ export const leadAuthService = {
       return { error: 'Este e-mail já está cadastrado. Por favor faça login.' };
     }
 
+    const assignedPlan = data.initialPlanStatus || 'demo';
+
     const { data: inserted, error } = await supabase
       .from('user_accounts')
       .insert({
@@ -78,6 +89,7 @@ export const leadAuthService = {
         password: data.password,
         role: 'lead',
         status: 'ativo',
+        plan_status: assignedPlan,
       })
       .select()
       .single();
@@ -95,6 +107,7 @@ export const leadAuthService = {
       email: inserted.email,
       role: inserted.role || 'lead',
       status: inserted.status || 'ativo',
+      planStatus: (inserted.plan_status as 'demo' | 'ativo') || assignedPlan,
       createdAt: inserted.created_at,
     };
 
@@ -128,6 +141,7 @@ export const leadAuthService = {
       email: data.email,
       role: data.role || 'lead',
       status: data.status || 'ativo',
+      planStatus: (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo'),
       banReason: data.ban_reason || undefined,
       createdAt: data.created_at,
     };
@@ -136,23 +150,52 @@ export const leadAuthService = {
     return { user };
   },
 
-  async checkUserStatus(id: string): Promise<{ status: 'ativo' | 'analise' | 'bloqueado'; banReason?: string }> {
+  async activateLifetimePlan(userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('user_accounts')
+      .update({ plan_status: 'ativo', updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao ativar plano vitalício:', error);
+      return false;
+    }
+
+    const current = this.getCurrentUser();
+    if (current && current.id === userId) {
+      current.planStatus = 'ativo';
+      this.setCurrentUser(current);
+    }
+    return true;
+  },
+
+  async checkUserStatus(id: string): Promise<{ status: 'ativo' | 'analise' | 'bloqueado'; banReason?: string; planStatus?: 'demo' | 'ativo' }> {
     const { data, error } = await supabase
       .from('user_accounts')
-      .select('status, ban_reason')
+      .select('status, ban_reason, plan_status, role')
       .eq('id', id)
       .maybeSingle();
 
     if (error || !data) {
-      return { status: 'ativo' };
+      return { status: 'ativo', planStatus: 'demo' };
     }
 
-    // Update local storage if ban status changed
+    const planStatus = (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo');
+
+    // Update local storage if ban status or plan changed
     const current = this.getCurrentUser();
     if (current && current.id === id) {
+      let changed = false;
       if (current.status !== data.status || current.banReason !== data.ban_reason) {
         current.status = data.status;
         current.banReason = data.ban_reason;
+        changed = true;
+      }
+      if (current.planStatus !== planStatus) {
+        current.planStatus = planStatus;
+        changed = true;
+      }
+      if (changed) {
         this.setCurrentUser(current);
       }
     }
@@ -160,6 +203,7 @@ export const leadAuthService = {
     return {
       status: data.status,
       banReason: data.ban_reason,
+      planStatus,
     };
   },
 
@@ -168,13 +212,15 @@ export const leadAuthService = {
       const stored = localStorage.getItem(CURRENT_USER_KEY);
       if (stored) {
         const user: UserAccount = JSON.parse(stored);
-        // Sanitização automática: se o ID for resquício de mock antigo (ex: "usr-1"), substitui pelo UUID real
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id || '');
         if (!isUuid) {
           if (user.email?.toLowerCase() === 'admin@auruspay.com') {
             user.id = '43c63d10-68ba-4a82-b7e3-4ba18db6c7a1';
             localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
           }
+        }
+        if (!user.planStatus) {
+          user.planStatus = user.role === 'admin' ? 'ativo' : 'demo';
         }
         return user;
       }
@@ -207,6 +253,7 @@ export const leadAuthService = {
           email: data.email,
           role: data.role || 'lead',
           status: data.status || 'ativo',
+          planStatus: (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo'),
           banReason: data.ban_reason || undefined,
           createdAt: data.created_at,
         };
@@ -232,6 +279,7 @@ export const leadAuthService = {
           email: userByEmail.email,
           role: userByEmail.role || 'lead',
           status: userByEmail.status || 'ativo',
+          planStatus: (userByEmail.plan_status as 'demo' | 'ativo') || (userByEmail.role === 'admin' ? 'ativo' : 'demo'),
           banReason: userByEmail.ban_reason || undefined,
           createdAt: userByEmail.created_at,
         };
@@ -265,25 +313,21 @@ export const leadAuthService = {
       console.error('[leadAuthService] Erro ao deletar conta:', error);
       return false;
     }
-
-    const current = this.getCurrentUser();
-    if (current && current.id === id) {
-      this.logout();
-    }
     return true;
   },
 
-  async updateStatus(id: string, status: 'ativo' | 'analise' | 'bloqueado', banReason?: string): Promise<boolean> {
-    const updatePayload: any = { status };
-    if (status === 'bloqueado') {
-      updatePayload.ban_reason = banReason || 'Suspensão aplicada pela administração.';
-    } else {
-      updatePayload.ban_reason = null;
-    }
-
+  async updateAccountStatus(
+    id: string,
+    status: 'ativo' | 'analise' | 'bloqueado',
+    banReason?: string
+  ): Promise<boolean> {
     const { error } = await supabase
       .from('user_accounts')
-      .update(updatePayload)
+      .update({
+        status,
+        ban_reason: banReason || null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id);
 
     if (error) {
@@ -291,6 +335,83 @@ export const leadAuthService = {
       return false;
     }
 
+    // If updating current user
+    const current = this.getCurrentUser();
+    if (current && current.id === id) {
+      current.status = status;
+      current.banReason = banReason;
+      this.setCurrentUser(current);
+    }
+
     return true;
+  },
+
+  async updateStatus(
+    id: string,
+    status: 'ativo' | 'analise' | 'bloqueado',
+    banReason?: string
+  ): Promise<boolean> {
+    return this.updateAccountStatus(id, status, banReason);
+  },
+
+  async updateAccountPlan(id: string, planStatus: 'demo' | 'ativo'): Promise<boolean> {
+    const { error } = await supabase
+      .from('user_accounts')
+      .update({
+        plan_status: planStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao atualizar plano:', error);
+      return false;
+    }
+
+    const current = this.getCurrentUser();
+    if (current && current.id === id) {
+      current.planStatus = planStatus;
+      this.setCurrentUser(current);
+    }
+
+    return true;
+  },
+
+  async updateAdminCredentials(data: {
+    adminId: string;
+    email: string;
+    password?: string;
+    ownerName?: string;
+    companyName?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const payload: any = {
+      email: cleanEmail,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.password && data.password.trim()) {
+      payload.password = data.password.trim();
+    }
+    if (data.ownerName) payload.owner_name = data.ownerName.trim();
+    if (data.companyName) payload.company_name = data.companyName.trim();
+
+    const { error } = await supabase
+      .from('user_accounts')
+      .update(payload)
+      .eq('id', data.adminId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const current = this.getCurrentUser();
+    if (current && current.id === data.adminId) {
+      current.email = cleanEmail;
+      if (data.ownerName) current.ownerName = data.ownerName.trim();
+      if (data.companyName) current.companyName = data.companyName.trim();
+      this.setCurrentUser(current);
+    }
+
+    return { success: true };
   }
 };
