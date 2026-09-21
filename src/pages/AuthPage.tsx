@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Building2, 
-  Store, 
-  FileText, 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  Eye, 
-  EyeOff, 
-  Phone, 
-  Upload, 
-  Check, 
+import {
+  Building2,
+  Store,
+  FileText,
+  Mail,
+  Lock,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Phone,
   Loader2,
   ShieldCheck
 } from 'lucide-react';
@@ -38,10 +36,6 @@ export const AuthPage: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
 
-  // Avatar / Logo Selection (Upload or one of 4 CellHub presets)
-  const [selectedAvatar, setSelectedAvatar] = useState<string>(CELLHUB_DEFAULT_AVATARS[0].dataUri);
-  const [customAvatarPreview, setCustomAvatarPreview] = useState<string | null>(null);
-
   // CNPJ mask formatting: 00.000.000/0001-00
   const formatCNPJ = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 14);
@@ -58,26 +52,6 @@ export const AuthPage: React.FC = () => {
     if (numbers.length <= 2) return numbers.length ? `(${numbers}` : '';
     if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage('A imagem deve ter no máximo 5MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        const resultStr = event.target.result as string;
-        setCustomAvatarPreview(resultStr);
-        setSelectedAvatar(resultStr);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,7 +105,7 @@ export const AuthPage: React.FC = () => {
           cnpj: cnpj.trim(),
           email: email.trim().toLowerCase(),
           whatsapp: whatsapp.trim(),
-          avatarUrl: selectedAvatar,
+          avatarUrl: CELLHUB_DEFAULT_AVATARS[0].dataUri,
           password: password.trim(),
           initialPlanStatus: 'demo', // Entra como demonstração aguardando pagamento
         });
@@ -333,68 +307,7 @@ export const AuthPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 4. Escolha de Imagem da Loja (Upload OU 4 Avatares CellHub) */}
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-white/5 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">
-                      Foto / Logo da sua Loja
-                    </span>
-                    <label className="text-[10px] font-bold text-[#00D287] hover:underline cursor-pointer flex items-center gap-1">
-                      <Upload className="w-3 h-3" />
-                      <span>Fazer Upload do Logo</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleFileUpload} 
-                        className="hidden" 
-                      />
-                    </label>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400">
-                    Se preferir, escolha uma das 4 logos oficiais do CellHub para o perfil da sua loja:
-                  </p>
-
-                  <div className="grid grid-cols-4 gap-2 pt-1">
-                    {CELLHUB_DEFAULT_AVATARS.map((avatar) => {
-                      const isSelected = selectedAvatar === avatar.dataUri;
-                      return (
-                        <button
-                          key={avatar.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedAvatar(avatar.dataUri);
-                            setCustomAvatarPreview(null);
-                          }}
-                          className={`relative p-1.5 rounded-xl border flex flex-col items-center gap-1 transition-all ${
-                            isSelected
-                              ? 'border-[#00D287] bg-[#00D287]/15 ring-2 ring-[#00D287]/30'
-                              : 'border-white/10 bg-slate-900/60 hover:border-white/20'
-                          }`}
-                        >
-                          <img src={avatar.dataUri} alt={avatar.label} className="w-10 h-10 rounded-lg object-contain" />
-                          <span className="text-[9px] text-slate-300 font-semibold truncate w-full text-center">
-                            {avatar.label.replace('CellHub ', '')}
-                          </span>
-                          {isSelected && (
-                            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[#00D287] text-slate-950 flex items-center justify-center">
-                              <Check className="w-2.5 h-2.5 stroke-[3]" />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {customAvatarPreview && (
-                    <div className="flex items-center gap-2 pt-1 text-[11px] text-emerald-400">
-                      <img src={customAvatarPreview} alt="Preview" className="w-6 h-6 rounded-md object-cover border border-[#00D287]/40" />
-                      <span>Logo personalizada da loja carregada com sucesso!</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 5. Senha & Repetir Senha */}
+                {/* 4. Senha & Repetir Senha */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
