@@ -2,7 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/webhooks/(.*)",
+      "destination": "/api/webhooks/$1"
+    },
+    {
+      "source": "/((?!api/webhooks/).*)",
       "destination": "/index.html"
     }
   ]
