@@ -23,41 +23,38 @@ export const CellHubLogo: React.FC<CellHubLogoProps> = ({
 
   const currentHeight = heightClasses[size] || heightClasses.md;
 
+  const iconSvg = (
+    <svg
+      viewBox="0 0 120 90"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`${currentHeight} w-auto flex-shrink-0`}
+    >
+      <g fill="#FFFFFF">
+        {/* Outer E Shape */}
+        <path d="M42 5 C20 5 5 20 5 45 C5 70 20 85 42 85 L84 85 L84 70 L42 70 C28 70 20 60 20 45 C20 30 28 20 42 20 L84 20 L84 5 Z" />
+        {/* Center horizontal bar */}
+        <rect x="18" y="38" width="66" height="14" />
+        {/* Right vertical bar */}
+        <rect x="89" y="5" width="15" height="80" />
+      </g>
+    </svg>
+  );
+
   if (variant === 'icon' || !showText) {
     return (
-      <svg
-        viewBox="0 0 135 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={`${currentHeight} w-auto flex-shrink-0 ${className}`}
-      >
-        <g fill="#FFFFFF">
-          <path d="M72 18 C34 18 12 40 12 65 C12 90 34 112 72 112 L98 112 C101 112 103 109 103 106 L103 96 C103 93 101 91 98 91 L70 91 C46 91 32 80 32 65 C32 50 46 39 70 39 L98 39 C101 39 103 37 103 34 L103 24 C103 21 101 18 98 18 Z" />
-          <rect x="24" y="55" width="64" height="18" rx="6" />
-          <rect x="112" y="18" width="16" height="94" rx="4" />
-        </g>
-      </svg>
+      <div className={`inline-flex items-center ${className}`}>
+        {iconSvg}
+      </div>
     );
   }
 
   return (
-    <div className={`inline-flex items-center gap-2 select-none ${className}`}>
-      {/* Icon */}
-      <svg
-        viewBox="0 0 135 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={`${currentHeight} w-auto flex-shrink-0`}
-      >
-        <g fill="#FFFFFF">
-          <path d="M72 18 C34 18 12 40 12 65 C12 90 34 112 72 112 L98 112 C101 112 103 109 103 106 L103 96 C103 93 101 91 98 91 L70 91 C46 91 32 80 32 65 C32 50 46 39 70 39 L98 39 C101 39 103 37 103 34 L103 24 C103 21 101 18 98 18 Z" />
-          <rect x="24" y="55" width="64" height="18" rx="6" />
-          <rect x="112" y="18" width="16" height="94" rx="4" />
-        </g>
-      </svg>
+    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+      {iconSvg}
 
       {/* Wordmark */}
-      <span className="font-extrabold tracking-tight text-white leading-none flex items-baseline">
+      <span className="font-black tracking-tight text-white leading-none text-lg flex items-baseline">
         <span className="text-white">Cell</span>
         <span className="text-[#00E599] ml-0.5">Hub</span>
       </span>

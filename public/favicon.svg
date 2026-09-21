@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#070b14"/>
+  <!-- CellHub Monogram Icon -->
+  <g fill="#FFFFFF">
+    <!-- Outer E shape -->
+    <path d="M50 24 C28 24 14 38 14 64 C14 90 28 104 50 104 L94 104 L94 89 L50 89 C36 89 29 80 29 64 C29 48 36 39 50 39 L94 39 L94 24 Z" />
+    <!-- Middle horizontal bar -->
+    <rect x="25" y="57" width="69" height="14" />
+    <!-- Vertical bar on the right -->
+    <rect x="99" y="24" width="15" height="80" />
+  </g>
+</svg>
