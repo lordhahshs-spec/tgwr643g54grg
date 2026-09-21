@@ -2,11 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarNavigation } from '@/components/SidebarNavigation';
 import { VendaAndroidTab } from '@/components/tabs/VendaAndroidTab';
-import { CursosTab } from '@/components/tabs/CursosTab';
 import { EsquemasTab } from '@/components/tabs/EsquemasTab';
-import { CatalogoTab } from '@/components/tabs/CatalogoTab';
 import { TradeInTab } from '@/components/tabs/TradeInTab';
-import { CalculadoraLucroTab } from '@/components/tabs/CalculadoraLucroTab';
 import { SuperOfertasTab } from '@/components/tabs/SuperOfertasTab';
 import { BannedScreen } from '@/components/BannedScreen';
 import { UnlockPlatformModal } from '@/components/demo/UnlockPlatformModal';
@@ -178,19 +175,12 @@ const Index: React.FC = () => {
           {activeTab === 'venda-android' && (
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Simulador de Vendas e Margem Android Bloqueado')} />
           )}
-          {activeTab === 'cursos' && (
-            <CursosTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
-          )}
           {activeTab === 'esquemas' && (
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
-          )}
-          {activeTab === 'catalogo' && (
-            <CatalogoTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
           )}
           {activeTab === 'trade-in' && (
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
           )}
-          {activeTab === 'calculadora-lucro' && <CalculadoraLucroTab />}
         </main>
       </div>
 

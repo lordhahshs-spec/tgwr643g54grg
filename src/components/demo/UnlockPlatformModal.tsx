@@ -191,7 +191,7 @@ export const UnlockPlatformModal: React.FC<UnlockPlatformModalProps> = ({
               </div>
               <div className="p-2.5 rounded-xl bg-slate-950 border border-white/5 flex items-center gap-2">
                 <Check className="w-4 h-4 text-[#00D287] flex-shrink-0" />
-                <span>Aulas e Treinamentos Técnicos</span>
+                <span>Simulador de Trade-In & Trocas</span>
               </div>
             </div>
           </div>
