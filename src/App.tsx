@@ -7,6 +7,7 @@ import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import MelhorEnvioCallback from "./pages/MelhorEnvioCallback";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,10 @@ const App = () => (
 
           {/* 3. Painel Administrativo Geral (Acesso exclusivo master admin) */}
           <Route path="/admin" element={<AdminPage />} />
+
+          {/* 4. Integração Melhor Envio OAuth Callback */}
+          <Route path="/api/melhor-envio/callback" element={<MelhorEnvioCallback />} />
+          <Route path="/melhor-envio/callback" element={<MelhorEnvioCallback />} />
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

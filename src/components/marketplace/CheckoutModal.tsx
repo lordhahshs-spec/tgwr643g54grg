@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   ShieldCheck, 
@@ -11,10 +11,21 @@ import {
   Lock, 
   ArrowRight,
   PackageCheck,
-  Receipt
+  Receipt,
+  Loader2,
+  AlertCircle,
+  MapPin,
+  CheckCircle2
 } from 'lucide-react';
-import { MarketplaceOffer, MarketplaceFeeSettings } from '@/types/marketplace';
+import { 
+  MarketplaceOffer, 
+  MarketplaceFeeSettings, 
+  ShippingQuote, 
+  ShippingAddress,
+  ShippingPackage
+} from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
+import { melhorEnvioService } from '@/services/melhorEnvioService';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
@@ -42,15 +53,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [orderCompletedId, setOrderCompletedId] = useState<string | null>(null);
 
   // Delivery Address Form
-  const [address, setAddress] = useState({
-    zipCode: '',
-    street: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: 'São Paulo',
-    state: 'SP',
+  const [address, setAddress] = useState<ShippingAddress>({
+    zipCode: currentUser.shippingZipCode || '',
+    street: currentUser.shippingStreet || '',
+    number: currentUser.shippingNumber || '',
+    complement: currentUser.shippingComplement || '',
+    neighborhood: currentUser.shippingNeighborhood || '',
+    city: currentUser.shippingCity || 'São Paulo',
+    state: currentUser.shippingState || 'SP',
+    phone: currentUser.whatsapp || currentUser.shippingPhone || '',
+    name: currentUser.ownerName || currentUser.companyName,
+    email: currentUser.email,
+    cnpj: currentUser.cnpj,
   });
+
+  // Shipping Quotes via Melhor Envio
+  const [quotes, setQuotes] = useState<ShippingQuote[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<ShippingQuote | null>(null);
+  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Card Inputs
   const [cardData, setCardData] = useState({
@@ -72,12 +94,96 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }).format(val);
   };
 
+  const isFreeShipping = offer.freeShipping || offer.shippingPolicy === 'frete_gratis';
   const productPrice = offer.price;
-  const shippingCost = offer.freeShipping ? 0 : (offer.shippingCost || 0);
+  
+  // What buyer actually pays for shipping
+  const shippingAmountCharged = isFreeShipping ? 0 : (selectedQuote ? selectedQuote.price : (offer.shippingCost || 0));
   const feePercent = feeSettings.defaultFeePercent || 6.5;
   const platformFeeAmount = (productPrice * feePercent) / 100;
-  const sellerNetAmount = productPrice - platformFeeAmount;
-  const totalAmount = productPrice + shippingCost;
+  const totalAmount = productPrice + shippingAmountCharged;
+
+  // Real label cost (from quote snapshot)
+  const actualShippingCost = selectedQuote ? selectedQuote.price : 0;
+  // Seller shipping cost (if free shipping, seller assumes actual cost)
+  const sellerShippingCost = isFreeShipping ? actualShippingCost : 0;
+  const sellerNetAmount = productPrice - platformFeeAmount - sellerShippingCost;
+
+  // Trigger Quote Calculation
+  const fetchQuotes = async (destinationCep: string) => {
+    const cleanTo = destinationCep.replace(/\D/g, '');
+    if (cleanTo.length !== 8) return;
+
+    setIsLoadingQuotes(true);
+    setQuoteError(null);
+
+    const fromCep = (offer.originZipCode || '01001000').replace(/\D/g, '');
+    const pkg: ShippingPackage = {
+      weight: offer.packageWeight || 0.5,
+      height: offer.packageHeight || 8,
+      width: offer.packageWidth || 15,
+      length: offer.packageLength || 20,
+      insuranceValue: offer.price,
+    };
+
+    try {
+      const res = await melhorEnvioService.calculateShipping({
+        fromPostalCode: fromCep,
+        toPostalCode: cleanTo,
+        package: pkg,
+        insuranceValue: offer.price,
+      });
+
+      if (res.success && res.quotes.length > 0) {
+        setQuotes(res.quotes);
+        // Default to fastest or lowest price
+        setSelectedQuote(res.quotes[0]);
+      } else {
+        setQuoteError(res.error || 'Nenhuma transportadora disponível para este trecho no momento.');
+      }
+    } catch (err: any) {
+      setQuoteError('Erro ao consultar frete no Melhor Envio.');
+    } finally {
+      setIsLoadingQuotes(false);
+    }
+  };
+
+  // On CEP Change with debounce
+  const handleCepChange = (val: string) => {
+    const clean = val.replace(/\D/g, '');
+    setAddress((prev) => ({ ...prev, zipCode: clean }));
+
+    if (clean.length === 8) {
+      // ViaCEP lookup
+      fetch(`https://viacep.com.br/ws/${clean}/json/`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.erro) {
+            setAddress((prev) => ({
+              ...prev,
+              street: data.logradouro || prev.street,
+              neighborhood: data.bairro || prev.neighborhood,
+              city: data.localidade || prev.city,
+              state: data.uf || prev.state,
+            }));
+          }
+        })
+        .catch(() => {});
+
+      // Debounce shipping calculation
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        fetchQuotes(clean);
+      }, 400);
+    }
+  };
+
+  // Initial calculation if buyer already had a saved CEP
+  useEffect(() => {
+    if (address.zipCode && address.zipCode.replace(/\D/g, '').length === 8) {
+      fetchQuotes(address.zipCode);
+    }
+  }, []);
 
   const pixCode = `00020126580014br.gov.bcb.pix0136${offer.id}-cellhub520400005303986540${totalAmount.toFixed(2)}5802BR5925CellHub Intermediacao6009Sao Paulo62070503***6304`;
 
@@ -98,6 +204,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
+    if (!selectedQuote && quotes.length > 0) {
+      toast.error('Selecione uma modalidade de envio do Melhor Envio.');
+      return;
+    }
+
     if (paymentMethod === 'Cartao' && (!cardData.number || !cardData.expiry || !cardData.cvv)) {
       toast.error('Preencha os dados do cartão de crédito corporativo.');
       return;
@@ -105,8 +216,37 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     setIsProcessing(true);
 
-    // Simulate gateway confirmation
-    setTimeout(async () => {
+    // Save buyer delivery address snapshot
+    const destinationSnapshot: ShippingAddress = {
+      ...address,
+      zipCode: address.zipCode.replace(/\D/g, ''),
+    };
+
+    // Build seller origin address snapshot
+    const originSnapshot: ShippingAddress = {
+      zipCode: offer.originZipCode || '01001000',
+      street: offer.originStreet || 'Rua Santa Ifigênia',
+      number: offer.originNumber || '100',
+      complement: offer.originComplement || '',
+      neighborhood: offer.originNeighborhood || 'Centro',
+      city: offer.originCity || 'São Paulo',
+      state: offer.originState || 'SP',
+      name: offer.sellerOwner || offer.sellerCompany,
+      phone: offer.sellerCnpj || '11999999999',
+      email: offer.sellerEmail || 'vendas@cellhub.shop',
+      cnpj: offer.sellerCnpj,
+    };
+
+    const packageSnapshot: ShippingPackage = {
+      weight: offer.packageWeight || 0.5,
+      height: offer.packageHeight || 8,
+      width: offer.packageWidth || 15,
+      length: offer.packageLength || 20,
+      insuranceValue: offer.price,
+    };
+
+    try {
+      // 1. Cria o pedido no CellHub com todos os valores e snapshots segregados
       const result = await marketplaceService.createOrder({
         offerId: offer.id,
         buyerId: currentUser.id,
@@ -119,7 +259,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         productTitle: offer.title,
         productImage: offer.images?.[0] || '',
         productPrice,
-        shippingCost,
+        shippingCost: shippingAmountCharged,
         platformFeePercent: feePercent,
         platformFeeAmount,
         sellerNetAmount,
@@ -127,18 +267,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         paymentMethod,
         paymentStatus: 'pago',
         orderStatus: 'aguardando_envio',
-        shippingAddress: address,
+        
+        // Separação contábil estrita
+        productAmount: productPrice,
+        shippingAmountCharged: shippingAmountCharged,
+        actualShippingCost: actualShippingCost,
+        sellerShippingCost: sellerShippingCost,
+        shippingDifference: shippingAmountCharged - actualShippingCost,
+
+        // Snapshots imutáveis
+        shippingAddress: destinationSnapshot,
+        shippingOriginSnapshot: originSnapshot,
+        shippingDestinationSnapshot: destinationSnapshot,
+        shippingPackageSnapshot: packageSnapshot,
+        shippingQuoteSnapshot: selectedQuote || undefined,
+        
+        shippingStatus: 'pago',
+      });
+
+      if (!result.success || !result.orderId) {
+        throw new Error(result.error || 'Erro ao criar pedido.');
+      }
+
+      const createdOrderId = result.orderId;
+
+      // 2. Dispara a compra da etiqueta no Melhor Envio via saldo da conta CellHub
+      // Nota: o backend realiza essa compra utilizando a carteira oficial do CellHub
+      melhorEnvioService.createAndPurchaseLabel(createdOrderId).then((labelRes) => {
+        if (labelRes.success) {
+          console.log('[Melhor Envio] Etiqueta comprada com sucesso para o pedido:', createdOrderId);
+        } else {
+          console.warn('[Melhor Envio] Pendência na compra da etiqueta:', labelRes.error);
+        }
       });
 
       setIsProcessing(false);
-
-      if (result.success && result.orderId) {
-        setOrderCompletedId(result.orderId);
-        toast.success('Pagamento B2B confirmado! O valor foi retido com segurança em custódia.');
-      } else {
-        toast.error(result.error || 'Erro ao processar pedido.');
-      }
-    }, 1200);
+      setOrderCompletedId(createdOrderId);
+      toast.success('Pagamento B2B confirmado! O valor foi retido com segurança em custódia.');
+    } catch (err: any) {
+      setIsProcessing(false);
+      toast.error(err.message || 'Erro ao processar pedido.');
+    }
   };
 
   return (
@@ -158,7 +327,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 Checkout B2B Seguro • CellHub Custódia
               </h2>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Garantia de entrega: o vendedor só recebe após o envio comprovado
+                Logística automatizada via Melhor Envio com rastreamento oficial
               </p>
             </div>
           </div>
@@ -188,31 +357,39 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   Pagamento Confirmado em Custódia
                 </h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
-                  Número do Pedido: <span className="text-white font-mono font-bold">{orderCompletedId}</span>
+                  ID do Pedido: <span className="text-white font-mono font-bold">{orderCompletedId}</span>
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 max-w-md mx-auto text-left text-xs space-y-2">
+              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 max-w-md mx-auto text-left text-xs space-y-2.5">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Produto:</span>
-                  <span className="text-white font-semibold">{offer.title}</span>
+                  <span className="text-white font-semibold truncate max-w-[200px]">{offer.title}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Lojista Vendedor:</span>
+                  <span className="text-slate-400">Vendedor:</span>
                   <span className="text-slate-200">{offer.sellerCompany}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Valor Total Pago:</span>
-                  <span className="text-[#00D287] font-bold">{formatBRL(totalAmount)}</span>
+                  <span className="text-slate-400">Envio Selecionado:</span>
+                  <span className="text-[#00D287] font-semibold">
+                    {selectedQuote ? `${selectedQuote.company.name} (${selectedQuote.name})` : 'Envio Padrão'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Status:</span>
-                  <span className="text-amber-400 font-semibold">Aguardando Envio pelo Vendedor</span>
+                  <span className="text-slate-400">Valor do Frete:</span>
+                  <span className="text-white font-semibold">
+                    {isFreeShipping ? 'Grátis' : formatBRL(shippingAmountCharged)}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-white/5">
+                  <span className="text-slate-400">Total Pago:</span>
+                  <span className="text-[#00D287] font-bold text-sm">{formatBRL(totalAmount)}</span>
                 </div>
               </div>
 
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                O lojista vendedor foi notificado e despachará seu pedido com código de rastreamento. Você pode acompanhar a entrega na aba <strong>Minhas Compras</strong>.
+                O envio está sendo processado através da integração com o <strong>Melhor Envio</strong>. O vendedor imprimirá a etiqueta oficial e despachará nos Correios/Transportadora.
               </p>
 
               <button
@@ -220,9 +397,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   onSuccess(orderCompletedId);
                   onClose();
                 }}
-                className="px-8 py-3 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-sm shadow-lg shadow-[#00D287]/20"
+                className="px-8 py-3 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-sm shadow-lg shadow-[#00D287]/20 transition-all"
               >
-                Ir para Minhas Compras
+                Ver Pedido em Minhas Compras
               </button>
             </div>
           ) : (
@@ -246,8 +423,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-black text-white">{formatBRL(productPrice)}</span>
-                  <span className="text-[11px] text-emerald-400 block">
-                    {offer.freeShipping ? 'Frete Grátis' : `+ ${formatBRL(shippingCost)}`}
+                  <span className="text-[11px] text-emerald-400 block font-semibold">
+                    {isFreeShipping ? 'Frete Grátis' : `+ ${formatBRL(shippingAmountCharged)} frete`}
                   </span>
                 </div>
               </div>
@@ -255,185 +432,284 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {/* Delivery Address Form */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-[#00D287]" /> Endereço de Entrega da Loja
+                  <MapPin className="w-4 h-4 text-[#00D287]" /> Endereço de Entrega do Lojista
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">CEP *</label>
+                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                      CEP de Destino *
+                    </label>
                     <input
                       type="text"
-                      required
+                      maxLength={9}
                       value={address.zipCode}
-                      onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
+                      onChange={(e) => handleCepChange(e.target.value)}
                       placeholder="00000-000"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none font-mono"
+                      required
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] text-slate-400 mb-1">Logradouro / Rua *</label>
+                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                      Rua / Avenida *
+                    </label>
                     <input
                       type="text"
-                      required
                       value={address.street}
                       onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                      placeholder="Av. Paulista, Rua Santa Ifigênia..."
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                      placeholder="Ex: Av. Paulista"
+                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                      required
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Número *</label>
+                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                      Número *
+                    </label>
                     <input
                       type="text"
-                      required
                       value={address.number}
                       onChange={(e) => setAddress({ ...address, number: e.target.value })}
-                      placeholder="Ex: 1020"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                      placeholder="1000"
+                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                      required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Complemento / Sala</label>
+                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                      Complemento
+                    </label>
                     <input
                       type="text"
                       value={address.complement}
                       onChange={(e) => setAddress({ ...address, complement: e.target.value })}
-                      placeholder="Sala 4B, Loja 12..."
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                      placeholder="Sala 12"
+                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Bairro *</label>
+                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                      Bairro *
+                    </label>
                     <input
                       type="text"
                       value={address.neighborhood}
                       onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
-                      placeholder="Centro"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                      placeholder="Bela Vista"
+                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                      required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Cidade</label>
-                    <input
-                      type="text"
-                      value={address.city}
-                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Estado</label>
-                    <input
-                      type="text"
-                      value={address.state}
-                      onChange={(e) => setAddress({ ...address, state: e.target.value })}
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
-                    />
+                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                      Cidade / UF *
+                    </label>
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={address.city}
+                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        placeholder="São Paulo"
+                        className="w-2/3 bg-slate-950/70 border border-white/10 rounded-xl px-2 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                        required
+                      />
+                      <input
+                        type="text"
+                        maxLength={2}
+                        value={address.state}
+                        onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })}
+                        placeholder="SP"
+                        className="w-1/3 bg-slate-950/70 border border-white/10 rounded-xl px-1 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none text-center font-bold"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Method Selector */}
+              {/* Opções de Envio (Melhor Envio) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-[#00D287]" /> Modalidade de Envio (Melhor Envio)
+                  </h4>
+                  {isLoadingQuotes && (
+                    <span className="text-[11px] text-[#00D287] flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Cotando transportadoras...
+                    </span>
+                  )}
+                </div>
+
+                {isFreeShipping ? (
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">Frete Grátis Oferecido pelo Vendedor</div>
+                        <div className="text-[11px] text-slate-400">O vendedor cobrirá o custo da etiqueta no Melhor Envio.</div>
+                      </div>
+                    </div>
+                    <span className="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
+                  </div>
+                ) : quoteError ? (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{quoteError}</span>
+                  </div>
+                ) : quotes.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {quotes.map((q) => {
+                      const isSelected = selectedQuote?.id === q.id;
+                      return (
+                        <div
+                          key={q.id}
+                          onClick={() => setSelectedQuote(q)}
+                          className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                            isSelected
+                              ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md shadow-[#00D287]/10'
+                              : 'border-white/10 bg-slate-950/60 hover:border-white/20 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#00D287] bg-[#00D287]' : 'border-slate-500'}`}>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-white">
+                                {q.company.name} • {q.name}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                Previsão: {q.delivery_time} {q.delivery_time === 1 ? 'dia útil' : 'dias úteis'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-xs font-black text-[#00D287]">{formatBRL(q.price)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 text-xs text-slate-400 text-center">
+                    Informe seu CEP acima para carregar as cotações oficiais de frete.
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Methods */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Lock className="w-4 h-4 text-[#00D287]" /> Método de Pagamento Lojista
+                  <CreditCard className="w-4 h-4 text-[#00D287]" /> Método de Pagamento B2B
                 </h4>
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('PIX')}
-                    className={`p-3.5 rounded-2xl border flex items-center gap-3 transition-all ${
+                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
                       paymentMethod === 'PIX'
-                        ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md'
-                        : 'border-white/10 bg-slate-950 text-slate-400 hover:border-white/20'
+                        ? 'border-[#00D287] bg-[#00D287]/10 text-white'
+                        : 'border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    <QrCode className={`w-5 h-5 ${paymentMethod === 'PIX' ? 'text-[#00D287]' : 'text-slate-400'}`} />
-                    <div className="text-left">
-                      <div className="text-xs font-bold">PIX Instantâneo</div>
-                      <div className="text-[10px] text-[#00D287]">Aprovação Imediata</div>
+                    <QrCode className="w-5 h-5 text-[#00D287]" />
+                    <div>
+                      <span className="text-xs font-bold block text-white">PIX Imediato</span>
+                      <span className="text-[10px] text-slate-400">Liberação instantânea</span>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('Cartao')}
-                    className={`p-3.5 rounded-2xl border flex items-center gap-3 transition-all ${
+                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
                       paymentMethod === 'Cartao'
-                        ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md'
-                        : 'border-white/10 bg-slate-950 text-slate-400 hover:border-white/20'
+                        ? 'border-[#00D287] bg-[#00D287]/10 text-white'
+                        : 'border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    <CreditCard className={`w-5 h-5 ${paymentMethod === 'Cartao' ? 'text-[#00D287]' : 'text-slate-400'}`} />
-                    <div className="text-left">
-                      <div className="text-xs font-bold">Cartão de Crédito</div>
-                      <div className="text-[10px] text-slate-400">Até 12x para PJ</div>
+                    <CreditCard className="w-5 h-5 text-[#00D287]" />
+                    <div>
+                      <span className="text-xs font-bold block text-white">Cartão Corporativo</span>
+                      <span className="text-[10px] text-slate-400">Até 12x via Gateway</span>
                     </div>
                   </button>
                 </div>
 
-                {/* PIX Details */}
                 {paymentMethod === 'PIX' ? (
-                  <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs text-slate-300 font-semibold">
-                        Código PIX Copia e Cola
-                      </div>
-                      <span className="text-[10px] text-[#00D287] font-bold">Chave Dinâmica Gerada</span>
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-3 text-center">
+                    <div className="w-32 h-32 mx-auto bg-white p-2 rounded-xl flex items-center justify-center">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixCode)}`}
+                        alt="QR Code PIX"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-white/5 font-mono text-[11px] text-slate-400 break-all select-all">
-                      {pixCode}
-                    </div>
-
+                    <p className="text-[11px] text-slate-400">
+                      Escaneie o QR Code ou copie o código PIX para efetuar o pagamento seguro com custódia CellHub.
+                    </p>
                     <button
                       type="button"
                       onClick={handleCopyPix}
-                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 border border-white/10 transition-colors"
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-white/10 flex items-center gap-2 mx-auto transition-colors"
                     >
-                      {copiedPix ? <Check className="w-4 h-4 text-[#00D287]" /> : <Copy className="w-4 h-4" />}
-                      {copiedPix ? 'Copiado para a área de transferência!' : 'Copiar Código PIX'}
+                      {copiedPix ? <Check className="w-4 h-4 text-[#00D287]" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                      {copiedPix ? 'Código PIX Copiado!' : 'Copiar Código PIX'}
                     </button>
                   </div>
                 ) : (
-                  /* Card Inputs */
-                  <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 space-y-3">
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-3">
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Número do Cartão</label>
+                      <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                        Número do Cartão
+                      </label>
                       <input
                         type="text"
+                        maxLength={19}
                         value={cardData.number}
                         onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
                         placeholder="0000 0000 0000 0000"
-                        className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
                       />
                     </div>
+
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Validade (MM/AA)</label>
+                        <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                          Validade (MM/AA)
+                        </label>
                         <input
                           type="text"
+                          maxLength={5}
                           value={cardData.expiry}
                           onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
                           placeholder="12/28"
-                          className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">CVV</label>
+                        <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                          CVV
+                        </label>
                         <input
-                          type="text"
+                          type="password"
+                          maxLength={4}
                           value={cardData.cvv}
                           onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
                           placeholder="123"
-                          className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
                         />
                       </div>
                     </div>
@@ -441,50 +717,46 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
               </div>
 
-              {/* Order Breakdown / Escrow Transparency */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-950 to-[#0c1224] border border-[#00D287]/20 space-y-2">
-                <div className="flex justify-between text-xs text-slate-400">
+              {/* Financial Breakdown Table */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2 text-xs">
+                <div className="flex justify-between text-slate-400">
                   <span>Subtotal do Produto:</span>
-                  <span className="text-slate-200">{formatBRL(productPrice)}</span>
+                  <span className="text-white font-semibold">{formatBRL(productPrice)}</span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Frete de Envio:</span>
-                  <span className="text-slate-200">{offer.freeShipping ? 'Grátis' : formatBRL(shippingCost)}</span>
+                <div className="flex justify-between text-slate-400">
+                  <span>Frete ({selectedQuote ? selectedQuote.name : (isFreeShipping ? 'Grátis' : 'A calcular')}):</span>
+                  <span className="text-white font-semibold">
+                    {isFreeShipping ? 'Grátis (R$ 0,00)' : formatBRL(shippingAmountCharged)}
+                  </span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Taxa Operacional CellHub ({feePercent}%):</span>
-                  <span className="text-emerald-400">{formatBRL(platformFeeAmount)}</span>
+                <div className="flex justify-between text-slate-400">
+                  <span>Taxa de Intermediação CellHub:</span>
+                  <span className="text-emerald-400 font-semibold">Inclusa no repasse</span>
                 </div>
-
-                <div className="pt-2 border-t border-white/10 flex justify-between items-baseline">
-                  <div>
-                    <span className="text-xs font-bold text-white block">Total a Pagar</span>
-                    <span className="text-[10px] text-slate-400">Proteção de compra ativa</span>
-                  </div>
-                  <div className="text-xl font-black text-white">
-                    {formatBRL(totalAmount)}
-                  </div>
+                <div className="flex justify-between text-sm font-bold pt-2 border-t border-white/10 text-white">
+                  <span>Total a Pagar:</span>
+                  <span className="text-base font-black text-[#00D287]">{formatBRL(totalAmount)}</span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="flex-1 py-3.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                >
-                  <Lock className="w-4 h-4 text-slate-950" />
-                  {isProcessing ? 'Confirmando Custódia...' : 'Confirmar e Pagar'}
-                </button>
-              </div>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isProcessing}
+                className="w-full py-3.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-sm shadow-xl shadow-[#00D287]/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processando Pagamento & Compra de Envio...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Confirmar Pagamento • {formatBRL(totalAmount)}
+                  </>
+                )}
+              </button>
             </form>
           )}
         </div>

@@ -135,16 +135,17 @@ export const OfferCard: React.FC<OfferCardProps> = ({
               </span>
             </div>
 
-            {offer.freeShipping ? (
+            {offer.freeShipping || offer.shippingPolicy === 'frete_gratis' ? (
               <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                 <Truck className="w-3 h-3" />
                 Frete Grátis
               </span>
-            ) : offer.shippingCost ? (
-              <span className="text-[11px] text-slate-400 font-medium">
-                + {formatBRL(offer.shippingCost)} envio
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium bg-white/5 px-2 py-0.5 rounded-md">
+                <Truck className="w-3 h-3 text-[#00D287]" />
+                Frete no Checkout
               </span>
-            ) : null}
+            )}
           </div>
 
           {/* CTA Bar */}

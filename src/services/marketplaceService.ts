@@ -8,7 +8,12 @@ import {
   OfferCategory,
   OfferCondition,
   OfferStatus,
-  OrderStatus
+  OrderStatus,
+  ShippingAddress,
+  ShippingPackage,
+  ShippingQuote,
+  ShippingStatus,
+  ShippingPolicy
 } from '@/types/marketplace';
 
 const isUuid = (val?: string): boolean => {
@@ -113,6 +118,18 @@ export const marketplaceService = {
         price: Number(item.price),
         freeShipping: Boolean(item.free_shipping),
         shippingCost: Number(item.shipping_cost || 0),
+        shippingPolicy: (item.shipping_policy as ShippingPolicy) || (item.free_shipping ? 'frete_gratis' : 'comprador_paga'),
+        packageWeight: Number(item.package_weight || 0.5),
+        packageHeight: Number(item.package_height || 8),
+        packageWidth: Number(item.package_width || 15),
+        packageLength: Number(item.package_length || 20),
+        originZipCode: item.origin_zip_code || undefined,
+        originStreet: item.origin_street || undefined,
+        originNumber: item.origin_number || undefined,
+        originComplement: item.origin_complement || undefined,
+        originNeighborhood: item.origin_neighborhood || undefined,
+        originCity: item.origin_city || undefined,
+        originState: item.origin_state || undefined,
         images: Array.isArray(item.images) ? item.images : [],
         status: item.status as OfferStatus,
         views: Number(item.views || 0),
@@ -125,21 +142,12 @@ export const marketplaceService = {
     });
   },
 
-  // Busca exclusivamente ofertas com interações REAIS no banco de dados (views, favoritos ou pedidos)
   async getHotOffers(): Promise<MarketplaceOffer[]> {
-    // 1. Busca ofertas publicadas
     const allOffers = await this.getOffers({ status: 'publicada' });
     if (allOffers.length === 0) return [];
 
-    // 2. Busca favoritos reais
-    const { data: favs } = await supabase
-      .from('marketplace_favorites')
-      .select('offer_id');
-
-    // 3. Busca pedidos reais
-    const { data: orders } = await supabase
-      .from('marketplace_orders')
-      .select('offer_id');
+    const { data: favs } = await supabase.from('marketplace_favorites').select('offer_id');
+    const { data: orders } = await supabase.from('marketplace_orders').select('offer_id');
 
     const favCounts: Record<string, number> = {};
     (favs || []).forEach(f => {
@@ -151,29 +159,19 @@ export const marketplaceService = {
       if (o.offer_id) orderCounts[o.offer_id] = (orderCounts[o.offer_id] || 0) + 1;
     });
 
-    // Calcula pontuação exclusivamente com dados reais existentes
     const scoredOffers = allOffers.map(offer => {
       const realFavorites = favCounts[offer.id] || 0;
       const realOrders = orderCounts[offer.id] || 0;
       const realViews = offer.views || 0;
-
-      // Score puramente baseado em dados reais
       const score = (realOrders * 5) + (realFavorites * 2) + realViews;
 
-      return {
-        offer,
-        score,
-        hasRealInteraction: score > 0
-      };
+      return { offer, score, hasRealInteraction: score > 0 };
     });
 
-    // Retorna apenas as ofertas que realmente possuem interação real registrada
-    const hotList = scoredOffers
+    return scoredOffers
       .filter(item => item.hasRealInteraction)
       .sort((a, b) => b.score - a.score)
       .map(item => item.offer);
-
-    return hotList;
   },
 
   async getOfferById(id: string): Promise<MarketplaceOffer | null> {
@@ -185,19 +183,13 @@ export const marketplaceService = {
 
     if (error || !data) return null;
 
-    // Incrementa contador de visualizações
-    await supabase.rpc('increment_offer_views', { offer_id: id }).catch(async () => {
-      // Fallback se a procedure não existir
-      await supabase.from('marketplace_offers').update({ views: (data.views || 0) + 1 }).eq('id', id);
-    });
+    await supabase.from('marketplace_offers').update({ views: (data.views || 0) + 1 }).eq('id', id);
 
-    // Busca vendas reais
     const { count: ordersCount } = await supabase
       .from('marketplace_orders')
       .select('*', { count: 'exact', head: true })
       .eq('offer_id', id);
 
-    // Busca avaliações reais
     const { data: revList } = await supabase
       .from('marketplace_reviews')
       .select('rating')
@@ -223,6 +215,18 @@ export const marketplaceService = {
       price: Number(data.price),
       freeShipping: Boolean(data.free_shipping),
       shippingCost: Number(data.shipping_cost || 0),
+      shippingPolicy: (data.shipping_policy as ShippingPolicy) || (data.free_shipping ? 'frete_gratis' : 'comprador_paga'),
+      packageWeight: Number(data.package_weight || 0.5),
+      packageHeight: Number(data.package_height || 8),
+      packageWidth: Number(data.package_width || 15),
+      packageLength: Number(data.package_length || 20),
+      originZipCode: data.origin_zip_code || undefined,
+      originStreet: data.origin_street || undefined,
+      originNumber: data.origin_number || undefined,
+      originComplement: data.origin_complement || undefined,
+      originNeighborhood: data.origin_neighborhood || undefined,
+      originCity: data.origin_city || undefined,
+      originState: data.origin_state || undefined,
       images: Array.isArray(data.images) ? data.images : [],
       status: data.status as OfferStatus,
       views: Number(data.views || 0) + 1,
@@ -237,7 +241,6 @@ export const marketplaceService = {
   async createOffer(offerData: Omit<MarketplaceOffer, 'id' | 'views' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; id?: string; error?: string }> {
     let resolvedSellerId: string | null = isUuid(offerData.sellerId) ? offerData.sellerId! : null;
 
-    // Se o sellerId não for um UUID válido, tenta localizar a conta real no Supabase
     if (!resolvedSellerId) {
       const { data: userAccounts } = await supabase
         .from('user_accounts')
@@ -269,6 +272,18 @@ export const marketplaceService = {
         price: offerData.price,
         free_shipping: offerData.freeShipping,
         shipping_cost: offerData.shippingCost || 0,
+        shipping_policy: offerData.shippingPolicy || (offerData.freeShipping ? 'frete_gratis' : 'comprador_paga'),
+        package_weight: offerData.packageWeight || 0.5,
+        package_height: offerData.packageHeight || 8,
+        package_width: offerData.packageWidth || 15,
+        package_length: offerData.packageLength || 20,
+        origin_zip_code: offerData.originZipCode || null,
+        origin_street: offerData.originStreet || null,
+        origin_number: offerData.originNumber || null,
+        origin_complement: offerData.originComplement || null,
+        origin_neighborhood: offerData.originNeighborhood || null,
+        origin_city: offerData.originCity || null,
+        origin_state: offerData.originState || null,
         images: offerData.images,
         status: offerData.status || 'publicada',
         views: 0
@@ -295,6 +310,18 @@ export const marketplaceService = {
     if (updates.price !== undefined) payload.price = updates.price;
     if (updates.freeShipping !== undefined) payload.free_shipping = updates.freeShipping;
     if (updates.shippingCost !== undefined) payload.shipping_cost = updates.shippingCost;
+    if (updates.shippingPolicy !== undefined) payload.shipping_policy = updates.shippingPolicy;
+    if (updates.packageWeight !== undefined) payload.package_weight = updates.packageWeight;
+    if (updates.packageHeight !== undefined) payload.package_height = updates.packageHeight;
+    if (updates.packageWidth !== undefined) payload.package_width = updates.packageWidth;
+    if (updates.packageLength !== undefined) payload.package_length = updates.packageLength;
+    if (updates.originZipCode !== undefined) payload.origin_zip_code = updates.originZipCode;
+    if (updates.originStreet !== undefined) payload.origin_street = updates.originStreet;
+    if (updates.originNumber !== undefined) payload.origin_number = updates.originNumber;
+    if (updates.originComplement !== undefined) payload.origin_complement = updates.originComplement;
+    if (updates.originNeighborhood !== undefined) payload.origin_neighborhood = updates.originNeighborhood;
+    if (updates.originCity !== undefined) payload.origin_city = updates.originCity;
+    if (updates.originState !== undefined) payload.origin_state = updates.originState;
     if (updates.images !== undefined) payload.images = updates.images;
     if (updates.status !== undefined) payload.status = updates.status;
 
@@ -315,197 +342,50 @@ export const marketplaceService = {
     return !error;
   },
 
-  // Gera ofertas de exemplo para demonstrar tanto o formato Stories (Ofertas Quentes) quanto o formato Horizontal
-  async generateSampleOffers(currentUserId?: string): Promise<boolean> {
-    // Localiza um UUID válido de vendedor
-    let sellerId = isUuid(currentUserId) ? currentUserId! : null;
-    if (!sellerId) {
-      const { data } = await supabase.from('user_accounts').select('id').limit(1).maybeSingle();
-      if (data?.id && isUuid(data.id)) {
-        sellerId = data.id;
-      }
-    }
+  // --- SELLER SHIPPING ADDRESS (ORIGIN) ---
+  async getSellerOriginAddress(userId: string): Promise<ShippingAddress | null> {
+    if (!userId || !isUuid(userId)) return null;
 
-    const samples = [
-      // OFERTAS QUENTES (com visualizações reais para aparecerem nos Stories 9:16)
-      {
-        seller_id: sellerId,
-        seller_company: 'Global Peças & Distribuição SP',
-        seller_owner: 'Carlos Eduardo',
-        title: 'Lote 10x Telas OLED iPhone 13 Pro 120Hz Grade A+',
-        category: 'Telas',
-        subcategory: 'Apple iPhone',
-        condition: 'Novo',
-        description: 'Lote fechado com 10 unidades de telas OLED 120Hz sem dead pixels. Testadas em bancada com garantia de 90 dias para lojistas parceiros.',
-        details: 'Part: OLED-IP13P-OEM. Acompanha vedação impermeável e kit de proteção para transporte seguro.',
-        price: 2490.00,
-        free_shipping: true,
-        shipping_cost: 0,
-        images: [
-          'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 84
-      },
-      {
-        seller_id: sellerId,
-        seller_company: 'TechLab Assistência Especializada',
-        seller_owner: 'Rodrigo Ramos',
-        title: 'Estação de Retrabalho e Solda Sugon 8620DX 1300W 220V',
-        category: 'Ferramentas',
-        subcategory: 'Estações de Solda',
-        condition: 'Seminovo',
-        description: 'Estação de ar quente profissional Sugon 8620DX original. Apenas 3 meses de uso em bancada limpa, completa com 4 bocais e sensor magnético.',
-        details: 'Potência 1300W real, fluxo de ar com memória rápida de 4 canais. Ideal para reballing de CPU e memórias.',
-        price: 1850.00,
-        free_shipping: false,
-        shipping_cost: 45.00,
-        images: [
-          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 120
-      },
-      {
-        seller_id: sellerId,
-        seller_company: 'SmartCenter Distribuidora',
-        seller_owner: 'Juliana Mendes',
-        title: 'Placa Mãe Samsung Galaxy S22 Ultra 256GB Nacional 100% Testada',
-        category: 'Componentes',
-        subcategory: 'Placas Principais',
-        condition: 'Usado',
-        description: 'Placa nacional homologada pela Anatel, sem bloqueios de operadora ou IMEI. Face ID, biometria e câmeras testadas.',
-        details: 'Sem conta vinculada, pronta para montagem imediata. 30 dias de garantia.',
-        price: 1190.00,
-        free_shipping: true,
-        shipping_cost: 0,
-        images: [
-          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 65
-      },
-      {
-        seller_id: sellerId,
-        seller_company: 'MaxPower Baterias Premium',
-        seller_owner: 'Fernando Albuquerque',
-        title: 'Kit 20x Baterias Linha iPhone (11, 12, 13, 14) 0 Ciclos TI Chip',
-        category: 'Baterias',
-        subcategory: 'iPhone',
-        condition: 'Novo',
-        description: 'Lote com 20 baterias novas de altíssima densidade com chip TI original. Sem mensagem de peça desconhecida quando programadas.',
-        details: 'Composição: 5x iPhone 11, 5x iPhone 12, 5x iPhone 13, 5x iPhone 14. Inclui fita adesiva original.',
-        price: 1480.00,
-        free_shipping: true,
-        shipping_cost: 0,
-        images: [
-          'https://images.unsplash.com/photo-1619725002198-6a689b72f41d?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 95
-      },
+    const { data } = await supabase
+      .from('user_accounts')
+      .select('shipping_zip_code, shipping_street, shipping_number, shipping_complement, shipping_neighborhood, shipping_city, shipping_state, shipping_phone, company_name, owner_name, email, cnpj')
+      .eq('id', userId)
+      .maybeSingle();
 
-      // DEMAIS OFERTAS (Formato Horizontal Retangular)
-      {
-        seller_id: sellerId,
-        seller_company: 'Bancada Express Ferramentas',
-        seller_owner: 'Marcos Vinicius',
-        title: 'Separadora de LCD com Bomba de Sucção a Vácuo Mechanic 968',
-        category: 'Máquinas',
-        subcategory: 'Separadoras',
-        condition: 'Seminovo',
-        description: 'Máquina separadora de touch e display com display digital de temperatura e vácuo integrado potente. Funcionamento perfeito.',
-        details: 'Voltagem: 110V/220V Bi-volt. Superfície em liga de alumínio térmica.',
-        price: 490.00,
-        free_shipping: false,
-        shipping_cost: 32.00,
-        images: [
-          'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 0
-      },
-      {
-        seller_id: sellerId,
-        seller_company: 'Mega Componentes Brasil',
-        seller_owner: 'Luciano Silva',
-        title: 'Pacote 50x Conectores de Carga Tipo-C SMD Universal Fita Reforçada',
-        category: 'Conectores',
-        subcategory: 'Tipo-C',
-        condition: 'Novo',
-        description: 'Lote de conectores USB Type-C padrão para reposição em bancada. Terminais com banho de ouro para soldagem perfeita.',
-        details: 'Fita selada de fábrica. Compatível com dezenas de modelos Motorola, Xiaomi e Samsung.',
-        price: 189.00,
-        free_shipping: true,
-        shipping_cost: 0,
-        images: [
-          'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 0
-      },
-      {
-        seller_id: sellerId,
-        seller_company: 'Micro Solda Lab Equipamentos',
-        seller_owner: 'Gabriel Barbosa',
-        title: 'Microscópio Óptico Trinocular Mechanic MC75T com Câmera 4K HDMI',
-        category: 'Ferramentas',
-        subcategory: 'Microscópios',
-        condition: 'Novo',
-        description: 'Microscópio trinocular profissional completo com braço articulado reforçado, lente Barlow 0.5x, iluminador LED 56 pontos e câmera 4K.',
-        details: 'Zoom óptico contínuo 7X a 45X. Saída HDMI direta para monitor ou TV de bancada.',
-        price: 2890.00,
-        free_shipping: true,
-        shipping_cost: 0,
-        images: [
-          'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 0
-      },
-      {
-        seller_id: sellerId,
-        seller_company: 'Centro Peças & Distribuição',
-        seller_owner: 'Patrícia Rocha',
-        title: 'Lote 5x Carcaças Completas iPhone 12 Original sem Riscos com Gaveta',
-        category: 'Lotes',
-        subcategory: 'Carcaças',
-        condition: 'Seminovo',
-        description: 'Lote com 5 carcaças retiradas de aparelhos vitrine sem marcas de queda. Acompanha botões laterais, flex de volume/power e gaveta de SIM.',
-        details: 'Cores: 2x Azul, 2x Preto, 1x Branco. Originais Apple sem empenamento.',
-        price: 950.00,
-        free_shipping: false,
-        shipping_cost: 28.00,
-        images: [
-          'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&auto=format&fit=crop&q=80'
-        ],
-        status: 'publicada',
-        views: 0
-      }
-    ];
+    if (!data || !data.shipping_zip_code) return null;
 
-    const { error } = await supabase.from('marketplace_offers').insert(samples);
-    return !error;
+    return {
+      zipCode: data.shipping_zip_code,
+      street: data.shipping_street || '',
+      number: data.shipping_number || '',
+      complement: data.shipping_complement || '',
+      neighborhood: data.shipping_neighborhood || '',
+      city: data.shipping_city || '',
+      state: data.shipping_state || '',
+      phone: data.shipping_phone || '',
+      name: data.owner_name || data.company_name || '',
+      email: data.email || '',
+      cnpj: data.cnpj || '',
+    };
   },
 
-  async clearAllOffers(): Promise<boolean> {
-    const { error } = await supabase.from('marketplace_offers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  async saveSellerOriginAddress(userId: string, address: ShippingAddress): Promise<boolean> {
+    if (!userId || !isUuid(userId)) return false;
+
+    const { error } = await supabase
+      .from('user_accounts')
+      .update({
+        shipping_zip_code: address.zipCode,
+        shipping_street: address.street,
+        shipping_number: address.number,
+        shipping_complement: address.complement || null,
+        shipping_neighborhood: address.neighborhood,
+        shipping_city: address.city,
+        shipping_state: address.state,
+        shipping_phone: address.phone || null,
+      })
+      .eq('id', userId);
+
     return !error;
   },
 
@@ -533,15 +413,21 @@ export const marketplaceService = {
 
     if (data) {
       await supabase.from('marketplace_favorites').delete().eq('id', data.id);
-      return false; // removido
+      return false;
     } else {
       await supabase.from('marketplace_favorites').insert({ user_id: userId, offer_id: offerId });
-      return true; // adicionado
+      return true;
     }
   },
 
-  // --- PEDIDOS / CHECKOUT B2B ---
+  // --- PEDIDOS / CHECKOUT B2B COM SEPARAÇÃO FINANCEIRA E SNAPSHOTS ---
   async createOrder(order: Omit<MarketplaceOrder, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; orderId?: string; error?: string }> {
+    const productAmount = Number(order.productAmount ?? order.productPrice);
+    const shippingCharged = Number(order.shippingAmountCharged ?? order.shippingCost ?? 0);
+    const actualCost = Number(order.actualShippingCost ?? 0);
+    const sellerShippingCost = Number(order.sellerShippingCost ?? 0);
+    const shippingDiff = shippingCharged - actualCost;
+
     const { data, error } = await supabase
       .from('marketplace_orders')
       .insert({
@@ -555,8 +441,8 @@ export const marketplaceService = {
         seller_company: order.sellerCompany,
         product_title: order.productTitle,
         product_image: order.productImage,
-        product_price: order.productPrice,
-        shipping_cost: order.shippingCost,
+        product_price: productAmount,
+        shipping_cost: shippingCharged,
         platform_fee_percent: order.platformFeePercent,
         platform_fee_amount: order.platformFeeAmount,
         seller_net_amount: order.sellerNetAmount,
@@ -565,7 +451,29 @@ export const marketplaceService = {
         payment_status: order.paymentStatus,
         order_status: order.orderStatus,
         shipping_address: order.shippingAddress,
-        tracking_code: order.trackingCode || null
+
+        // Campos financeiros separados e auditados
+        product_amount: productAmount,
+        shipping_amount_charged: shippingCharged,
+        actual_shipping_cost: actualCost,
+        seller_shipping_cost: sellerShippingCost,
+        shipping_difference: shippingDiff,
+
+        // Snapshots imutáveis de endereço e cotação
+        shipping_origin_snapshot: order.shippingOriginSnapshot || null,
+        shipping_destination_snapshot: order.shippingDestinationSnapshot || order.shippingAddress || null,
+        shipping_package_snapshot: order.shippingPackageSnapshot || null,
+        shipping_quote_snapshot: order.shippingQuoteSnapshot || null,
+        
+        // Identificadores de logística
+        melhor_envio_shipment_id: order.melhorEnvioShipmentId || null,
+        melhor_envio_protocol: order.melhorEnvioProtocol || null,
+        melhor_envio_label_url: order.melhorEnvioLabelUrl || null,
+        melhor_envio_print_url: order.melhorEnvioPrintUrl || null,
+        tracking_code: order.trackingCode || null,
+        tracking_status: order.trackingStatus || null,
+        shipping_status: order.shippingStatus || 'aguardando_pagamento',
+        shipping_error: order.shippingError || null,
       })
       .select('id')
       .single();
@@ -575,13 +483,26 @@ export const marketplaceService = {
       return { success: false, error: error.message };
     }
 
-    // Se o pedido foi concluído com sucesso e tinha uma oferta associada, marca a oferta como vendida
+    // Se o pedido teve sucesso e oferta associada, marca a oferta como vendida
     if (order.offerId && isUuid(order.offerId)) {
       await supabase
         .from('marketplace_offers')
         .update({ status: 'vendida', updated_at: new Date().toISOString() })
         .eq('id', order.offerId);
     }
+
+    // Registra log inicial de pedido
+    await supabase.from('shipping_logs').insert({
+      order_id: data.id,
+      event: 'order_created',
+      status: 'info',
+      message: `Pedido criado com sucesso. Frete cobrado: R$ ${shippingCharged.toFixed(2)}`,
+      payload: {
+        product_amount: productAmount,
+        shipping_charged: shippingCharged,
+        payment_method: order.paymentMethod,
+      },
+    });
 
     return { success: true, orderId: data.id };
   },
@@ -620,11 +541,41 @@ export const marketplaceService = {
     return data.map(this.mapOrderRecord);
   },
 
+  async getOrderById(orderId: string): Promise<MarketplaceOrder | null> {
+    const { data, error } = await supabase
+      .from('marketplace_orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !data) return null;
+    return this.mapOrderRecord(data);
+  },
+
   async updateOrderStatus(orderId: string, status: OrderStatus, trackingCode?: string): Promise<boolean> {
     const payload: any = { order_status: status, updated_at: new Date().toISOString() };
     if (trackingCode !== undefined) {
       payload.tracking_code = trackingCode;
     }
+    const { error } = await supabase
+      .from('marketplace_orders')
+      .update(payload)
+      .eq('id', orderId);
+
+    return !error;
+  },
+
+  async updateOrderShipping(orderId: string, shippingUpdates: Partial<MarketplaceOrder>): Promise<boolean> {
+    const payload: any = { updated_at: new Date().toISOString() };
+    if (shippingUpdates.shippingStatus !== undefined) payload.shipping_status = shippingUpdates.shippingStatus;
+    if (shippingUpdates.trackingCode !== undefined) payload.tracking_code = shippingUpdates.trackingCode;
+    if (shippingUpdates.trackingStatus !== undefined) payload.tracking_status = shippingUpdates.trackingStatus;
+    if (shippingUpdates.melhorEnvioPrintUrl !== undefined) payload.melhor_envio_print_url = shippingUpdates.melhorEnvioPrintUrl;
+    if (shippingUpdates.melhorEnvioLabelUrl !== undefined) payload.melhor_envio_label_url = shippingUpdates.melhorEnvioLabelUrl;
+    if (shippingUpdates.melhorEnvioShipmentId !== undefined) payload.melhor_envio_shipment_id = shippingUpdates.melhorEnvioShipmentId;
+    if (shippingUpdates.actualShippingCost !== undefined) payload.actual_shipping_cost = shippingUpdates.actualShippingCost;
+    if (shippingUpdates.shippingError !== undefined) payload.shipping_error = shippingUpdates.shippingError;
+
     const { error } = await supabase
       .from('marketplace_orders')
       .update(payload)
@@ -733,7 +684,31 @@ export const marketplaceService = {
       paymentStatus: item.payment_status,
       orderStatus: item.order_status,
       shippingAddress: item.shipping_address,
+      
+      // Detalhes financeiros segregados
+      productAmount: Number(item.product_amount || item.product_price),
+      shippingAmountCharged: Number(item.shipping_amount_charged ?? item.shipping_cost ?? 0),
+      actualShippingCost: Number(item.actual_shipping_cost || 0),
+      sellerShippingCost: Number(item.seller_shipping_cost || 0),
+      shippingDifference: Number(item.shipping_difference || 0),
+
+      // Snapshots
+      shippingOriginSnapshot: item.shipping_origin_snapshot,
+      shippingDestinationSnapshot: item.shipping_destination_snapshot,
+      shippingPackageSnapshot: item.shipping_package_snapshot,
+      shippingQuoteSnapshot: item.shipping_quote_snapshot,
+
+      // Logística & Melhor Envio
+      melhorEnvioShipmentId: item.melhor_envio_shipment_id,
+      melhorEnvioProtocol: item.melhor_envio_protocol,
+      melhorEnvioLabelUrl: item.melhor_envio_label_url,
+      melhorEnvioPrintUrl: item.melhor_envio_print_url,
       trackingCode: item.tracking_code,
+      trackingStatus: item.tracking_status,
+      trackingHistory: item.tracking_history,
+      shippingStatus: (item.shipping_status as ShippingStatus) || 'aguardando_pagamento',
+      shippingError: item.shipping_error,
+
       createdAt: item.created_at,
       updatedAt: item.updated_at
     };

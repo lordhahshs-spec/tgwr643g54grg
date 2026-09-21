@@ -14,6 +14,14 @@ export interface UserAccount {
   status: 'ativo' | 'analise' | 'bloqueado';
   planStatus: 'demo' | 'ativo'; // 'demo' = bloqueado/não pagante; 'ativo' = vitalício liberado
   banReason?: string;
+  shippingZipCode?: string;
+  shippingStreet?: string;
+  shippingNumber?: string;
+  shippingComplement?: string;
+  shippingNeighborhood?: string;
+  shippingCity?: string;
+  shippingState?: string;
+  shippingPhone?: string;
   createdAt: string;
 }
 
@@ -58,6 +66,14 @@ export const leadAuthService = {
       status: row.status || 'ativo',
       planStatus: (row.plan_status as 'demo' | 'ativo') || (row.role === 'admin' ? 'ativo' : 'demo'),
       banReason: row.ban_reason || undefined,
+      shippingZipCode: row.shipping_zip_code || undefined,
+      shippingStreet: row.shipping_street || undefined,
+      shippingNumber: row.shipping_number || undefined,
+      shippingComplement: row.shipping_complement || undefined,
+      shippingNeighborhood: row.shipping_neighborhood || undefined,
+      shippingCity: row.shipping_city || undefined,
+      shippingState: row.shipping_state || undefined,
+      shippingPhone: row.shipping_phone || undefined,
       createdAt: row.created_at,
     }));
   },
@@ -163,6 +179,14 @@ export const leadAuthService = {
       status: data.status || 'ativo',
       planStatus: (data.plan_status as 'demo' | 'ativo') || (data.role === 'admin' ? 'ativo' : 'demo'),
       banReason: data.ban_reason || undefined,
+      shippingZipCode: data.shipping_zip_code || undefined,
+      shippingStreet: data.shipping_street || undefined,
+      shippingNumber: data.shipping_number || undefined,
+      shippingComplement: data.shipping_complement || undefined,
+      shippingNeighborhood: data.shipping_neighborhood || undefined,
+      shippingCity: data.shipping_city || undefined,
+      shippingState: data.shipping_state || undefined,
+      shippingPhone: data.shipping_phone || undefined,
       createdAt: data.created_at,
     };
 

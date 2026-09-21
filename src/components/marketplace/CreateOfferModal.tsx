@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   UploadCloud, 
@@ -12,14 +12,23 @@ import {
   Eye, 
   Layers,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  MapPin,
+  Box,
+  Scale,
+  Edit3,
+  Check
 } from 'lucide-react';
 import { 
   OfferCategory, 
   OfferCondition, 
-  MarketplaceOffer 
+  MarketplaceOffer,
+  ShippingPolicy,
+  ShippingAddress,
+  CategoryPackageDefault
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
+import { melhorEnvioService } from '@/services/melhorEnvioService';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
@@ -63,19 +72,81 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
 
   // Form Fields
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<OfferCategory>('Peças');
+  const [category, setCategory] = useState<OfferCategory>('Celulares');
   const [subcategory, setSubcategory] = useState('');
   const [condition, setCondition] = useState<OfferCondition>('Novo');
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
   const [price, setPrice] = useState('');
-  const [freeShipping, setFreeShipping] = useState(true);
-  const [shippingCost, setShippingCost] = useState('');
+  
+  // Shipping Policy
+  const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>('comprador_paga');
+
+  // Packaging & Dimensions
+  const [packageDefaults, setPackageDefaults] = useState<CategoryPackageDefault[]>([]);
+  const [packageWeight, setPackageWeight] = useState<number>(0.5); // kg
+  const [packageHeight, setPackageHeight] = useState<number>(8);   // cm
+  const [packageWidth, setPackageWidth] = useState<number>(15);    // cm
+  const [packageLength, setPackageLength] = useState<number>(20);  // cm
+  const [customDimensionsOpen, setCustomDimensionsOpen] = useState(false);
+
+  // Seller Origin Address
+  const [originAddress, setOriginAddress] = useState<ShippingAddress>({
+    zipCode: currentUser.shippingZipCode || '',
+    street: currentUser.shippingStreet || '',
+    number: currentUser.shippingNumber || '',
+    complement: currentUser.shippingComplement || '',
+    neighborhood: currentUser.shippingNeighborhood || '',
+    city: currentUser.shippingCity || '',
+    state: currentUser.shippingState || '',
+    phone: currentUser.whatsapp || currentUser.shippingPhone || '',
+    name: currentUser.ownerName || currentUser.companyName || '',
+  });
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [hasSavedOrigin, setHasSavedOrigin] = useState(false);
+
+  // Images
   const [images, setImages] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Quick Preset Sample Images for fast testing
+  // Load package defaults & seller origin address
+  useEffect(() => {
+    melhorEnvioService.getPackageDefaults().then((defs) => {
+      setPackageDefaults(defs);
+      applyCategoryDefaults('Celulares', defs);
+    });
+
+    marketplaceService.getSellerOriginAddress(currentUser.id).then((saved) => {
+      if (saved && saved.zipCode) {
+        setOriginAddress(saved);
+        setHasSavedOrigin(true);
+      } else {
+        setIsEditingAddress(true);
+      }
+    });
+  }, [currentUser.id]);
+
+  // Apply default dimensions when category changes
+  const applyCategoryDefaults = (selectedCat: OfferCategory, defsList = packageDefaults) => {
+    const found = defsList.find(
+      (d) => d.category.toLowerCase() === selectedCat.toLowerCase() ||
+             d.id.toLowerCase() === selectedCat.toLowerCase()
+    );
+    if (found) {
+      setPackageWeight(found.default_weight);
+      setPackageHeight(found.default_height);
+      setPackageWidth(found.default_width);
+      setPackageLength(found.default_length);
+    }
+  };
+
+  const handleCategoryChange = (newCat: OfferCategory) => {
+    setCategory(newCat);
+    applyCategoryDefaults(newCat);
+  };
+
+  // Quick Preset Sample Images for testing
   const addQuickPresetPhotos = () => {
     const presets = [
       'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=60',
@@ -86,7 +157,6 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
     toast.success('3 fotos demonstrativas adicionadas!');
   };
 
-  // Handle local image file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -124,6 +194,30 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
     setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
+  // Auto-complete address via ViaCEP
+  const handleCepLookup = async (cep: string) => {
+    const clean = cep.replace(/\D/g, '');
+    setOriginAddress((prev) => ({ ...prev, zipCode: clean }));
+    if (clean.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setOriginAddress((prev) => ({
+            ...prev,
+            street: data.logradouro || prev.street,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state,
+          }));
+          toast.success('Endereço localizado via CEP!');
+        }
+      } catch (err) {
+        console.warn('Erro ao consultar CEP:', err);
+      }
+    }
+  };
+
   // Validation
   const validateForm = (): boolean => {
     if (!title.trim() || title.length < 5) {
@@ -132,7 +226,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
     }
 
     if (images.length < 3) {
-      toast.error(`Para garantir a transparência B2B, adicione no mínimo 3 fotos do produto. (Atualmente: ${images.length})`);
+      toast.error(`Para garantir a confiabilidade na rede de lojistas, adicione no mínimo 3 fotos do produto. (Atualmente: ${images.length})`);
       return false;
     }
 
@@ -147,12 +241,27 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
       return false;
     }
 
+    const cleanCep = (originAddress.zipCode || '').replace(/\D/g, '');
+    if (cleanCep.length !== 8) {
+      toast.error('Informe um CEP de origem válido com 8 dígitos para a cotação de frete.');
+      return false;
+    }
+
+    if (!originAddress.street.trim() || !originAddress.number.trim() || !originAddress.city.trim() || !originAddress.state.trim()) {
+      toast.error('Complete todos os campos obrigatórios do endereço de envio de origem.');
+      return false;
+    }
+
     return true;
   };
 
   const handleGoToPreview = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      // Auto-save address to user profile
+      marketplaceService.saveSellerOriginAddress(currentUser.id, originAddress);
+      setHasSavedOrigin(true);
+      setIsEditingAddress(false);
       setStep('preview');
     }
   };
@@ -162,7 +271,10 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
 
     setIsSubmitting(true);
     const parsedPrice = parseFloat(price.replace(',', '.'));
-    const parsedShipping = freeShipping ? 0 : parseFloat(shippingCost.replace(',', '.') || '0');
+    const isFree = shippingPolicy === 'frete_gratis';
+
+    // Save origin address to seller profile permanently
+    await marketplaceService.saveSellerOriginAddress(currentUser.id, originAddress);
 
     const result = await marketplaceService.createOffer({
       sellerId: currentUser.id,
@@ -177,8 +289,20 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
       description: description.trim(),
       details: details.trim() || undefined,
       price: parsedPrice,
-      freeShipping,
-      shippingCost: parsedShipping,
+      freeShipping: isFree,
+      shippingCost: 0,
+      shippingPolicy,
+      packageWeight: Number(packageWeight) || 0.5,
+      packageHeight: Number(packageHeight) || 8,
+      packageWidth: Number(packageWidth) || 15,
+      packageLength: Number(packageLength) || 20,
+      originZipCode: originAddress.zipCode.replace(/\D/g, ''),
+      originStreet: originAddress.street.trim(),
+      originNumber: originAddress.number.trim(),
+      originComplement: originAddress.complement?.trim() || undefined,
+      originNeighborhood: originAddress.neighborhood.trim(),
+      originCity: originAddress.city.trim(),
+      originState: originAddress.state.trim().toUpperCase(),
       images,
       status: 'publicada',
     });
@@ -186,7 +310,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
     setIsSubmitting(false);
 
     if (result.success) {
-      toast.success('Super Oferta B2B publicada com sucesso na rede de lojistas!');
+      toast.success('Super Oferta publicada com sucesso na rede de lojistas!');
       onCreated();
       onClose();
     } else {
@@ -218,16 +342,15 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
                 Criar Super Oferta B2B
               </h2>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Venda peças, lotes ou equipamentos diretamente para outros lojistas
+                Venda celulares, peças ou equipamentos diretamente para outros lojistas com frete Melhor Envio
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Step indicator */}
             <div className="hidden sm:flex items-center gap-1.5 text-xs">
               <span className={`px-2.5 py-1 rounded-md font-semibold ${step === 'form' ? 'bg-[#00D287]/20 text-[#00D287]' : 'text-slate-500'}`}>
-                1. Dados & Fotos
+                1. Produto & Frete
               </span>
               <span className="text-slate-600">→</span>
               <span className={`px-2.5 py-1 rounded-md font-semibold ${step === 'preview' ? 'bg-[#00D287]/20 text-[#00D287]' : 'text-slate-500'}`}>
@@ -244,344 +367,566 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
           </div>
         </div>
 
-        {/* Body Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        {/* Modal Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-white text-sm">
           {step === 'form' ? (
             <form onSubmit={handleGoToPreview} className="space-y-6">
-              {/* Fotos Obrigatórias (Mínimo 3) */}
-              <div className="p-5 rounded-2xl bg-[#0a0f1e] border border-white/5 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <UploadCloud className="w-4 h-4 text-[#00D287]" />
-                      Fotos Reais do Produto (Formato 9:16 Vertical / Stories)
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
-                        images.length >= 3
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      }`}>
-                        {images.length}/3 fotos mínimas
-                      </span>
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Proporção recomendada: <strong className="text-white">9:16 (Vertical / Stories de Celular)</strong>. As fotos devem ser nítidas e enquadradas sem distorção.
-                    </p>
+              {/* Fotos (Mínimo 3) */}
+              <div className="bg-[#0b1020] border border-white/5 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Fotos do Produto <span className="text-rose-400">* (mínimo 3)</span>
+                    </label>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${images.length >= 3 ? 'bg-[#00D287]/20 text-[#00D287]' : 'bg-rose-500/20 text-rose-400'}`}>
+                      {images.length}/3 fotos
+                    </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={addQuickPresetPhotos}
+                    className="text-xs text-[#00D287] hover:underline flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Preencher 3 fotos de teste
+                  </button>
                 </div>
 
-                {/* Image Previews Grid with 9:16 Aspect Ratio */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                   {images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="relative aspect-[9/16] rounded-xl overflow-hidden bg-slate-950 border border-white/10 group"
-                    >
-                      <img src={img} alt="" className="w-full h-full object-cover object-center" />
-                      <div className="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
-                        #{idx + 1} • 9:16
-                      </div>
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group bg-black/40">
+                      <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(idx)}
-                        className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition-opacity"
-                        title="Remover foto"
+                        className="absolute top-1 right-1 p-1 rounded-lg bg-black/70 text-rose-400 opacity-90 group-hover:opacity-100 hover:bg-rose-600 hover:text-white transition-all"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3 h-3" />
                       </button>
+                      {idx === 0 && (
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#00D287] text-black">
+                          Capa
+                        </span>
+                      )}
                     </div>
                   ))}
 
-                  {/* Add Image Card (File upload) */}
-                  <label className="relative aspect-[9/16] rounded-xl border-2 border-dashed border-[#00D287]/40 hover:border-[#00D287] bg-[#00D287]/5 hover:bg-[#00D287]/10 flex flex-col items-center justify-center cursor-pointer transition-colors p-3 text-center">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Plus className="w-6 h-6 text-[#00D287] mb-1" />
-                    <span className="text-xs font-bold text-white">Adicionar Foto</span>
-                    <span className="text-[10px] text-emerald-400 font-semibold mt-1">Formato 9:16</span>
-                    <span className="text-[9px] text-slate-500">ou arraste arquivo</span>
+                  <label className="aspect-square rounded-xl border border-dashed border-white/20 hover:border-[#00D287] bg-white/[0.02] hover:bg-[#00D287]/5 flex flex-col items-center justify-center cursor-pointer transition-all">
+                    <UploadCloud className="w-5 h-5 text-slate-400 mb-1" />
+                    <span className="text-[10px] text-slate-400 text-center px-1">Upload</span>
+                    <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
                   </label>
                 </div>
 
-                {/* Add Image via URL */}
                 <div className="flex gap-2 pt-1">
                   <input
                     type="url"
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
-                    placeholder="Ou cole a URL direta de uma foto (https://...)"
-                    className="flex-1 rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-[#00D287] focus:outline-none"
+                    placeholder="Ou cole o link direto de uma foto (https://...)"
+                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
                   />
                   <button
                     type="button"
                     onClick={handleAddImageUrl}
-                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-[#00D287]/20 text-slate-200 hover:text-[#00D287] border border-white/10 text-xs font-semibold transition-colors"
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold"
                   >
-                    Adicionar URL
+                    Adicionar
                   </button>
                 </div>
               </div>
 
-              {/* Informações Principais */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              {/* Informações Básicas */}
+              <div className="bg-[#0b1020] border border-white/5 rounded-2xl p-4 space-y-4">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Informações da Oferta
+                </h3>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
                     Título da Oferta *
                   </label>
                   <input
                     type="text"
-                    required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Lote 10x Telas OLED iPhone 13 Pro Grade A+ ou Estação de Solda Sugon"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-[#00D287] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Categoria *
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e: any) => setCategory(e.target.value)}
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2.5 text-sm text-slate-200 focus:border-[#00D287] focus:outline-none"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Subcategoria / Modelo / Marca (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={subcategory}
-                    onChange={(e) => setSubcategory(e.target.value)}
-                    placeholder="Ex: Apple, Xiaomi, Estação de Ar, etc."
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-[#00D287] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Condição do Item *
-                  </label>
-                  <select
-                    value={condition}
-                    onChange={(e: any) => setCondition(e.target.value)}
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2.5 text-sm text-slate-200 focus:border-[#00D287] focus:outline-none"
-                  >
-                    {CONDITIONS.map((cond) => (
-                      <option key={cond} value={cond}>{cond}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Preço Lojista (R$) *
-                  </label>
-                  <input
-                    type="text"
+                    placeholder="Ex: iPhone 13 Pro 128GB Bateria 91% Impecável com Caixa"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
                     required
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Ex: 850,00"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 px-4 py-2.5 text-sm text-white font-bold placeholder-slate-500 focus:border-[#00D287] focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                      Categoria *
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => handleCategoryChange(e.target.value as OfferCategory)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-[#00D287] outline-none"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c} className="bg-slate-900 text-white">
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                      Subcategoria / Modelo
+                    </label>
+                    <input
+                      type="text"
+                      value={subcategory}
+                      onChange={(e) => setSubcategory(e.target.value)}
+                      placeholder="Ex: Apple, Samsung, Mechanic"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                      Condição *
+                    </label>
+                    <select
+                      value={condition}
+                      onChange={(e) => setCondition(e.target.value as OfferCondition)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-[#00D287] outline-none"
+                    >
+                      {CONDITIONS.map((cond) => (
+                        <option key={cond} value={cond} className="bg-slate-900 text-white">
+                          {cond}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                      Preço de Venda à Vista (R$) *
+                    </label>
+                    <input
+                      type="text"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="Ex: 1450.00"
+                      className="w-full bg-black/40 border border-[#00D287]/40 rounded-xl px-3.5 py-2.5 text-base font-bold text-[#00D287] placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                      Detalhes Técnicos / Part Number / Garantia
+                    </label>
+                    <input
+                      type="text"
+                      value={details}
+                      onChange={(e) => setDetails(e.target.value)}
+                      placeholder="Ex: Garantia 90 dias, IMEI limpo, sem marcas"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Descrição Completa da Oferta *
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Descreva o estado do produto, funcionamento, itens inclusos e detalhes para o lojista comprador..."
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none resize-none"
+                    required
                   />
                 </div>
               </div>
 
-              {/* Frete */}
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-[#00D287] flex items-center justify-center">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Modalidade de Envio</h4>
-                    <p className="text-[11px] text-slate-400">Defina se o frete é por sua conta ou do lojista comprador</p>
+              {/* Política de Frete & Logística do Melhor Envio */}
+              <div className="bg-[#0b1020] border border-white/5 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-[#00D287]" />
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Política de Frete & Logística (Melhor Envio)
+                    </h3>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={freeShipping}
-                      onChange={(e) => setFreeShipping(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#00D287] focus:ring-0 bg-slate-900 border-white/20"
-                    />
-                    <span>Oferecer Frete Grátis</span>
-                  </label>
+                {/* Opções de Frete */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShippingPolicy('comprador_paga')}
+                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                      shippingPolicy === 'comprador_paga'
+                        ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-lg shadow-[#00D287]/10'
+                        : 'border-white/10 bg-black/40 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center ${shippingPolicy === 'comprador_paga' ? 'border-[#00D287] bg-[#00D287]' : 'border-slate-500'}`}>
+                      {shippingPolicy === 'comprador_paga' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-white">Comprador paga o frete</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        O comprador escolhe PAC, SEDEX ou Jadlog no checkout e paga o frete junto com o produto.
+                      </div>
+                    </div>
+                  </button>
 
-                  {!freeShipping && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-slate-400">R$</span>
+                  <button
+                    type="button"
+                    onClick={() => setShippingPolicy('frete_gratis')}
+                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                      shippingPolicy === 'frete_gratis'
+                        ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-lg shadow-[#00D287]/10'
+                        : 'border-white/10 bg-black/40 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center ${shippingPolicy === 'frete_gratis' ? 'border-[#00D287] bg-[#00D287]' : 'border-slate-500'}`}>
+                      {shippingPolicy === 'frete_gratis' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-[#00D287]">Frete Grátis</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        O comprador paga apenas o produto. O custo da etiqueta é descontado do seu repasse líquido.
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Dimensões e Embalagem Conservadora Automática */}
+                <div className="bg-black/40 border border-white/10 rounded-xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Box className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs font-semibold text-slate-200">
+                        Dimensões da Embalagem para Cotação (Padrão: {category})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomDimensionsOpen(!customDimensionsOpen)}
+                      className="text-xs text-[#00D287] hover:underline flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      {customDimensionsOpen ? 'Usar padrão da categoria' : 'Personalizar medidas'}
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400">
+                    O sistema aplica automaticamente medidas conservadoras para evitar cobranças excedentes no Melhor Envio.
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                        Peso (kg)
+                      </label>
                       <input
-                        type="text"
-                        value={shippingCost}
-                        onChange={(e) => setShippingCost(e.target.value)}
-                        placeholder="Valor do frete"
-                        className="w-24 rounded-lg bg-slate-950 border border-white/10 px-2 py-1.5 text-xs text-white focus:border-[#00D287] focus:outline-none"
+                        type="number"
+                        step="0.05"
+                        min="0.1"
+                        disabled={!customDimensionsOpen}
+                        value={packageWeight}
+                        onChange={(e) => setPackageWeight(parseFloat(e.target.value) || 0.1)}
+                        className={`w-full bg-black/60 border rounded-lg px-2.5 py-1.5 text-xs text-white outline-none ${customDimensionsOpen ? 'border-[#00D287]' : 'border-white/10 opacity-80'}`}
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                        Altura (cm)
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="2"
+                        disabled={!customDimensionsOpen}
+                        value={packageHeight}
+                        onChange={(e) => setPackageHeight(parseInt(e.target.value) || 2)}
+                        className={`w-full bg-black/60 border rounded-lg px-2.5 py-1.5 text-xs text-white outline-none ${customDimensionsOpen ? 'border-[#00D287]' : 'border-white/10 opacity-80'}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                        Largura (cm)
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="10"
+                        disabled={!customDimensionsOpen}
+                        value={packageWidth}
+                        onChange={(e) => setPackageWidth(parseInt(e.target.value) || 10)}
+                        className={`w-full bg-black/60 border rounded-lg px-2.5 py-1.5 text-xs text-white outline-none ${customDimensionsOpen ? 'border-[#00D287]' : 'border-white/10 opacity-80'}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                        Comprimento (cm)
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="15"
+                        disabled={!customDimensionsOpen}
+                        value={packageLength}
+                        onChange={(e) => setPackageLength(parseInt(e.target.value) || 15)}
+                        className={`w-full bg-black/60 border rounded-lg px-2.5 py-1.5 text-xs text-white outline-none ${customDimensionsOpen ? 'border-[#00D287]' : 'border-white/10 opacity-80'}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Endereço de Origem (Remetente) */}
+                <div className="bg-black/40 border border-white/10 rounded-xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#00D287]" />
+                      <span className="text-xs font-semibold text-slate-200">
+                        Endereço de Origem (Local de Coleta/Postagem)
+                      </span>
+                    </div>
+
+                    {hasSavedOrigin && !isEditingAddress && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingAddress(true)}
+                        className="text-xs text-[#00D287] hover:underline flex items-center gap-1"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        Alterar endereço
+                      </button>
+                    )}
+                  </div>
+
+                  {hasSavedOrigin && !isEditingAddress ? (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3 text-xs text-slate-300 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-white">
+                          {originAddress.street}, {originAddress.number} {originAddress.complement ? `(${originAddress.complement})` : ''}
+                        </div>
+                        <div className="text-slate-400 text-[11px] mt-0.5">
+                          {originAddress.neighborhood} - {originAddress.city}/{originAddress.state} • CEP: {originAddress.zipCode}
+                        </div>
+                      </div>
+                      <div className="px-2 py-1 bg-[#00D287]/15 text-[#00D287] rounded-md text-[10px] font-bold">
+                        Reutilizado
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 pt-1">
+                      <p className="text-[11px] text-slate-400">
+                        Este endereço será salvo no seu perfil de lojista e reutilizado nas próximas ofertas automaticamente.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                            CEP de Origem *
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={9}
+                            value={originAddress.zipCode}
+                            onChange={(e) => handleCepLookup(e.target.value)}
+                            placeholder="00000-000"
+                            className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                            Rua / Avenida *
+                          </label>
+                          <input
+                            type="text"
+                            value={originAddress.street}
+                            onChange={(e) => setOriginAddress({ ...originAddress, street: e.target.value })}
+                            placeholder="Ex: Rua Santa Ifigênia"
+                            className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                            Número *
+                          </label>
+                          <input
+                            type="text"
+                            value={originAddress.number}
+                            onChange={(e) => setOriginAddress({ ...originAddress, number: e.target.value })}
+                            placeholder="123"
+                            className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                            Complemento
+                          </label>
+                          <input
+                            type="text"
+                            value={originAddress.complement}
+                            onChange={(e) => setOriginAddress({ ...originAddress, complement: e.target.value })}
+                            placeholder="Sala 4"
+                            className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                            Bairro *
+                          </label>
+                          <input
+                            type="text"
+                            value={originAddress.neighborhood}
+                            onChange={(e) => setOriginAddress({ ...originAddress, neighborhood: e.target.value })}
+                            placeholder="Centro"
+                            className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                            Cidade / UF *
+                          </label>
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              value={originAddress.city}
+                              onChange={(e) => setOriginAddress({ ...originAddress, city: e.target.value })}
+                              placeholder="São Paulo"
+                              className="w-2/3 bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                            />
+                            <input
+                              type="text"
+                              maxLength={2}
+                              value={originAddress.state}
+                              onChange={(e) => setOriginAddress({ ...originAddress, state: e.target.value.toUpperCase() })}
+                              placeholder="SP"
+                              className="w-1/3 bg-black/60 border border-white/10 rounded-lg px-1.5 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none text-center"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Descrição e Especificações */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Descrição Detalhada do Produto *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Descreva o estado do item, histórico, garantia para outros lojistas, tempo de uso, testes realizados..."
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3.5 text-sm text-slate-200 placeholder-slate-500 focus:border-[#00D287] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Detalhes Técnicos / Conteúdo do Lote (opcional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={details}
-                    onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Ex: Part Number, voltagem 220V, quantidade exata de peças no pacote, etc."
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-slate-200 placeholder-slate-500 focus:border-[#00D287] focus:outline-none font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Form Action */}
-              <div className="pt-4 border-t border-white/10 flex justify-end gap-3">
+              {/* Botão de Avanço */}
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 text-slate-300 hover:text-white text-xs font-semibold"
+                  className="px-5 py-2.5 rounded-xl border border-white/10 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20"
+                  className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00D287]/90 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all"
                 >
-                  <span>Revisar Oferta</span>
+                  Revisar Oferta
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>
           ) : (
-            /* STEP 2: PREVIEW */
+            /* ETAPA 2: PREVIEW */
             <div className="space-y-6">
-              <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#00D287]" />
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Revisão Pré-Publicação</h4>
-                    <p className="text-xs text-slate-300">Confira como os outros lojistas verão sua oferta na vitrine B2B.</p>
+              <div className="bg-[#0b1020] border border-white/5 rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-5">
+                  <div className="w-full sm:w-48 aspect-square rounded-2xl overflow-hidden border border-white/10 bg-black/60 flex-shrink-0">
+                    <img src={images[0]} alt={title} className="w-full h-full object-cover" />
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#00D287]/15 text-[#00D287]">
+                        {category}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-white/5 text-slate-300">
+                        {condition}
+                      </span>
+                      {shippingPolicy === 'frete_gratis' && (
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/20 text-emerald-400">
+                          Frete Grátis
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-base font-bold text-white leading-tight">
+                      {title}
+                    </h3>
+
+                    <div className="text-xl font-extrabold text-[#00D287]">
+                      {formatBRL(parseFloat(price.replace(',', '.')) || 0)}
+                    </div>
+
+                    <p className="text-xs text-slate-400 line-clamp-3">
+                      {description}
+                    </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setStep('form')}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Editar Dados
-                </button>
-              </div>
 
-              {/* Preview Card Showcase */}
-              <div className="p-6 rounded-2xl bg-[#0a0f1e] border border-white/10 grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div className="md:col-span-5 flex flex-col items-center">
-                  <span className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Preview Story (9:16)</span>
-                  <div className="w-48 aspect-[9/16] rounded-2xl overflow-hidden bg-slate-950 border border-white/10 relative shadow-xl">
-                    <img src={images[0]} alt="" className="w-full h-full object-cover object-center" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none" />
-                    <div className="absolute bottom-0 inset-x-0 p-3 text-left space-y-1">
-                      <h4 className="text-xs font-bold text-white line-clamp-2 leading-tight">{title}</h4>
-                      <div className="text-sm font-black text-[#00D287]">
-                        {formatBRL(parseFloat(price.replace(',', '.')) || 0)}
-                      </div>
-                      <div className="text-[10px] text-emerald-300">
-                        {freeShipping ? 'Frete grátis' : shippingCost ? `+ ${shippingCost} frete` : ''}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {currentUser.companyName}
-                      </div>
+                {/* Resumo de Logística do Envio */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/5 text-xs text-slate-300">
+                  <div className="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Origem de Postagem</div>
+                    <div className="font-semibold text-white">{originAddress.street}, {originAddress.number}</div>
+                    <div className="text-slate-400">{originAddress.city}/{originAddress.state} • CEP {originAddress.zipCode}</div>
+                  </div>
+
+                  <div className="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Embalagem de Cotação</div>
+                    <div className="font-semibold text-white">{packageWeight} kg • {packageLength}x{packageWidth}x{packageHeight} cm</div>
+                    <div className="text-slate-400">
+                      Política: {shippingPolicy === 'frete_gratis' ? 'Frete Grátis (Vendedor assume)' : 'Cliente paga o frete no checkout'}
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-3 overflow-x-auto max-w-full">
-                    {images.map((img, idx) => (
-                      <div key={idx} className="w-12 h-16 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
-                        <img src={img} alt="" className="w-full h-full object-cover object-center" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="md:col-span-7 space-y-3">
-                  <div className="flex gap-2">
-                    <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-[#00D287] font-bold">
-                      {condition}
-                    </span>
-                    <span className="text-xs px-2.5 py-0.5 rounded-md bg-slate-900 text-slate-300">
-                      {category}
-                    </span>
-                  </div>
-
-                  <h3 className="text-lg font-bold text-white">{title}</h3>
-
-                  <div className="text-2xl font-black text-[#00D287]">
-                    {formatBRL(parseFloat(price.replace(',', '.')) || 0)}
-                  </div>
-
-                  <div className="text-xs text-slate-400">
-                    {freeShipping ? '✓ Frete Grátis incluso' : `+ Frete de ${shippingCost || 'R$ 0,00'}`}
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5 text-xs text-slate-300 whitespace-pre-line">
-                    {description}
-                  </div>
-
-                  <div className="text-[11px] text-slate-400 pt-2 border-t border-white/5">
-                    Vendedor: <span className="text-slate-200 font-semibold">{currentUser.companyName}</span> ({currentUser.ownerName})
-                  </div>
                 </div>
               </div>
 
-              {/* Submit Buttons */}
-              <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+              {/* Botões de Confirmação */}
+              <div className="flex items-center justify-between pt-2">
                 <button
                   type="button"
                   onClick={() => setStep('form')}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 text-slate-300 hover:text-white text-xs font-semibold"
+                  className="px-5 py-2.5 rounded-xl border border-white/10 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-2 transition-colors"
                 >
-                  Voltar e alterar
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar e Editar
                 </button>
 
                 <button
                   type="button"
-                  disabled={isSubmitting}
                   onClick={handlePublishOffer}
-                  className="px-8 py-3 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-lg shadow-[#00D287]/25 flex items-center gap-2 disabled:opacity-50"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00D287]/90 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  {isSubmitting ? 'Publicando...' : 'Confirmar e Publicar Agora'}
+                  {isSubmitting ? (
+                    'Publicando Oferta...'
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Publicar Oferta no Marketplace
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -42,6 +42,75 @@ export type OrderStatus =
   | 'finalizado'
   | 'cancelado';
 
+export type ShippingPolicy = 'frete_gratis' | 'comprador_paga';
+
+export type ShippingStatus =
+  | 'aguardando_pagamento'
+  | 'pago'
+  | 'aguardando_criacao_envio'
+  | 'envio_criado'
+  | 'etiqueta_aguardando_compra'
+  | 'etiqueta_disponivel'
+  | 'aguardando_postagem'
+  | 'postado'
+  | 'em_transito'
+  | 'entregue'
+  | 'erro_envio'
+  | 'cancelado';
+
+export interface ShippingAddress {
+  zipCode: string;
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  document?: string;
+  cnpj?: string;
+}
+
+export interface ShippingPackage {
+  weight: number; // em kg
+  height: number; // em cm
+  width: number;  // em cm
+  length: number; // em cm
+  insuranceValue?: number;
+}
+
+export interface ShippingQuote {
+  id: number;
+  name: string;
+  company: {
+    id: number;
+    name: string;
+    picture?: string;
+  };
+  price: number;
+  original_price?: number;
+  discount?: number;
+  delivery_time: number;
+  delivery_range?: {
+    min: number;
+    max: number;
+  };
+  packages?: any[];
+  currency?: string;
+}
+
+export interface CategoryPackageDefault {
+  id: string;
+  category: OfferCategory | string;
+  default_weight: number;
+  default_height: number;
+  default_width: number;
+  default_length: number;
+  description?: string;
+}
+
 export interface MarketplaceOffer {
   id: string;
   sellerId: string;
@@ -58,6 +127,18 @@ export interface MarketplaceOffer {
   price: number;
   freeShipping: boolean;
   shippingCost?: number;
+  shippingPolicy?: ShippingPolicy;
+  packageWeight?: number;
+  packageHeight?: number;
+  packageWidth?: number;
+  packageLength?: number;
+  originZipCode?: string;
+  originStreet?: string;
+  originNumber?: string;
+  originComplement?: string;
+  originNeighborhood?: string;
+  originCity?: string;
+  originState?: string;
   images: string[];
   status: OfferStatus;
   views: number;
@@ -89,16 +170,32 @@ export interface MarketplaceOrder {
   paymentMethod: 'PIX' | 'Cartao';
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
-  shippingAddress?: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
+  
+  // Financial breakdown
+  productAmount?: number;
+  shippingAmountCharged?: number;
+  actualShippingCost?: number;
+  sellerShippingCost?: number;
+  shippingDifference?: number;
+
+  // Snapshots & Shipping
+  shippingAddress?: ShippingAddress;
+  shippingOriginSnapshot?: ShippingAddress;
+  shippingDestinationSnapshot?: ShippingAddress;
+  shippingPackageSnapshot?: ShippingPackage;
+  shippingQuoteSnapshot?: ShippingQuote;
+  
+  // Melhor Envio details
+  melhorEnvioShipmentId?: string;
+  melhorEnvioProtocol?: string;
+  melhorEnvioLabelUrl?: string;
+  melhorEnvioPrintUrl?: string;
   trackingCode?: string;
+  trackingStatus?: string;
+  trackingHistory?: any;
+  shippingStatus?: ShippingStatus;
+  shippingError?: string;
+
   createdAt: string;
   updatedAt?: string;
 }
@@ -119,7 +216,19 @@ export interface MarketplaceReport {
   reportedByCompany: string;
   reason: 'produto_proibido' | 'fraude' | 'informacao_falsa' | 'preco_enganoso' | 'conteudo_inadequado' | 'outro';
   details?: string;
-  status: 'pendente' | 'resolvido' | 'descartado';
+  status: 'pendente' | 'analisado' | 'descartado';
+  createdAt: string;
+}
+
+export interface MarketplaceReview {
+  id: string;
+  orderId: string;
+  offerId: string;
+  sellerId: string;
+  buyerId: string;
+  buyerCompany: string;
+  rating: number;
+  comment?: string;
   createdAt: string;
 }
 

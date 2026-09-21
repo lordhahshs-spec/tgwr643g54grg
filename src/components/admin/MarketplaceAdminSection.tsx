@@ -15,23 +15,39 @@ import {
   DollarSign,
   Search,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Truck,
+  Printer,
+  ExternalLink,
+  RefreshCw,
+  Edit3,
+  ShieldCheck,
+  Key,
+  Wallet,
+  Globe,
+  Sliders,
+  AlertCircle
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
   MarketplaceOrder, 
   MarketplaceReport, 
-  MarketplaceFeeSettings 
+  MarketplaceFeeSettings,
+  CategoryPackageDefault
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
+import { melhorEnvioService, IntegrationStatusResponse } from '@/services/melhorEnvioService';
 import { toast } from 'sonner';
 
 export const MarketplaceAdminSection: React.FC = () => {
-  const [subTab, setSubTab] = useState<'overview' | 'offers' | 'reports' | 'orders' | 'settings'>('overview');
+  const [subTab, setSubTab] = useState<'overview' | 'offers' | 'reports' | 'orders' | 'logistics' | 'settings'>('overview');
   const [offers, setOffers] = useState<MarketplaceOffer[]>([]);
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [reports, setReports] = useState<MarketplaceReport[]>([]);
   const [feeSettings, setFeeSettings] = useState<MarketplaceFeeSettings>({ defaultFeePercent: 6.5, pixDiscountPercent: 0 });
+  const [packageDefaults, setPackageDefaults] = useState<CategoryPackageDefault[]>([]);
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatusResponse | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -39,14 +55,29 @@ export const MarketplaceAdminSection: React.FC = () => {
   const [feeInput, setFeeInput] = useState('6.5');
   const [isSavingFee, setIsSavingFee] = useState(false);
 
+  // Settings / Credentials form state
+  const [editingSettings, setEditingSettings] = useState(false);
+  const [envChoice, setEnvChoice] = useState<'production' | 'sandbox'>('production');
+  const [clientIdInput, setClientIdInput] = useState('30171');
+  const [clientSecretInput, setClientSecretInput] = useState('ix8FiZdsyWrc7D0adr7ow2uRRmM5CCBwYp9zPTIr');
+  const [redirectUriInput, setRedirectUriInput] = useState('https://cellhub.shop/api/melhor-envio/callback');
+  const [manualTokenInput, setManualTokenInput] = useState('');
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Package defaults inline editing
+  const [editingPackages, setEditingPackages] = useState<Record<string, Partial<CategoryPackageDefault>>>({});
+  const [savingPackageId, setSavingPackageId] = useState<string | null>(null);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allOffers, allOrders, allReports, settings] = await Promise.all([
+      const [allOffers, allOrders, allReports, settings, defaults, meStatus] = await Promise.all([
         marketplaceService.getOffers({ status: 'todas' }),
         marketplaceService.getAllOrders(),
         marketplaceService.getReports(),
         marketplaceService.getFeeSettings(),
+        melhorEnvioService.getPackageDefaults(),
+        melhorEnvioService.getStatus(),
       ]);
 
       setOffers(allOffers);
@@ -54,6 +85,14 @@ export const MarketplaceAdminSection: React.FC = () => {
       setReports(allReports);
       setFeeSettings(settings);
       setFeeInput(String(settings.defaultFeePercent));
+      setPackageDefaults(defaults);
+      setIntegrationStatus(meStatus);
+
+      if (meStatus) {
+        setEnvChoice(meStatus.environment || 'production');
+        setClientIdInput(meStatus.client_id || '30171');
+        setRedirectUriInput(meStatus.redirect_uri || 'https://cellhub.shop/api/melhor-envio/callback');
+      }
     } catch (e) {
       console.error(e);
       toast.error('Erro ao carregar dados do marketplace.');
@@ -78,6 +117,7 @@ export const MarketplaceAdminSection: React.FC = () => {
   const activeOffersCount = offers.filter(o => o.status === 'publicada').length;
   const totalVolume = orders.reduce((acc, curr) => acc + curr.totalAmount, 0);
   const totalFeeCollected = orders.reduce((acc, curr) => acc + curr.platformFeeAmount, 0);
+  const totalActualShipping = orders.reduce((acc, curr) => acc + (curr.actualShippingCost || 0), 0);
   const pendingReportsCount = reports.filter(r => r.status === 'pendente').length;
 
   const handleSaveFee = async (e: React.FormEvent) => {
@@ -100,6 +140,49 @@ export const MarketplaceAdminSection: React.FC = () => {
       toast.success(`Taxa da plataforma atualizada para ${parsed}%!`);
     } else {
       toast.error('Erro ao atualizar taxa da plataforma.');
+    }
+  };
+
+  const handleSaveIntegrationSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    const payload: any = {
+      environment: envChoice,
+      client_id: clientIdInput.trim(),
+      redirect_uri: redirectUriInput.trim(),
+    };
+
+    if (clientSecretInput.trim() && !clientSecretInput.includes('•')) {
+      payload.client_secret = clientSecretInput.trim();
+    }
+
+    if (manualTokenInput.trim()) {
+      payload.access_token = manualTokenInput.trim();
+    }
+
+    const res = await melhorEnvioService.updateSettings(payload);
+    setIsSavingSettings(false);
+
+    if (res.success) {
+      toast.success('Configurações do Melhor Envio atualizadas com sucesso!');
+      setEditingSettings(false);
+      loadData();
+    } else {
+      toast.error(res.error || 'Erro ao salvar configurações.');
+    }
+  };
+
+  const handleSavePackageDefault = async (def: CategoryPackageDefault) => {
+    const changes = editingPackages[def.id] || {};
+    setSavingPackageId(def.id);
+    const success = await melhorEnvioService.updatePackageDefault(def.id, changes);
+    setSavingPackageId(null);
+
+    if (success) {
+      toast.success(`Dimensões padrão de ${def.category} atualizadas!`);
+      loadData();
+    } else {
+      toast.error('Erro ao atualizar dimensões.');
     }
   };
 
@@ -175,7 +258,7 @@ export const MarketplaceAdminSection: React.FC = () => {
             Marketplace Super Ofertas
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Controle de intermediação, custódia de transações entre lojistas e moderação de anúncios.
+            Intermediação, logística integrada via Melhor Envio e custódia financeira entre lojistas.
           </p>
           <div className="flex items-center gap-2 mt-3">
             <button
@@ -216,6 +299,23 @@ export const MarketplaceAdminSection: React.FC = () => {
             Ofertas ({offers.length})
           </button>
           <button
+            onClick={() => setSubTab('logistics')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              subTab === 'logistics' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            Logística & Melhor Envio
+          </button>
+          <button
+            onClick={() => setSubTab('orders')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              subTab === 'orders' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Pedidos ({orders.length})
+          </button>
+          <button
             onClick={() => setSubTab('reports')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all relative ${
               subTab === 'reports' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
@@ -229,21 +329,12 @@ export const MarketplaceAdminSection: React.FC = () => {
             )}
           </button>
           <button
-            onClick={() => setSubTab('orders')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              subTab === 'orders' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Pedidos ({orders.length})
-          </button>
-          <button
             onClick={() => setSubTab('settings')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               subTab === 'settings' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Settings className="w-3.5 h-3.5" />
-            Taxas
+            Configurações
           </button>
         </div>
       </div>
@@ -251,92 +342,388 @@ export const MarketplaceAdminSection: React.FC = () => {
       {/* OVERVIEW SUBTAB */}
       {subTab === 'overview' && (
         <div className="space-y-6">
-          {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-1">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase">
-                <span>Ofertas Cadastradas</span>
-                <Package className="w-4 h-4 text-[#00D287]" />
+            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Total Transacionado B2B</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-2xl font-black text-white">{totalOffersCount}</div>
-              <div className="text-[11px] text-emerald-400">{activeOffersCount} ativas na vitrine</div>
+              <h3 className="text-2xl font-black text-white">{formatBRL(totalVolume)}</h3>
+              <p className="text-[11px] text-slate-500">{orders.length} pedidos realizados</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-1">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase">
-                <span>Volume Transacionado</span>
-                <DollarSign className="w-4 h-4 text-[#00D287]" />
+            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Comissão CellHub ({feeSettings.defaultFeePercent}%)</span>
+                <div className="w-8 h-8 rounded-xl bg-[#00D287]/10 text-[#00D287] flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-2xl font-black text-white">{formatBRL(totalVolume)}</div>
-              <div className="text-[11px] text-slate-400">{orders.length} pedidos realizados</div>
+              <h3 className="text-2xl font-black text-[#00D287]">{formatBRL(totalFeeCollected)}</h3>
+              <p className="text-[11px] text-slate-500">Retido em custódia operacional</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-1">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase">
-                <span>Receita da Plataforma</span>
-                <TrendingUp className="w-4 h-4 text-[#00D287]" />
+            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Custo Total de Etiquetas</span>
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                  <Truck className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-2xl font-black text-[#00D287]">{formatBRL(totalFeeCollected)}</div>
-              <div className="text-[11px] text-slate-400">Taxa média: {feeSettings.defaultFeePercent}%</div>
+              <h3 className="text-2xl font-black text-white">{formatBRL(totalActualShipping)}</h3>
+              <p className="text-[11px] text-slate-500">Comprado via carteira Melhor Envio</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-1">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase">
-                <span>Denúncias Pendentes</span>
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Ofertas Ativas na Vitrine</span>
+                <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <Package className="w-4 h-4" />
+                </div>
               </div>
-              <div className={`text-2xl font-black ${pendingReportsCount > 0 ? 'text-amber-400' : 'text-white'}`}>
-                {pendingReportsCount}
-              </div>
-              <div className="text-[11px] text-slate-400">{reports.length} denúncias no total</div>
+              <h3 className="text-2xl font-black text-white">{activeOffersCount} / {totalOffersCount}</h3>
+              <p className="text-[11px] text-slate-500">Anúncios de lojistas ativos</p>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Quick Recent Activity */}
-          <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/5 space-y-4">
-            <h3 className="text-sm font-bold text-white">Últimas Ofertas Cadastradas pelos Lojistas</h3>
+      {/* LOGISTICS & MELHOR ENVIO SUBTAB */}
+      {subTab === 'logistics' && (
+        <div className="space-y-6">
+          {/* Status da Integração Oficial */}
+          <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    Integração Oficial Melhor Envio
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${integrationStatus?.connected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                      {integrationStatus?.connected ? '● CONECTADO' : '○ PENDENTE AUTORIZAÇÃO'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Ambiente: <strong className="text-white uppercase">{integrationStatus?.environment || 'production'}</strong> • Domínio Oficial: <span className="text-[#00D287]">https://cellhub.shop</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {integrationStatus?.authorize_url && (
+                  <a
+                    href={integrationStatus.authorize_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Conectar Conta CellHub (OAuth)
+                  </a>
+                )}
+                <button
+                  onClick={() => setEditingSettings(!editingSettings)}
+                  className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-white/10"
+                >
+                  {editingSettings ? 'Fechar' : 'Configurar Credenciais'}
+                </button>
+              </div>
+            </div>
+
+            {/* Balanço e Detalhes da Carteira */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                <span className="text-slate-400 flex items-center gap-1 font-semibold">
+                  <Wallet className="w-3.5 h-3.5 text-[#00D287]" /> Saldo na Carteira CellHub (Melhor Envio)
+                </span>
+                <div className="text-xl font-black text-white">
+                  {formatBRL(integrationStatus?.balance || 0)}
+                </div>
+                <p className="text-[10px] text-slate-500">Utilizado para compra de etiquetas pós-checkout</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                <span className="text-slate-400 flex items-center gap-1 font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Conta Conectada
+                </span>
+                <div className="text-sm font-bold text-white truncate">
+                  {integrationStatus?.account_name || 'Conta CellHub Intermediação'}
+                </div>
+                <p className="text-[10px] text-slate-500 truncate">{integrationStatus?.account_email || 'lordhahshs@gmail.com'}</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                <span className="text-slate-400 flex items-center gap-1 font-semibold">
+                  <Key className="w-3.5 h-3.5 text-purple-400" /> Client ID & Callback
+                </span>
+                <div className="text-xs font-mono text-slate-200">
+                  ID: {integrationStatus?.client_id || '30171'}
+                </div>
+                <p className="text-[10px] text-slate-500 truncate">{integrationStatus?.redirect_uri}</p>
+              </div>
+            </div>
+
+            {/* Credenciais Form (Aberto sob demanda) */}
+            {editingSettings && (
+              <form onSubmit={handleSaveIntegrationSettings} className="p-5 rounded-2xl bg-black/60 border border-[#00D287]/20 space-y-4 pt-4">
+                <h4 className="text-xs font-bold uppercase text-[#00D287] tracking-wider">
+                  Editar Parâmetros da API Oficial do Melhor Envio
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Ambiente</label>
+                    <select
+                      value={envChoice}
+                      onChange={(e) => setEnvChoice(e.target.value as any)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white outline-none focus:border-[#00D287]"
+                    >
+                      <option value="production">Produção (melhorenvio.com.br)</option>
+                      <option value="sandbox">Sandbox (sandbox.melhorenvio.com.br)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Client ID</label>
+                    <input
+                      type="text"
+                      value={clientIdInput}
+                      onChange={(e) => setClientIdInput(e.target.value)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white font-mono outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Client Secret (Protegido)</label>
+                    <input
+                      type="password"
+                      value={clientSecretInput}
+                      onChange={(e) => setClientSecretInput(e.target.value)}
+                      placeholder="••••••••••••••••••••••••••••••••"
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white font-mono outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">URL Oficial de Redirecionamento (Callback)</label>
+                    <input
+                      type="text"
+                      value={redirectUriInput}
+                      onChange={(e) => setRedirectUriInput(e.target.value)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white font-mono outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Inserir Token Manualmente (Opcional se usar OAuth)</label>
+                    <input
+                      type="password"
+                      value={manualTokenInput}
+                      onChange={(e) => setManualTokenInput(e.target.value)}
+                      placeholder="Cole aqui caso gere token pessoal no painel do Melhor Envio"
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white font-mono outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingSettings(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingSettings}
+                    className="px-5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold transition-all disabled:opacity-50"
+                  >
+                    {isSavingSettings ? 'Salvando...' : 'Salvar Credenciais com Segurança'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* Padrões Conservadores de Embalagem por Categoria */}
+          <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Box className="w-5 h-5 text-[#00D287]" />
+                  Padrões de Embalagem por Categoria (Medidas Conservadoras)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Estes valores são aplicados automaticamente ao lojista para evitar subestimar custos de envio.
+                </p>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead className="text-[11px] uppercase text-slate-400 border-b border-white/5">
                   <tr>
-                    <th className="pb-3">Título</th>
-                    <th className="pb-3">Lojista</th>
                     <th className="pb-3">Categoria</th>
-                    <th className="pb-3">Valor</th>
-                    <th className="pb-3">Status</th>
+                    <th className="pb-3">Peso (kg)</th>
+                    <th className="pb-3">Altura (cm)</th>
+                    <th className="pb-3">Largura (cm)</th>
+                    <th className="pb-3">Comprimento (cm)</th>
+                    <th className="pb-3">Descrição Típica</th>
                     <th className="pb-3 text-right">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {offers.slice(0, 5).map((off) => (
-                    <tr key={off.id} className="hover:bg-white/[0.02]">
-                      <td className="py-3 font-semibold text-white max-w-xs truncate">{off.title}</td>
-                      <td className="py-3 text-slate-300">{off.sellerCompany}</td>
-                      <td className="py-3 text-slate-400">{off.category}</td>
-                      <td className="py-3 font-bold text-white">{formatBRL(off.price)}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          off.status === 'publicada' ? 'bg-emerald-500/20 text-[#00D287]' : 'bg-slate-700 text-slate-300'
-                        }`}>
-                          {off.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <button
-                          onClick={() => handleToggleOfferStatus(off)}
-                          className="text-xs text-slate-400 hover:text-white mr-2"
-                        >
-                          {off.status === 'publicada' ? 'Pausar' : 'Ativar'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteOffer(off.id)}
-                          className="text-xs text-red-400 hover:text-red-300"
-                        >
-                          Excluir
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {packageDefaults.map((def) => {
+                    const localChanges = editingPackages[def.id] || {};
+                    const weight = localChanges.default_weight ?? def.default_weight;
+                    const height = localChanges.default_height ?? def.default_height;
+                    const width = localChanges.default_width ?? def.default_width;
+                    const length = localChanges.default_length ?? def.default_length;
+
+                    return (
+                      <tr key={def.id} className="hover:bg-white/[0.02]">
+                        <td className="py-3 font-bold text-white">{def.category}</td>
+                        <td className="py-3">
+                          <input
+                            type="number"
+                            step="0.05"
+                            value={weight}
+                            onChange={(e) => setEditingPackages({
+                              ...editingPackages,
+                              [def.id]: { ...localChanges, default_weight: parseFloat(e.target.value) || 0.1 }
+                            })}
+                            className="w-20 bg-slate-950 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="py-3">
+                          <input
+                            type="number"
+                            step="1"
+                            value={height}
+                            onChange={(e) => setEditingPackages({
+                              ...editingPackages,
+                              [def.id]: { ...localChanges, default_height: parseInt(e.target.value) || 2 }
+                            })}
+                            className="w-16 bg-slate-950 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="py-3">
+                          <input
+                            type="number"
+                            step="1"
+                            value={width}
+                            onChange={(e) => setEditingPackages({
+                              ...editingPackages,
+                              [def.id]: { ...localChanges, default_width: parseInt(e.target.value) || 10 }
+                            })}
+                            className="w-16 bg-slate-950 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="py-3">
+                          <input
+                            type="number"
+                            step="1"
+                            value={length}
+                            onChange={(e) => setEditingPackages({
+                              ...editingPackages,
+                              [def.id]: { ...localChanges, default_length: parseInt(e.target.value) || 15 }
+                            })}
+                            className="w-16 bg-slate-950 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="py-3 text-slate-400 text-[11px] max-w-xs truncate">
+                          {def.description || '-'}
+                        </td>
+                        <td className="py-3 text-right">
+                          <button
+                            onClick={() => handleSavePackageDefault(def)}
+                            disabled={savingPackageId === def.id}
+                            className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold text-[11px]"
+                          >
+                            {savingPackageId === def.id ? '...' : 'Salvar'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pedidos & Rastreamento com Separação Financeira */}
+          <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/10 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Printer className="w-5 h-5 text-[#00D287]" />
+              Auditoria de Envios & Etiquetas Geradas
+            </h3>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="text-[11px] uppercase text-slate-400 border-b border-white/5">
+                  <tr>
+                    <th className="pb-3">ID Pedido</th>
+                    <th className="pb-3">Produto</th>
+                    <th className="pb-3">Vendedor</th>
+                    <th className="pb-3">Frete Cobrado</th>
+                    <th className="pb-3">Custo Real Etiqueta</th>
+                    <th className="pb-3">Diferença Contábil</th>
+                    <th className="pb-3">Status Envio</th>
+                    <th className="pb-3">Rastreio</th>
+                    <th className="pb-3 text-right">Etiqueta</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {orders.map((ord) => {
+                    const printUrl = ord.melhorEnvioPrintUrl || ord.melhorEnvioLabelUrl;
+                    const diff = (ord.shippingAmountCharged || 0) - (ord.actualShippingCost || 0);
+
+                    return (
+                      <tr key={ord.id} className="hover:bg-white/[0.02]">
+                        <td className="py-3 font-mono text-slate-400">#{ord.id.slice(0, 8)}</td>
+                        <td className="py-3 font-semibold text-white max-w-xs truncate">{ord.productTitle}</td>
+                        <td className="py-3 text-slate-300">{ord.sellerCompany}</td>
+                        <td className="py-3 font-semibold text-white">
+                          {ord.shippingAmountCharged === 0 ? 'Grátis' : formatBRL(ord.shippingAmountCharged || 0)}
+                        </td>
+                        <td className="py-3 font-bold text-[#00D287]">
+                          {formatBRL(ord.actualShippingCost || 0)}
+                        </td>
+                        <td className="py-3 text-slate-400">
+                          {formatBRL(diff)}
+                        </td>
+                        <td className="py-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">
+                            {ord.shippingStatus || ord.orderStatus}
+                          </span>
+                        </td>
+                        <td className="py-3 font-mono text-slate-300">
+                          {ord.trackingCode || 'Pendente'}
+                        </td>
+                        <td className="py-3 text-right">
+                          {printUrl ? (
+                            <a
+                              href={printUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded bg-[#00D287]/20 text-[#00D287] hover:bg-[#00D287]/30 font-bold inline-flex items-center gap-1"
+                            >
+                              <Printer className="w-3 h-3" /> Ver Etiqueta
+                            </a>
+                          ) : (
+                            <span className="text-slate-500 text-[10px]">Aguardando compra</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -490,8 +877,8 @@ export const MarketplaceAdminSection: React.FC = () => {
                 <th className="pb-3">Item</th>
                 <th className="pb-3">Comprador</th>
                 <th className="pb-3">Vendedor</th>
-                <th className="pb-3">Total</th>
-                <th className="pb-3">Taxa B2B</th>
+                <th className="pb-3">Total Pago</th>
+                <th className="pb-3">Taxa Intermediação</th>
                 <th className="pb-3">Status</th>
                 <th className="pb-3">Rastreio</th>
               </tr>
@@ -541,21 +928,19 @@ export const MarketplaceAdminSection: React.FC = () => {
                   type="text"
                   value={feeInput}
                   onChange={(e) => setFeeInput(e.target.value)}
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 pl-3 pr-8 py-2.5 text-sm text-white font-bold focus:border-[#00D287] focus:outline-none"
+                  placeholder="6.5"
+                  className="w-full bg-slate-950 border border-white/10 rounded-2xl p-3 text-sm text-white font-bold focus:border-[#00D287] outline-none"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
               </div>
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                Exemplo: Para uma venda de R$ 1.000,00 com 6.5%, a taxa retida será de R$ 65,00 e o lojista receberá R$ 935,00.
-              </span>
             </div>
 
             <button
               type="submit"
               disabled={isSavingFee}
-              className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50"
+              className="px-6 py-2.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50"
             >
-              {isSavingFee ? 'Salvando...' : 'Salvar Nova Taxa'}
+              {isSavingFee ? 'Salvando...' : 'Salvar Taxa da Plataforma'}
             </button>
           </form>
         </div>

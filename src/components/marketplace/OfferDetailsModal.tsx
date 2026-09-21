@@ -256,17 +256,25 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 </div>
 
                 <div>
-                  {offer.freeShipping ? (
+                  {offer.freeShipping || offer.shippingPolicy === 'frete_gratis' ? (
                     <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm bg-emerald-500/15 border border-emerald-500/30 px-3 py-2 rounded-xl">
                       <Truck className="w-5 h-5 text-[#00D287]" />
-                      <span>Frete Grátis incluso</span>
+                      <div>
+                        <span>Frete Grátis</span>
+                        <span className="block text-[10px] font-normal text-slate-400">Vendedor assume o envio</span>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-right">
-                      <span className="text-xs text-slate-400 block">Custo de Frete</span>
-                      <span className="text-sm font-bold text-slate-200">
-                        {offer.shippingCost ? formatBRL(offer.shippingCost) : 'A combinar'}
+                      <span className="text-xs text-slate-400 block">Frete Melhor Envio</span>
+                      <span className="text-xs font-bold text-[#00D287]">
+                        Calculado no checkout
                       </span>
+                      {offer.originCity && (
+                        <span className="block text-[10px] text-slate-500">
+                          Enviado de: {offer.originCity}/{offer.originState}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

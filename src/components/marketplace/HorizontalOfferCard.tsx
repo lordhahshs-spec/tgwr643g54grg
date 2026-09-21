@@ -122,18 +122,15 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
 
         {/* Linha 5: Frete */}
         <div className="mt-2">
-          {offer.freeShipping ? (
+          {offer.freeShipping || offer.shippingPolicy === 'frete_gratis' ? (
             <span className="inline-flex items-center gap-1 font-bold text-[#00D287] text-xs">
               <Truck className="w-3.5 h-3.5" />
               Frete grátis
             </span>
-          ) : offer.shippingCost ? (
-            <span className="text-xs text-slate-400 font-medium">
-              + {formatBRL(offer.shippingCost)} frete
-            </span>
           ) : (
-            <span className="text-xs text-slate-400">
-              Frete a combinar
+            <span className="inline-flex items-center gap-1 text-xs text-slate-400 font-medium">
+              <Truck className="w-3.5 h-3.5 text-[#00D287]" />
+              Frete Melhor Envio
             </span>
           )}
         </div>
