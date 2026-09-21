@@ -29,6 +29,8 @@ O valor pago pelo frete **nunca** é repassado diretamente para o Melhor Envio n
 ### Configuração Oficial
 - **Domínio Oficial de Produção:** `https://cellhub.shop`
 - **URL Oficial de Callback OAuth:** `https://cellhub.shop/api/melhor-envio/callback`
+- **URL Oficial de Webhook:** `https://hhqerjxkptknwudsnlgh.supabase.co/functions/v1/melhor-envio-webhook`
+  *(Ou `https://cellhub.shop/api/webhooks/melhor-envio` se roteado no proxy/DNS)*
 - **Client ID:** `30171`
 - **Client Secret:** `ix8FiZdsyWrc7D0adr7ow2uRRmM5CCBwYp9zPTIr`
 
