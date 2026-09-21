@@ -28,6 +28,7 @@ const App = () => (
           {/* 3. Plataforma Principal da Loja com Simulador e Módulos */}
           <Route path="/app" element={<Index />} />
           <Route path="/plataforma" element={<Index />} />
+          <Route path="/demo" element={<Index />} />
 
           {/* 4. Painel Administrativo Geral com Gestão de Usuários */}
           <Route path="/admin" element={<AdminPage />} />

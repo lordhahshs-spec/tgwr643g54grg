@@ -109,6 +109,31 @@ export const AdminPage: React.FC = () => {
     setLoading(false);
   };
 
+  const handleSaveAdminCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEditEmail.trim()) {
+      toast.error('Informe um e-mail válido para a conta admin.');
+      return;
+    }
+    setIsSavingAdmin(true);
+    const res = await leadAuthService.updateAdminCredentials({
+      adminId: currentUser?.id || '43c63d10-68ba-4a82-b7e3-4ba18db6c7a1',
+      email: adminEditEmail.trim().toLowerCase(),
+      password: adminEditPassword.trim() || undefined,
+      ownerName: adminEditOwner.trim() || undefined,
+      companyName: adminEditCompany.trim() || undefined,
+    });
+    setIsSavingAdmin(false);
+
+    if (res.success) {
+      toast.success('Credenciais do Administrador Master atualizadas com sucesso!');
+      setIsEditAdminModalOpen(false);
+      await loadAllData();
+    } else {
+      toast.error(res.error || 'Erro ao atualizar credenciais do admin.');
+    }
+  };
+
   // User methods
   const handleOpenBanModal = (account: UserAccount) => {
     setAccountToBan(account);
@@ -486,6 +511,22 @@ export const AdminPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setAdminEditEmail(currentUser?.email || 'lordhahshs@gmail.com');
+                setAdminEditOwner(currentUser?.ownerName || 'Administrador Master');
+                setAdminEditCompany(currentUser?.companyName || 'AurusPay Master Admin');
+                setIsEditAdminModalOpen(true);
+              }}
+              variant="outline"
+              size="sm"
+              className="bg-purple-500/15 border-purple-500/30 text-purple-300 hover:text-white text-xs h-8 px-2.5 rounded-lg"
+              title="Configurar credenciais do Administrador Master"
+            >
+              <KeyRound className="w-3.5 h-3.5 mr-1 text-purple-400" />
+              <span className="hidden sm:inline">Admin: {currentUser?.email || 'lordhahshs@gmail.com'}</span>
+            </Button>
+
             <Button
               onClick={loadAllData}
               variant="outline"
@@ -1286,6 +1327,80 @@ export const AdminPage: React.FC = () => {
                 variant="outline"
                 onClick={() => setIsCreateModalOpen(false)}
                 className="bg-slate-900 border-slate-800 text-slate-300 text-xs h-9 rounded-xl"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Master Admin Credentials Modal */}
+      <Dialog open={isEditAdminModalOpen} onOpenChange={setIsEditAdminModalOpen}>
+        <DialogContent className="max-w-md bg-[#080c17] border border-purple-500/40 text-slate-100 rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-white flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-purple-400" />
+              Configurar Conta Master Administrador
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400 pt-1 leading-relaxed">
+              Esta conta tem acesso irrestrito ao painel administrativo e funções de gestão. Apenas este e-mail pode gerenciar o sistema.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveAdminCredentials} className="mt-4 space-y-3.5 text-xs">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                E-mail do Administrador Master *
+              </label>
+              <Input
+                type="email"
+                required
+                value={adminEditEmail}
+                onChange={(e) => setAdminEditEmail(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-white text-xs h-9 rounded-xl"
+                placeholder="lordhahshs@gmail.com"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                Nome do Responsável
+              </label>
+              <Input
+                value={adminEditOwner}
+                onChange={(e) => setAdminEditOwner(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-white text-xs h-9 rounded-xl"
+                placeholder="Administrador Master"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                Nova Senha de Acesso (deixe em branco para manter a atual)
+              </label>
+              <Input
+                type="password"
+                value={adminEditPassword}
+                onChange={(e) => setAdminEditPassword(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-white text-xs h-9 rounded-xl"
+                placeholder="Nova senha segura..."
+              />
+            </div>
+
+            <div className="pt-3 flex gap-2">
+              <Button
+                type="submit"
+                disabled={isSavingAdmin}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-10 rounded-xl shadow-lg shadow-purple-600/20"
+              >
+                {isSavingAdmin ? 'Salvando...' : 'Salvar Dados do Admin'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditAdminModalOpen(false)}
+                className="bg-slate-900 border-slate-800 text-slate-300 text-xs h-10 rounded-xl"
               >
                 Cancelar
               </Button>

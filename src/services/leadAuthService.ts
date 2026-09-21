@@ -214,7 +214,7 @@ export const leadAuthService = {
         const user: UserAccount = JSON.parse(stored);
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id || '');
         if (!isUuid) {
-          if (user.email?.toLowerCase() === 'admin@auruspay.com') {
+          if (user.email?.toLowerCase() === 'lordhahshs@gmail.com') {
             user.id = '43c63d10-68ba-4a82-b7e3-4ba18db6c7a1';
             localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
           }

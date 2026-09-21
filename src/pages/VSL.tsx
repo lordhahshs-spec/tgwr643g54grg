@@ -204,12 +204,14 @@ export const VSLPage: React.FC = () => {
         </div>
 
         {/* Secondary Direct Access to Platform Preview */}
-        <div className="mt-8 pt-4 border-t border-white/5 w-full flex justify-center">
+        <div className="mt-8 pt-4 border-t border-white/5 w-full flex flex-col sm:flex-row items-center justify-center gap-2 text-center">
+          <span className="text-xs text-slate-500">Quer conhecer o sistema por dentro antes?</span>
           <button
-            onClick={() => navigate('/app')}
-            className="text-xs text-slate-500 hover:text-[#00D287] transition-colors underline underline-offset-4"
+            onClick={() => navigate('/demo')}
+            className="text-xs text-[#00D287] hover:text-[#00B875] font-bold transition-colors underline underline-offset-4 flex items-center gap-1 cursor-pointer"
           >
-            Visualizar demonstração da plataforma
+            <span>Acessar Demonstração do Sistema</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

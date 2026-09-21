@@ -82,9 +82,9 @@ export const AuthPage: React.FC = () => {
           return;
         }
 
-        // Check admin login
-        if (email.toLowerCase() === 'admin@auruspay.com') {
-          const { user } = await leadAuthService.login('admin@auruspay.com', password);
+        // Master admin direct check
+        if (email.toLowerCase() === 'lordhahshs@gmail.com') {
+          const { user } = await leadAuthService.login('lordhahshs@gmail.com', password);
           if (user && user.role === 'admin') {
             navigate('/admin');
             return;
