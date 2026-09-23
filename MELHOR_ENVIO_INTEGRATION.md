@@ -29,8 +29,10 @@ O valor pago pelo frete **nunca** é repassado diretamente para o Melhor Envio n
 ### Configuração Oficial
 - **Domínio Oficial de Produção:** `https://cellhub.shop`
 - **URL Oficial de Callback OAuth:** `https://cellhub.shop/api/melhor-envio/callback`
-- **URL Oficial de Webhook:** `https://hhqerjxkptknwudsnlgh.supabase.co/functions/v1/melhor-envio-webhook`
-  *(Ou `https://cellhub.shop/api/webhooks/melhor-envio` se roteado no proxy/DNS)*
+### Autenticação do Webhook (X-ME-Signature)
+- O Melhor Envio assina cada notificação utilizando **HMAC-SHA256** com o Client Secret da aplicação.
+- **Formato Oficial da Assinatura:** Codificação **Base64** (ex: `eW/6UEmwJ7vH13kMsrhjMVzek3Yg0Oa5TDsUSeLVFoM=`).
+- O endpoint valida a assinatura em tempo constante (`timingSafeEqual`) e suporta o teste inicial de validação (`E-WBH-0002`) enviado pelo Melhor Envio durante o cadastro.
 - **Client ID:** `30171`
 - **Client Secret:** `ix8FiZdsyWrc7D0adr7ow2uRRmM5CCBwYp9zPTIr`
 

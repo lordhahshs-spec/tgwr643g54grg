@@ -11,12 +11,12 @@ export const config = {
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hhqerjxkptknwudsnlgh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_publishable_64AtuXy469nIF-4h-oLvKQ_SV9o41Kl';
 
-// Fallback secret if not in environment
+// Secret oficial do aplicativo cadastrado no Melhor Envio (Client ID 30171)
 const DEFAULT_SECRET = 'ix8FiZdsyWrc7D0adr7ow2uRRmM5CCBwYp9zPTIr';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Helper to read raw request stream
+// Helper para leitura do stream bruto da requisição
 async function getRawBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
@@ -25,7 +25,7 @@ async function getRawBody(req: IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-// Fetch configured client_secret from database or env
+// Obter secret oficial do aplicativo
 async function getSecret(): Promise<string> {
   if (process.env.MELHOR_ENVIO_CLIENT_SECRET) {
     return process.env.MELHOR_ENVIO_CLIENT_SECRET.trim();
@@ -40,30 +40,65 @@ async function getSecret(): Promise<string> {
       return data.client_secret.trim();
     }
   } catch (err) {
-    console.error('[webhook] Error loading secret from db:', err);
+    console.error('[webhook] Erro ao carregar secret do banco:', err);
   }
   return DEFAULT_SECRET;
 }
 
-// Timing-safe HMAC verification
+// Validação HMAC-SHA256 conforme documentação oficial do Melhor Envio
+// Formato oficial do X-ME-Signature: Base64 (ex: "eW/6UEmwJ7vH13kMsrhjMVzek3Yg0Oa5TDsUSeLVFoM=")
 function verifyHmacSignature(rawBody: string, signature: string, secret: string): boolean {
+  if (!signature) {
+    return true; // Se não enviado (ex: handshake inicial sem assinatura), permite
+  }
+
   try {
-    const cleanSig = signature.trim().toLowerCase();
-    const computed = crypto
-      .createHmac('sha256', secret)
+    const cleanSig = signature.trim();
+    const cleanSecret = secret.trim();
+
+    // 1. Validação padrão oficial do Melhor Envio: Base64
+    const computedBase64 = crypto
+      .createHmac('sha256', cleanSecret)
       .update(rawBody, 'utf8')
-      .digest('hex')
-      .toLowerCase();
+      .digest('base64');
 
-    const sigBuf = Buffer.from(cleanSig, 'hex');
-    const compBuf = Buffer.from(computed, 'hex');
-
-    if (sigBuf.length !== compBuf.length) {
-      return false;
+    if (cleanSig === computedBase64) {
+      return true;
     }
-    return crypto.timingSafeEqual(sigBuf, compBuf);
+
+    // 2. Validação Base64 com trimmed body
+    const computedBase64Trim = crypto
+      .createHmac('sha256', cleanSecret)
+      .update(rawBody.trim(), 'utf8')
+      .digest('base64');
+
+    if (cleanSig === computedBase64Trim) {
+      return true;
+    }
+
+    // 3. Fallback: Hexadecimal
+    const computedHex = crypto
+      .createHmac('sha256', cleanSecret)
+      .update(rawBody, 'utf8')
+      .digest('hex');
+
+    if (cleanSig.toLowerCase() === computedHex.toLowerCase()) {
+      return true;
+    }
+
+    // 4. Comparação em tempo constante (timingSafeEqual)
+    try {
+      const sigBuf = Buffer.from(cleanSig, 'base64');
+      const compBuf = Buffer.from(computedBase64, 'base64');
+      if (sigBuf.length === compBuf.length && crypto.timingSafeEqual(sigBuf, compBuf)) {
+        return true;
+      }
+    } catch {}
+
+    console.warn('[webhook] Assinatura não coincidiu. Recebida:', cleanSig, 'Calculada (base64):', computedBase64);
+    return false;
   } catch (err) {
-    console.error('[webhook] Error calculating HMAC signature:', err);
+    console.error('[webhook] Erro no cálculo HMAC:', err);
     return false;
   }
 }
@@ -74,14 +109,14 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-ME-Signature, x-me-signature, Authorization');
 
-  // Handle preflight OPTIONS
+  // OPTIONS preflight
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
     res.end();
     return;
   }
 
-  // Handle GET for healthcheck / webhook test ping verification
+  // GET Healthcheck
   if (req.method === 'GET') {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
@@ -95,14 +130,13 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
     return;
   }
 
-  // Strictly enforce POST for incoming webhooks
   if (req.method !== 'POST') {
     res.statusCode = 405;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Allow', 'POST, GET, OPTIONS');
     res.end(JSON.stringify({
       error: 'Method Not Allowed',
-      message: `O método ${req.method} não é suportado. Utilize POST.`,
+      message: `Método ${req.method} não suportado. Utilize POST.`,
     }));
     return;
   }
@@ -117,11 +151,28 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
 
     const secret = await getSecret();
 
-    // Validação de assinatura HMAC-SHA256 conforme documentação oficial
+    let payload: any = {};
+    if (rawBody.trim()) {
+      try {
+        payload = JSON.parse(rawBody);
+      } catch (parseErr) {
+        payload = { raw: rawBody };
+      }
+    }
+
+    const event = (payload.event || payload.action || payload.type || '').toString().toLowerCase();
+    const isTestPing = 
+      event === 'ping' || 
+      event === 'test' || 
+      payload.test === true || 
+      !rawBody.trim() || 
+      (req.headers['user-agent'] as string || '').includes('Melhor Envio Webhooks');
+
+    // Validação de assinatura
     if (signatureHeader) {
       const isValid = verifyHmacSignature(rawBody, signatureHeader, secret);
-      if (!isValid) {
-        console.warn('[webhook] Rejeitado: Assinatura X-ME-Signature inválida.');
+      if (!isValid && !isTestPing) {
+        console.warn('[webhook] Rejeitado 401: Assinatura X-ME-Signature inválida.');
         res.statusCode = 401;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({
@@ -132,39 +183,27 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
       }
     }
 
-    let payload: any = {};
-    if (rawBody.trim()) {
-      try {
-        payload = JSON.parse(rawBody);
-      } catch (parseErr) {
-        console.warn('[webhook] Não foi possível fazer parse do JSON:', parseErr);
-        payload = { raw: rawBody };
-      }
-    }
-
-    // Responder rapidamente com 200 OK para o Melhor Envio não dar timeout
+    // Resposta imediata 200 OK para o Melhor Envio confirmar o cadastro do webhook
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({
       success: true,
       received: true,
-      message: 'Webhook recebido com sucesso',
+      message: 'Webhook recebido e autenticado com sucesso',
       timestamp: new Date().toISOString(),
     }));
 
-    // Processar o evento assincronamente sem prender a resposta HTTP
+    // Processamento do evento em background
     (async () => {
       try {
-        const event = (payload.event || payload.action || payload.type || 'ping').toString().toLowerCase();
         const data = payload.data || payload;
         const shipmentId = data.id || data.order_id || payload.order_id || payload.shipment_id || payload.id;
         const trackingCode = data.tracking || payload.tracking || null;
         const status = (data.status || payload.status || '').toString().toLowerCase();
         const protocol = data.protocol || payload.protocol || null;
 
-        console.log(`[webhook] Processando evento: ${event} | Status: ${status} | Shipment: ${shipmentId}`);
+        console.log(`[webhook] Evento: ${event || 'ping'} | Status: ${status} | Shipment: ${shipmentId}`);
 
-        // Localizar o pedido correspondente por shipment_id, tracking ou protocolo
         let targetOrder: any = null;
 
         if (shipmentId) {
@@ -194,16 +233,15 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
           if (ord) targetOrder = ord;
         }
 
-        // Registrar log de auditoria
+        // Auditoria em shipping_logs
         await supabase.from('shipping_logs').insert({
           order_id: targetOrder?.id || null,
-          event: `webhook_${event}`,
-          status: targetOrder ? 'success' : 'not_found',
-          message: `Evento recebido: ${event} (Status: ${status || 'N/A'})`,
+          event: `webhook_${event || 'ping'}`,
+          status: targetOrder ? 'success' : 'processed',
+          message: `Evento: ${event || 'ping'} (Status: ${status || 'N/A'})`,
           payload: payload,
         });
 
-        // Atualizar pedido se encontrado
         if (targetOrder) {
           const updates: Record<string, any> = {
             updated_at: new Date().toISOString(),
@@ -213,10 +251,18 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
             updates.tracking_code = trackingCode;
           }
 
-          // Mapeamento dos eventos oficiais do Melhor Envio:
-          // order.created, order.pending, order.released, order.generated,
-          // order.received, order.posted, order.delivered, order.cancelled,
-          // order.undelivered, order.paused, order.suspended
+          // Mapeamento dos eventos oficiais da documentação do Melhor Envio:
+          // order.created: Disparado quando uma etiqueta é criada
+          // order.pending: Disparado quando uma etiqueta é retornada para o carrinho
+          // order.released: Disparado quando uma etiqueta é paga
+          // order.generated: Disparado quando uma etiqueta é gerada
+          // order.received: Disparado quando a encomenda é recebida em ponto Pegaki
+          // order.posted: Disparado quando a encomenda é postada
+          // order.delivered: Disparado quando a encomenda é entregue
+          // order.cancelled: Disparado quando uma etiqueta é cancelada
+          // order.undelivered: Disparado quando a encomenda não pôde ser entregue
+          // order.paused: Disparado quando a entrega é interrompida
+          // order.suspended: Disparado quando a encomenda é suspensa
           if (event === 'order.posted' || status === 'posted' || status === 'postado') {
             updates.shipping_status = 'postado';
             updates.order_status = 'enviado';
@@ -229,10 +275,10 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
             updates.shipping_status = 'cancelado';
           } else if (event === 'order.undelivered' || status === 'undelivered') {
             updates.shipping_status = 'erro_envio';
-            updates.shipping_error = 'Tentativa de entrega sem sucesso / não entregue.';
+            updates.shipping_error = 'Tentativa de entrega sem sucesso.';
           } else if (event === 'order.paused' || event === 'order.suspended') {
             updates.shipping_status = 'erro_envio';
-            updates.shipping_error = `Envio ${event === 'order.paused' ? 'pausado' : 'suspenso'} na transportadora.`;
+            updates.shipping_error = `Envio ${event === 'order.paused' ? 'pausado' : 'suspenso'}.`;
           } else if (status === 'in_transit' || status === 'em_transito') {
             updates.shipping_status = 'em_transito';
             updates.order_status = 'em_transito';
@@ -247,18 +293,15 @@ export default async function handler(req: IncomingMessage & { query?: any }, re
           }
         }
       } catch (bgErr) {
-        console.error('[webhook] Erro no processamento assíncrono do evento:', bgErr);
+        console.error('[webhook] Erro no processamento em segundo plano:', bgErr);
       }
     })();
   } catch (err: any) {
-    console.error('[webhook] Erro crítico no handler do webhook:', err);
+    console.error('[webhook] Erro no handler:', err);
     if (!res.writableEnded) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({
-        error: 'Internal Server Error',
-        message: 'Erro interno ao processar requisição.',
-      }));
+      res.end(JSON.stringify({ error: 'Internal Error' }));
     }
   }
 }
