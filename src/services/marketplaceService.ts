@@ -584,6 +584,110 @@ export const marketplaceService = {
     return !error;
   },
 
+  /**
+   * Cancela a venda realizada pelo lojista vendedor:
+   * 1. Valida se o lojista não ultrapassou o limite de 3 cancelamentos
+   * 2. Altera o status do pedido para 'cancelado'
+   * 3. Altera o status da oferta associada de volta para 'publicada'
+   * 4. Incrementa o contador de cancelamentos do vendedor (sales_cancellation_count)
+   */
+  async cancelSale(params: {
+    orderId: string;
+    sellerId: string;
+    reason?: string;
+  }): Promise<{ success: boolean; error?: string; remainingCancellations?: number; cancellationsCount?: number }> {
+    const isUuid = (val?: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val || '');
+
+    // 1. Busca os dados do vendedor e valida o limite de 3 cancelamentos
+    const { data: sellerData } = await supabase
+      .from('user_accounts')
+      .select('id, sales_cancellation_count')
+      .eq('id', params.sellerId)
+      .maybeSingle();
+
+    const currentCount = sellerData?.sales_cancellation_count || 0;
+    if (currentCount >= 3) {
+      return {
+        success: false,
+        error: 'Você atingiu o limite máximo de 3 cancelamentos de vendas permitidos para a sua conta.',
+        cancellationsCount: currentCount,
+        remainingCancellations: 0,
+      };
+    }
+
+    // 2. Busca o pedido para resgatar a oferta associada
+    const { data: orderData, error: orderError } = await supabase
+      .from('marketplace_orders')
+      .select('id, offer_id, order_status')
+      .eq('id', params.orderId)
+      .single();
+
+    if (orderError || !orderData) {
+      return { success: false, error: 'Pedido não encontrado.' };
+    }
+
+    if (orderData.order_status === 'cancelado') {
+      return { success: false, error: 'Este pedido já foi cancelado anteriormente.' };
+    }
+
+    // 3. Atualiza o pedido para cancelado
+    const { error: cancelOrderError } = await supabase
+      .from('marketplace_orders')
+      .update({
+        order_status: 'cancelado',
+        shipping_status: 'cancelado',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.orderId);
+
+    if (cancelOrderError) {
+      return { success: false, error: 'Erro ao cancelar o pedido.' };
+    }
+
+    // 4. Se houver oferta associada, coloca ela de volta na vitrine pública do marketplace imediatamente
+    if (orderData.offer_id && isUuid(orderData.offer_id)) {
+      await supabase
+        .from('marketplace_offers')
+        .update({
+          status: 'publicada',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderData.offer_id);
+    }
+
+    // 5. Incrementa o contador de cancelamentos do vendedor
+    const nextCount = currentCount + 1;
+    await supabase
+      .from('user_accounts')
+      .update({
+        sales_cancellation_count: nextCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.sellerId);
+
+    // Atualiza a sessão local do usuário
+    const current = leadAuthService.getCurrentUser();
+    if (current && current.id === params.sellerId) {
+      current.salesCancellationCount = nextCount;
+      leadAuthService.setCurrentUser(current);
+    }
+
+    // Registra log do cancelamento
+    await supabase.from('shipping_logs').insert({
+      order_id: params.orderId,
+      event: 'sale_cancelled_by_seller',
+      status: 'warning',
+      message: `Venda cancelada pelo vendedor. Cancelamento ${nextCount}/3. Oferta retornada para a vitrine do marketplace.`,
+      payload: { reason: params.reason || 'Cancelamento solicitado pelo lojista vendedor' },
+    });
+
+    return {
+      success: true,
+      cancellationsCount: nextCount,
+      remainingCancellations: Math.max(0, 3 - nextCount),
+    };
+  },
+
   // --- DENÚNCIAS & MODERAÇÃO ---
   async reportOffer(report: Omit<MarketplaceReport, 'id' | 'createdAt' | 'status'>): Promise<boolean> {
     const { error } = await supabase

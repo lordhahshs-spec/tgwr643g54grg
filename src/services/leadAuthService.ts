@@ -22,6 +22,7 @@ export interface UserAccount {
   shippingCity?: string;
   shippingState?: string;
   shippingPhone?: string;
+  salesCancellationCount?: number;
   createdAt: string;
 }
 
@@ -74,6 +75,7 @@ export const leadAuthService = {
       shippingCity: row.shipping_city || undefined,
       shippingState: row.shipping_state || undefined,
       shippingPhone: row.shipping_phone || undefined,
+      salesCancellationCount: row.sales_cancellation_count || 0,
       createdAt: row.created_at,
     }));
   },
@@ -187,6 +189,7 @@ export const leadAuthService = {
       shippingCity: data.shipping_city || undefined,
       shippingState: data.shipping_state || undefined,
       shippingPhone: data.shipping_phone || undefined,
+      salesCancellationCount: data.sales_cancellation_count || 0,
       createdAt: data.created_at,
     };
 
@@ -314,6 +317,7 @@ export const leadAuthService = {
           shippingCity: data.shipping_city || undefined,
           shippingState: data.shipping_state || undefined,
           shippingPhone: data.shipping_phone || undefined,
+          salesCancellationCount: data.sales_cancellation_count || 0,
           createdAt: data.created_at,
         };
         this.setCurrentUser(synced);
@@ -351,6 +355,7 @@ export const leadAuthService = {
           shippingCity: userByEmail.shipping_city || undefined,
           shippingState: userByEmail.shipping_state || undefined,
           shippingPhone: userByEmail.shipping_phone || undefined,
+          salesCancellationCount: userByEmail.sales_cancellation_count || 0,
           createdAt: userByEmail.created_at,
         };
         this.setCurrentUser(synced);

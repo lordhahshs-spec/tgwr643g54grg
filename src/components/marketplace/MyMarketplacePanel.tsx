@@ -22,17 +22,20 @@ import {
   RefreshCw,
   Box,
   MapPin,
-  FileText
+  FileText,
+  XCircle
 } from 'lucide-react';
-import { 
-  MarketplaceOffer, 
-  MarketplaceOrder, 
+import {
+  MarketplaceOffer,
+  MarketplaceOrder,
   OrderStatus,
-  ShippingStatus 
+  ShippingStatus
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
-import { UserAccount } from '@/services/leadAuthService';
+import { UserAccount, leadAuthService } from '@/services/leadAuthService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface MyMarketplacePanelProps {
@@ -57,6 +60,48 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [copiedTracking, setCopiedTracking] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+
+  // Cancelamento de venda pelo lojista
+  const [orderToCancel, setOrderToCancel] = useState<MarketplaceOrder | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [isCancellingSale, setIsCancellingSale] = useState(false);
+
+  const handleInitiateCancelSale = (order: MarketplaceOrder) => {
+    const cancellationsUsed = currentUser.salesCancellationCount || 0;
+    if (cancellationsUsed >= 3) {
+      toast.error('Você já atingiu o limite máximo de 3 cancelamentos de vendas permitidos para a sua conta.');
+      return;
+    }
+    setOrderToCancel(order);
+    setCancellationReason('');
+    setIsCancelModalOpen(true);
+  };
+
+  const handleConfirmCancelSale = async () => {
+    if (!orderToCancel) return;
+    setIsCancellingSale(true);
+    try {
+      const res = await marketplaceService.cancelSale({
+        orderId: orderToCancel.id,
+        sellerId: currentUser.id,
+        reason: cancellationReason.trim() || undefined,
+      });
+
+      if (res.success) {
+        toast.success(`Venda cancelada com sucesso! A oferta voltou para a vitrine do Marketplace. (Restam ${res.remainingCancellations} cancelamentos)`);
+        setIsCancelModalOpen(false);
+        setOrderToCancel(null);
+        await loadData();
+      } else {
+        toast.error(res.error || 'Erro ao cancelar venda.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao processar cancelamento da venda.');
+    } finally {
+      setIsCancellingSale(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -169,6 +214,9 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
   };
 
   const getOrderStatusBadge = (st: OrderStatus, shippingSt?: ShippingStatus) => {
+    if (st === 'cancelado' || shippingSt === 'cancelado') {
+      return <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30">Venda Cancelada</span>;
+    }
     if (shippingSt === 'etiqueta_disponivel') {
       return <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">Etiqueta Pronta p/ Imprimir</span>;
     }
@@ -376,13 +424,34 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                         <h4 className="text-sm font-bold text-white mt-1">{order.productTitle}</h4>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[11px] text-slate-400 block">Líquido a Receber</span>
-                        <span className="text-base font-black text-[#00D287]">
-                          {formatBRL(order.sellerNetAmount)}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-[11px] text-slate-400 block">Líquido a Receber</span>
+                          <span className="text-base font-black text-[#00D287]">
+                            {formatBRL(order.sellerNetAmount)}
+                          </span>
+                        </div>
+
+                        {order.orderStatus !== 'cancelado' && order.orderStatus !== 'entregue' && order.orderStatus !== 'finalizado' && (
+                          <button
+                            type="button"
+                            onClick={() => handleInitiateCancelSale(order)}
+                            className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-rose-950/20"
+                            title="Cancelar esta venda (limite de 3 cancelamentos). O produto retornará imediatamente à vitrine."
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                            Cancelar Venda
+                          </button>
+                        )}
                       </div>
                     </div>
+
+                    {order.orderStatus === 'cancelado' && (
+                      <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2.5">
+                        <XCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                        <span>Esta venda foi cancelada pelo vendedor. O item retornou automaticamente para a vitrine pública de ofertas do Marketplace.</span>
+                      </div>
+                    )}
 
                     {/* Buyer & Logistics Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -430,96 +499,98 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                     </div>
 
                     {/* Shipping Action Area: Labels & Instructions */}
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/20 to-slate-950/50 border border-[#00D287]/20 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <span className="text-[10px] font-bold text-[#00D287] uppercase tracking-wider block">
-                            Área de Envio • Melhor Envio
-                          </span>
-                          <div className="flex items-center gap-2 mt-1">
-                            {order.trackingCode ? (
-                              <span className="text-xs font-mono font-bold text-white bg-slate-900 px-2 py-1 rounded border border-white/10 flex items-center gap-1.5">
-                                Rastreio: {order.trackingCode}
-                                <button onClick={() => handleCopy(order.trackingCode!, order.id)} title="Copiar código">
-                                  {copiedTracking === order.id ? <Check className="w-3 h-3 text-[#00D287]" /> : <Copy className="w-3 h-3 text-slate-400" />}
-                                </button>
-                              </span>
+                    {order.orderStatus !== 'cancelado' && (
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/20 to-slate-950/50 border border-[#00D287]/20 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <span className="text-[10px] font-bold text-[#00D287] uppercase tracking-wider block">
+                              Área de Envio • Melhor Envio
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              {order.trackingCode ? (
+                                <span className="text-xs font-mono font-bold text-white bg-slate-900 px-2 py-1 rounded border border-white/10 flex items-center gap-1.5">
+                                  Rastreio: {order.trackingCode}
+                                  <button onClick={() => handleCopy(order.trackingCode!, order.id)} title="Copiar código">
+                                    {copiedTracking === order.id ? <Check className="w-3 h-3 text-[#00D287]" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                                  </button>
+                                </span>
+                              ) : (
+                                <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5" /> Etiqueta aguardando postagem
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Buttons for Label */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {printUrl ? (
+                              <>
+                                <a
+                                  href={printUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3.5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all cursor-pointer"
+                                >
+                                  <Printer className="w-3.5 h-3.5" /> Imprimir Etiqueta
+                                </a>
+
+                                <a
+                                  href={printUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download={`etiqueta-${order.id.slice(0, 8)}.pdf`}
+                                  className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10"
+                                >
+                                  <Download className="w-3.5 h-3.5" /> Baixar
+                                </a>
+                              </>
                             ) : (
-                              <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" /> Etiqueta aguardando postagem
-                              </span>
+                              <button
+                                onClick={() => handlePurchaseLabel(order.id)}
+                                disabled={actionLoading[order.id]}
+                                className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 disabled:opacity-50 cursor-pointer"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${actionLoading[order.id] ? 'animate-spin' : ''}`} />
+                                Gerar Etiqueta Agora
+                              </button>
+                            )}
+
+                            {order.melhorEnvioShipmentId && (
+                              <button
+                                onClick={() => handleSyncTracking(order.id, order.melhorEnvioShipmentId)}
+                                disabled={actionLoading[`track_${order.id}`]}
+                                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                                title="Atualizar rastreamento"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${actionLoading[`track_${order.id}`] ? 'animate-spin' : ''}`} />
+                                Rastrear
+                              </button>
                             )}
                           </div>
                         </div>
 
-                        {/* Buttons for Label */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          {printUrl ? (
-                            <>
-                              <a
-                                href={printUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3.5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all"
-                              >
-                                <Printer className="w-3.5 h-3.5" /> Imprimir Etiqueta
-                              </a>
-
-                              <a
-                                href={printUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={`etiqueta-${order.id.slice(0, 8)}.pdf`}
-                                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10"
-                              >
-                                <Download className="w-3.5 h-3.5" /> Baixar
-                              </a>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => handlePurchaseLabel(order.id)}
-                              disabled={actionLoading[order.id]}
-                              className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 disabled:opacity-50"
-                            >
-                              <RefreshCw className={`w-3.5 h-3.5 ${actionLoading[order.id] ? 'animate-spin' : ''}`} />
-                              Gerar Etiqueta Agora
-                            </button>
-                          )}
-
-                          {order.melhorEnvioShipmentId && (
-                            <button
-                              onClick={() => handleSyncTracking(order.id, order.melhorEnvioShipmentId)}
-                              disabled={actionLoading[`track_${order.id}`]}
-                              className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10"
-                              title="Atualizar rastreamento"
-                            >
-                              <RefreshCw className={`w-3.5 h-3.5 ${actionLoading[`track_${order.id}`] ? 'animate-spin' : ''}`} />
-                              Rastrear
-                            </button>
-                          )}
+                        {/* Instructions for Seller */}
+                        <div className="pt-2 border-t border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">1</span>
+                            <span>Imprima a etiqueta oficial</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">2</span>
+                            <span>Embale e fixe a etiqueta</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">3</span>
+                            <span>Poste nos Correios/Jadlog</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">4</span>
+                            <span>Rastreio atualiza automático</span>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Instructions for Seller */}
-                      <div className="pt-2 border-t border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-400">
-                        <div className="flex items-center gap-1">
-                          <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">1</span>
-                          <span>Imprima a etiqueta oficial</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">2</span>
-                          <span>Embale e fixe a etiqueta</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">3</span>
-                          <span>Poste nos Correios/Jadlog</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="w-4 h-4 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold flex items-center justify-center text-[9px]">4</span>
-                          <span>Rastreio atualiza automático</span>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -686,6 +757,87 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
           )}
         </div>
       )}
+
+      {/* MODAL DE CANCELAMENTO DE VENDA PELO LOJISTA */}
+      <Dialog open={isCancelModalOpen} onOpenChange={(open) => !open && setIsCancelModalOpen(false)}>
+        <DialogContent className="bg-[#070b16] border border-white/10 text-white max-w-md p-6 rounded-3xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-rose-400" />
+              Cancelar Venda & Devolver Produto à Vitrine
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Confirme se deseja cancelar este pedido e reativar a oferta no marketplace.
+            </DialogDescription>
+          </DialogHeader>
+
+          {orderToCancel && (
+            <div className="space-y-4 pt-2">
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-white/5 space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Produto da Venda</span>
+                <p className="text-sm font-bold text-white">{orderToCancel.productTitle}</p>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-slate-400">Comprador: {orderToCancel.buyerCompany}</span>
+                  <span className="text-xs text-[#00D287] font-bold">{formatBRL(orderToCancel.totalAmount)}</span>
+                </div>
+              </div>
+
+              {/* Limite de 3 cancelamentos em destaque */}
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
+                <div className="font-bold flex items-center justify-between text-amber-300">
+                  <span>Limite de Cancelamentos da Conta</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black">
+                    Cancelamento {(currentUser.salesCancellationCount || 0) + 1} de 3
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                  Cada lojista vendedor possui um <strong>limite máximo de 3 cancelamentos de vendas</strong>. Ao confirmar, restarão <strong>{Math.max(0, 2 - (currentUser.salesCancellationCount || 0))}</strong> cancelamentos para a sua loja.
+                </p>
+              </div>
+
+              {/* Informação do retorno imediato para a vitrine */}
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[#00D287]" />
+                <span className="text-[11px]">
+                  <strong>Retorno Imediato:</strong> Ao confirmar, a sua oferta voltará instantaneamente para a vitrine pública de ofertas do Marketplace para ser comprada novamente.
+                </span>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1 font-medium">
+                  Motivo do cancelamento (opcional):
+                </label>
+                <input
+                  type="text"
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  placeholder="Ex: Avaria identificada no aparelho antes da expedição"
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none focus:border-[#00D287]"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCancelModalOpen(false)}
+                  className="flex-1 bg-slate-900 border-white/10 text-slate-300 hover:text-white text-xs h-10 rounded-xl"
+                >
+                  Voltar e Manter Venda
+                </Button>
+                <Button
+                  type="button"
+                  disabled={isCancellingSale}
+                  onClick={handleConfirmCancelSale}
+                  className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs h-10 rounded-xl shadow-lg shadow-rose-600/20"
+                >
+                  {isCancellingSale ? 'Cancelando...' : 'Confirmar Cancelamento'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

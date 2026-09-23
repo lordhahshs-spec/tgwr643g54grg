@@ -167,6 +167,7 @@ export const AdminPage: React.FC = () => {
               shippingCity: payload.new.shipping_city || undefined,
               shippingState: payload.new.shipping_state || undefined,
               shippingPhone: payload.new.shipping_phone || undefined,
+              salesCancellationCount: payload.new.sales_cancellation_count || 0,
             };
 
             setAccounts((prev) =>
@@ -1621,6 +1622,15 @@ export const AdminPage: React.FC = () => {
                   <span className={`font-bold capitalize ${selectedAccountForModal.status === 'bloqueado' ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {selectedAccountForModal.status}
                   </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Cancelamentos de Vendas:</span>
+                    <span className={`font-bold text-xs ${(selectedAccountForModal.salesCancellationCount || 0) >= 3 ? 'text-rose-400 font-black' : 'text-amber-300'}`}>
+                      {selectedAccountForModal.salesCancellationCount || 0} de 3 utilizados
+                    </span>
+                  </div>
                 </div>
 
                 {selectedAccountForModal.banReason && (
