@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
 import {
   X,
@@ -36,139 +36,72 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   favorites = [],
   onToggleFavorite,
 }) => {
-  // Snapshot estável e congelado dos stories ao abrir (imune a re-renders e polling de fundo)
+  // Snapshot estável e congelado dos stories ao abrir (100% imune a polling e re-renders externos)
   const [frozenOffers, setFrozenOffers] = useState<MarketplaceOffer[]>([]);
   const [storyIndex, setStoryIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
-
-  const wasOpenRef = useRef(false);
-  const isPausedRef = useRef(isPaused);
-  isPausedRef.current = isPaused;
 
   // Touch handling para gestos de swipe
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Inicializa e congela os dados no instante exato em que o modal abre
+  // Inicializa o snapshot apenas no momento da abertura do modal
   useEffect(() => {
-    if (isOpen && !wasOpenRef.current && offers.length > 0) {
-      // Cria snapshot congelado e imutável
+    if (isOpen && offers.length > 0) {
       setFrozenOffers([...offers]);
       const initialIdx = initialOfferId ? offers.findIndex((o) => o.id === initialOfferId) : 0;
       setStoryIndex(initialIdx !== -1 ? initialIdx : 0);
       setPhotoIndex(0);
-      setProgress(0);
       setIsPaused(false);
       setDirection('next');
     }
-    if (!isOpen) {
-      setProgress(0);
-      setIsPaused(false);
-    }
-    wasOpenRef.current = isOpen;
-  }, [isOpen, initialOfferId, offers]);
+  }, [isOpen]);
 
-  const currentOffer: MarketplaceOffer | undefined = frozenOffers[storyIndex];
+  const currentOffer: MarketplaceOffer | undefined = frozenOffers[storyIndex] || offers[0];
   const images = currentOffer?.images && currentOffer.images.length > 0
     ? currentOffer.images
     : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80'];
 
   const totalPhotos = images.length;
-  const totalOffers = frozenOffers.length;
+  const totalOffers = frozenOffers.length > 0 ? frozenOffers.length : offers.length;
   const isLastPhotoOfOffer = photoIndex === totalPhotos - 1;
 
-  // Função Determinística de Avanço (Passa foto da loja atual e só avança de loja após a última foto)
-  const handleNext = useCallback(() => {
+  // Função Determinística de Avanço
+  const handleNext = () => {
     setDirection('next');
-    setProgress(0);
-
-    setPhotoIndex((currentP) => {
-      if (currentP < totalPhotos - 1) {
-        // Avança para a próxima foto da MESMA loja
-        return currentP + 1;
+    if (photoIndex < totalPhotos - 1) {
+      // Avança para a próxima foto da MESMA loja
+      setPhotoIndex((p) => p + 1);
+    } else {
+      // Chegou na última foto da loja atual -> avança para a próxima loja
+      if (storyIndex < totalOffers - 1) {
+        setStoryIndex((s) => s + 1);
+        setPhotoIndex(0);
       } else {
-        // Chegou na última foto da loja atual -> avança para a próxima loja
-        setStoryIndex((currentS) => {
-          if (currentS < totalOffers - 1) {
-            return currentS + 1;
-          } else {
-            onClose();
-            return currentS;
-          }
-        });
-        return 0; // Primeira foto da nova loja
+        onClose();
       }
-    });
-  }, [totalPhotos, totalOffers, onClose]);
+    }
+  };
 
-  // Função Determinística de Retrocesso (Volta foto da mesma loja ou vai para a última foto da loja anterior)
-  const handlePrev = useCallback(() => {
+  // Função Determinística de Retrocesso
+  const handlePrev = () => {
     setDirection('prev');
-    setProgress(0);
-
-    setPhotoIndex((currentP) => {
-      if (currentP > 0) {
-        // Volta para a foto anterior da MESMA loja
-        return currentP - 1;
-      } else {
-        // Está na foto 0 -> volta para a loja anterior
-        setStoryIndex((currentS) => {
-          if (currentS > 0) {
-            const prevStore = frozenOffers[currentS - 1];
-            const prevStorePhotos = prevStore?.images?.length || 1;
-            // Define a última foto da loja anterior
-            setTimeout(() => setPhotoIndex(prevStorePhotos - 1), 0);
-            return currentS - 1;
-          }
-          return currentS;
-        });
-        return 0;
+    if (photoIndex > 0) {
+      // Volta para a foto anterior da MESMA loja
+      setPhotoIndex((p) => p - 1);
+    } else {
+      // Está na foto 0 -> volta para a última foto da loja anterior
+      if (storyIndex > 0) {
+        const prevStoreIdx = storyIndex - 1;
+        const prevStore = frozenOffers[prevStoreIdx];
+        const prevPhotosCount = prevStore?.images?.length || 1;
+        setStoryIndex(prevStoreIdx);
+        setPhotoIndex(prevPhotosCount - 1);
       }
-    });
-  }, [frozenOffers]);
-
-  // Temporizador Fluido e Contínuo a 60fps via requestAnimationFrame
-  useEffect(() => {
-    if (!isOpen || frozenOffers.length === 0 || !currentOffer) return;
-
-    setProgress(0);
-    const startTime = performance.now();
-    let pausedAt: number | null = null;
-    let totalPausedDuration = 0;
-    let animId: number;
-
-    const frame = (now: number) => {
-      if (isPausedRef.current) {
-        if (pausedAt === null) {
-          pausedAt = now;
-        }
-        animId = requestAnimationFrame(frame);
-        return;
-      } else if (pausedAt !== null) {
-        totalPausedDuration += now - pausedAt;
-        pausedAt = null;
-      }
-
-      const elapsed = now - startTime - totalPausedDuration;
-      const currentPct = Math.min(100, (elapsed / STORY_DURATION_MS) * 100);
-      setProgress(currentPct);
-
-      if (currentPct >= 100) {
-        handleNext();
-      } else {
-        animId = requestAnimationFrame(frame);
-      }
-    };
-
-    animId = requestAnimationFrame(frame);
-
-    return () => {
-      cancelAnimationFrame(animId);
-    };
-  }, [isOpen, storyIndex, photoIndex, currentOffer, frozenOffers.length, handleNext]);
+    }
+  };
 
   // Controles de Teclado
   useEffect(() => {
@@ -189,7 +122,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleNext, handlePrev, onClose]);
+  }, [isOpen, storyIndex, photoIndex, totalPhotos, totalOffers]);
 
   // Touch handlers para gestos e pausa
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -236,6 +169,18 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none">
+      {/* Estilos CSS Injetados para Animação Nativa GPU da Barra de Progresso */}
+      <style>{`
+        @keyframes storyBarProgressAnimation {
+          0% {
+            width: 0%;
+          }
+          100% {
+            width: 100%;
+          }
+        }
+      `}</style>
+
       {/* Botão de Fechar Geral */}
       <button
         onClick={onClose}
@@ -252,7 +197,6 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
             setDirection('prev');
             setStoryIndex((prev) => prev - 1);
             setPhotoIndex(0);
-            setProgress(0);
           }}
           className="hidden md:flex absolute left-8 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-full bg-slate-900/80 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/15 hover:border-[#00D287] shadow-2xl backdrop-blur-md items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
           title="Loja Anterior"
@@ -267,7 +211,6 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
             setDirection('next');
             setStoryIndex((prev) => prev + 1);
             setPhotoIndex(0);
-            setProgress(0);
           }}
           className="hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-full bg-slate-900/80 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/15 hover:border-[#00D287] shadow-2xl backdrop-blur-md items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
           title="Próxima Loja"
@@ -287,11 +230,11 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
       >
         {/* IMAGEM DO STORY COM TRANSIÇÃO 3D CUBE / FLIP ESTILO INSTAGRAM */}
         <div
-          key={`${storyIndex}-${photoIndex}`}
+          key={`story-image-${storyIndex}-${photoIndex}`}
           className={`absolute inset-0 z-0 bg-slate-950 transition-all duration-300 ease-out transform-gpu ${
             direction === 'next'
-              ? 'animate-in fade-in slide-in-from-right-8 zoom-in-[0.97]'
-              : 'animate-in fade-in slide-in-from-left-8 zoom-in-[0.97]'
+              ? 'animate-in fade-in slide-in-from-right-6 zoom-in-[0.98]'
+              : 'animate-in fade-in slide-in-from-left-6 zoom-in-[0.98]'
           }`}
         >
           <img
@@ -324,33 +267,51 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         </div>
 
         {/* ========================================================================= */}
-        {/* CABEÇALHO DO STORY (Barras de Progresso Segmentadas + Info da Loja) */}
+        {/* CABEÇALHO DO STORY (Barras de Progresso Nativas + Info da Loja) */}
         {/* ========================================================================= */}
         <div className="relative z-20 p-3 sm:p-4 space-y-3 pointer-events-none">
-          {/* BARRAS DE TEMPO SEGMENTADAS ESTILO INSTAGRAM (Uma por foto da loja atual) */}
+          {/* BARRAS DE TEMPO SEGMENTADAS NATIVAS (Uma por foto da loja atual) */}
           <div className="flex items-center gap-1.5 w-full">
             {images.map((_, idx) => {
-              let fillPercent = 0;
               if (idx < photoIndex) {
-                fillPercent = 100;
-              } else if (idx === photoIndex) {
-                fillPercent = progress;
-              } else {
-                fillPercent = 0;
+                // Foto anterior: 100% preenchida
+                return (
+                  <div
+                    key={`bar-done-${storyIndex}-${idx}`}
+                    className="flex-1 h-1 sm:h-1.5 rounded-full bg-white/30 backdrop-blur-md overflow-hidden"
+                  >
+                    <div className="h-full bg-white rounded-full w-full" />
+                  </div>
+                );
               }
 
+              if (idx === photoIndex) {
+                // Foto atual ativa: Animação CSS nativa contínua de 0 a 100% sem reset
+                return (
+                  <div
+                    key={`bar-active-${storyIndex}-${photoIndex}`}
+                    className="flex-1 h-1 sm:h-1.5 rounded-full bg-white/30 backdrop-blur-md overflow-hidden"
+                  >
+                    <div
+                      key={`bar-fill-${storyIndex}-${photoIndex}`}
+                      className="h-full bg-white rounded-full"
+                      style={{
+                        animation: `storyBarProgressAnimation ${STORY_DURATION_MS}ms linear forwards`,
+                        animationPlayState: isPaused ? 'paused' : 'running',
+                      }}
+                      onAnimationEnd={handleNext}
+                    />
+                  </div>
+                );
+              }
+
+              // Foto futura: vazia 0%
               return (
                 <div
-                  key={idx}
-                  className="flex-1 h-1 sm:h-1.5 rounded-full bg-white/30 backdrop-blur-md overflow-hidden shadow-sm"
+                  key={`bar-future-${storyIndex}-${idx}`}
+                  className="flex-1 h-1 sm:h-1.5 rounded-full bg-white/30 backdrop-blur-md overflow-hidden"
                 >
-                  <div
-                    className="h-full bg-white rounded-full"
-                    style={{
-                      width: `${fillPercent}%`,
-                      transition: idx === photoIndex && !isPaused ? 'none' : 'width 0.1s ease-out'
-                    }}
-                  />
+                  <div className="h-full bg-white rounded-full w-0" />
                 </div>
               );
             })}
