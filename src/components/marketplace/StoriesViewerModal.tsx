@@ -403,31 +403,25 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
           </div>
 
           {/* ========================================================================= */}
-          {/* RODAPÉ DO STORY (Informações do Produto & Botão na Última Foto) */}
+          {/* RODAPÉ DO STORY (Design Minimalista com Ação na Última Foto) */}
           {/* ========================================================================= */}
           <div className="relative z-20 p-4 space-y-3 pointer-events-auto">
-            {/* Card com Detalhes do Produto */}
-            <div className="p-3.5 rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 space-y-2 text-left shadow-2xl">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-black text-sm text-white leading-tight drop-shadow">
+            {/* Informações Minimalistas do Produto (Sem poluição visual) */}
+            <div className="p-3 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 space-y-1.5 text-left shadow-lg">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-bold text-sm text-white leading-snug drop-shadow truncate">
                   {currentOffer.title}
                 </h3>
-                <div className="flex-shrink-0 text-right">
-                  <span className="text-base font-black text-[#00D287] drop-shadow">
-                    {formatBRL(currentOffer.price)}
-                  </span>
-                </div>
+                <span className="text-sm font-black text-[#00D287] drop-shadow flex-shrink-0">
+                  {formatBRL(currentOffer.price)}
+                </span>
               </div>
 
-              <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
-                {currentOffer.description}
-              </p>
-
-              {/* Badges de Garantia e Frete */}
-              <div className="flex items-center gap-2 pt-1 border-t border-white/10 text-[10px]">
+              {/* Badges sutis de Frete e Garantia */}
+              <div className="flex items-center gap-3 text-[11px] text-slate-300">
                 {currentOffer.freeShipping ? (
                   <div className="flex items-center gap-1 font-bold text-emerald-400">
-                    <Truck className="w-3 h-3" />
+                    <Truck className="w-3.5 h-3.5" />
                     <span>Frete Grátis</span>
                   </div>
                 ) : currentOffer.shippingCost ? (
@@ -436,53 +430,36 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                   </span>
                 ) : null}
 
-                <div className="flex items-center gap-1 text-slate-300 ml-auto">
-                  <ShieldCheck className="w-3 h-3 text-[#00D287]" />
+                <div className="flex items-center gap-1 text-slate-400 ml-auto">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#00D287]" />
                   <span>Garantia B2B</span>
                 </div>
               </div>
             </div>
 
             {/* ========================================================================= */}
-            {/* BOTÃO ESPECIAL NA ÚLTIMA FOTO DO PRODUTO DESTA LOJA */}
+            {/* BOTÃO EXIBIDO EXCLUSIVAMENTE NA ÚLTIMA FOTO DESTA LOJA */}
             {/* ========================================================================= */}
-            {isLastPhotoOfOffer ? (
-              <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300">
-                <div className="p-2 rounded-xl bg-orange-500/20 border border-orange-500/40 text-center text-[11px] text-orange-200 font-bold flex items-center justify-center gap-1.5 backdrop-blur-md">
-                  <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
-                  <span>Você viu todas as fotos desta oferta! Gostou do produto?</span>
-                </div>
-
+            {isLastPhotoOfOffer && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <button
                   onClick={() => {
                     onClose();
                     onOpenDetails(currentOffer);
                   }}
-                  className="w-full py-3.5 px-4 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#00D287]/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer animate-pulse"
+                  className="w-full py-3.5 px-4 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#00D287]/30 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer animate-pulse"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>Ver Mais Detalhes & Iniciar Compra</span>
-                  <ArrowRight className="w-4 h-4 ml-1" />
+                  <span>Ver Oferta Completa & Comprar</span>
+                  <ArrowRight className="w-4 h-4 ml-0.5" />
                 </button>
               </div>
-            ) : (
-              /* Botão de Acesso Rápido nas fotos intermediárias */
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenDetails(currentOffer);
-                }}
-                className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/20 backdrop-blur-md transition-all cursor-pointer"
-              >
-                <span>Ver Detalhes Desta Oferta</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
             )}
 
-            {/* Indicador de Stories Restantes */}
-            <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-1">
-              <span>Toque à direita para avançar • à esquerda para voltar</span>
-              <span className="font-bold text-slate-300">
+            {/* Indicador Minimalista de Loja / Navegação */}
+            <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
+              <span>Toque nas laterais para navegar</span>
+              <span className="font-semibold text-slate-300">
                 Loja {storyIndex + 1} de {totalOffers}
               </span>
             </div>
