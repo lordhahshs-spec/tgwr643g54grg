@@ -150,7 +150,10 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   const canGoNext = storyIndex < totalOffers - 1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#121212] select-none overflow-hidden">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-200 select-none overflow-hidden"
+    >
       {/* Estilos CSS Injetados para Barra de Progresso e Transições Suaves */}
       <style>{`
         @keyframes storyBarProgressAnimation {
@@ -176,7 +179,10 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
       {/* ========================================================================= */}
       {/* ESTEIRA HORIZONTAL DE STORIES (ESTILO INSTAGRAM ORIGINAL)                  */}
       {/* ========================================================================= */}
-      <div className="relative w-full h-full flex items-center justify-start overflow-visible">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full h-full flex items-center justify-start overflow-visible"
+      >
         <div
           className="flex items-center transition-transform duration-450 cubic-bezier(0.2, 0.9, 0.3, 1) will-change-transform h-full"
           style={{
