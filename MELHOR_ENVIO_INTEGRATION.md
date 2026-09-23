@@ -72,7 +72,7 @@ O valor pago pelo frete **nunca** é repassado diretamente para o Melhor Envio n
   - `action: "track_shipment"`: Consulta a API de tracking e atualiza o histórico de entrega do pedido.
 - **Rotas SPA (Frontend):**
   - `/api/melhor-envio/callback` e `/melhor-envio/callback`: Capturam o redirecionamento OAuth e concluem a conexão.
-  - `/admin`: Painel do Administrador Geral com sub-aba dedicada **Logística & Melhor Envio**.
+  - `/admin`: Painel do Administrador Geral com sub-aba dedicada **Logística & Melhor Envio** e aba exclusiva **Webhooks do Sistema** (monitoramento em tempo real com healthcheck a cada 30 segundos, medidor de latência em ms, inspeção de payload JSON e simulador de disparos).
 
 ---
 
