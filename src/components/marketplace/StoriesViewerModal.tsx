@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   Heart,
   Truck,
-  CheckCircle2,
   Pause,
   Play,
   ArrowRight,
@@ -24,7 +23,7 @@ interface StoriesViewerModalProps {
   onToggleFavorite?: (offerId: string, e: React.MouseEvent) => void;
 }
 
-const STORY_DURATION_MS = 5000; // 5 segundos por foto
+const STORY_DURATION_MS = 5000; // 5 segundos por story
 
 // Dimensões da esteira no Desktop
 const PREVIEW_WIDTH = 200;
@@ -42,7 +41,6 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 }) => {
   const [frozenOffers, setFrozenOffers] = useState<MarketplaceOffer[]>([]);
   const [storyIndex, setStoryIndex] = useState(0);
-  const [photoIndex, setPhotoIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   // Touch handling para mobile swipe
@@ -54,46 +52,26 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
       setFrozenOffers([...offers]);
       const initialIdx = initialOfferId ? offers.findIndex((o) => o.id === initialOfferId) : 0;
       setStoryIndex(initialIdx !== -1 ? initialIdx : 0);
-      setPhotoIndex(0);
       setIsPaused(false);
     }
   }, [isOpen]);
 
   const currentOffer: MarketplaceOffer | undefined = frozenOffers[storyIndex] || offers[0];
-  const images = currentOffer?.images && currentOffer.images.length > 0
-    ? currentOffer.images
-    : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80'];
-
-  const totalPhotos = images.length;
   const totalOffers = frozenOffers.length > 0 ? frozenOffers.length : offers.length;
-  const isLastPhotoOfOffer = photoIndex === totalPhotos - 1;
 
-  // Próxima foto ou próxima loja na esteira
+  // Próximo Story na esteira
   const handleNext = () => {
-    if (photoIndex < totalPhotos - 1) {
-      setPhotoIndex((p) => p + 1);
+    if (storyIndex < totalOffers - 1) {
+      setStoryIndex((s) => s + 1);
     } else {
-      if (storyIndex < totalOffers - 1) {
-        setStoryIndex((s) => s + 1);
-        setPhotoIndex(0);
-      } else {
-        onClose();
-      }
+      onClose();
     }
   };
 
-  // Foto anterior ou loja anterior na esteira
+  // Story anterior na esteira
   const handlePrev = () => {
-    if (photoIndex > 0) {
-      setPhotoIndex((p) => p - 1);
-    } else {
-      if (storyIndex > 0) {
-        const prevStoreIdx = storyIndex - 1;
-        const prevStore = frozenOffers[prevStoreIdx];
-        const prevPhotosCount = prevStore?.images?.length || 1;
-        setStoryIndex(prevStoreIdx);
-        setPhotoIndex(prevPhotosCount - 1);
-      }
+    if (storyIndex > 0) {
+      setStoryIndex((s) => s - 1);
     }
   };
 
@@ -101,7 +79,6 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   const handleSelectStoryFromTrack = (idx: number) => {
     if (idx === storyIndex) return;
     setStoryIndex(idx);
-    setPhotoIndex(0);
     setIsPaused(false);
   };
 
@@ -124,7 +101,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, storyIndex, photoIndex, totalPhotos, totalOffers]);
+  }, [isOpen, storyIndex, totalOffers]);
 
   // Touch handlers para gestos no mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -166,15 +143,15 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
   if (!isOpen || !currentOffer || frozenOffers.length === 0) return null;
 
-  const currentImage = images[photoIndex] || images[0];
+  const currentImage = currentOffer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80';
   const isFavorite = favorites.includes(currentOffer.id);
 
-  const canGoPrev = storyIndex > 0 || photoIndex > 0;
-  const canGoNext = storyIndex < totalOffers - 1 || photoIndex < totalPhotos - 1;
+  const canGoPrev = storyIndex > 0;
+  const canGoNext = storyIndex < totalOffers - 1;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#121212] select-none overflow-hidden">
-      {/* Estilos CSS Injetados para Animação de Barra e Transições Suaves */}
+      {/* Estilos CSS Injetados para Barra de Progresso e Transições Suaves */}
       <style>{`
         @keyframes storyBarProgressAnimation {
           0% { width: 0%; }
@@ -182,12 +159,12 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         }
 
         @keyframes storyFadePhoto {
-          0% { opacity: 0.7; }
+          0% { opacity: 0.8; }
           100% { opacity: 1; }
         }
       `}</style>
 
-      {/* Botão Fechar Minimalista Topo Direito Estilo Instagram */}
+      {/* Botão Fechar Minimalista Topo Direito */}
       <button
         onClick={onClose}
         className="absolute top-4 right-4 sm:top-5 sm:right-6 z-50 p-2 text-white/70 hover:text-white transition-colors cursor-pointer"
@@ -210,10 +187,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         >
           {frozenOffers.map((offer, idx) => {
             const isActive = idx === storyIndex;
-            const offerImages = offer.images && offer.images.length > 0
-              ? offer.images
-              : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80'];
-            const previewCover = offerImages[0];
+            const coverImage = offer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80';
 
             return (
               <div
@@ -234,7 +208,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                   <div className="relative w-full h-full bg-[#1a1a1a] rounded-xl overflow-hidden flex flex-col items-center justify-center p-3">
                     {/* Imagem de Fundo Escurecida */}
                     <img
-                      src={previewCover}
+                      src={coverImage}
                       alt={offer.title}
                       className="absolute inset-0 w-full h-full object-cover object-center filter brightness-[0.4] contrast-105"
                       loading="lazy"
@@ -255,7 +229,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                         {offer.sellerCompany}
                       </span>
 
-                      {/* Tempo / Status */}
+                      {/* Status */}
                       <span className="text-white/60 text-[11px] mt-0.5 font-normal">
                         {offer.condition}
                       </span>
@@ -264,7 +238,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                 )}
 
                 {/* ======================================================= */}
-                {/* 2. CARD ATIVO CENTRALIZADO (Instagram Original)         */}
+                {/* 2. CARD ATIVO CENTRALIZADO COM 1 FOTO E BOTAO MINIMALISTA */}
                 {/* ======================================================= */}
                 {isActive && (
                   <div
@@ -274,10 +248,10 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                   >
-                    {/* FOTO DO STORY */}
+                    {/* FOTO DO STORY (1 Foto Principal) */}
                     <div className="absolute inset-0 z-0 bg-black">
                       <img
-                        key={`active-story-img-${storyIndex}-${photoIndex}`}
+                        key={`active-story-img-${storyIndex}`}
                         src={currentImage}
                         alt={offer.title}
                         className="w-full h-full object-cover object-center"
@@ -285,7 +259,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                           animation: 'storyFadePhoto 200ms ease-out forwards',
                         }}
                       />
-                      {/* Gradiente superior e inferior estilo Instagram */}
+                      {/* Gradiente superior e inferior sutil */}
                       <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/85 pointer-events-none" />
                     </div>
 
@@ -297,7 +271,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                           handlePrev();
                         }}
                         className="w-[30%] h-full cursor-pointer"
-                        title="Foto Anterior"
+                        title="Story Anterior"
                       />
                       <div
                         onClick={(e) => {
@@ -305,54 +279,23 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                           handleNext();
                         }}
                         className="w-[70%] h-full cursor-pointer"
-                        title="Próxima Foto"
+                        title="Próximo Story"
                       />
                     </div>
 
-                    {/* CABEÇALHO DO STORY */}
+                    {/* CABEÇALHO DO STORY (1 Barra de Tempo Contínua) */}
                     <div className="relative z-20 p-3 sm:p-3.5 space-y-2.5 pointer-events-none">
-                      {/* BARRAS DE TEMPO NATIVAS */}
-                      <div className="flex items-center gap-1 w-full">
-                        {offerImages.map((_, pIdx) => {
-                          if (pIdx < photoIndex) {
-                            return (
-                              <div
-                                key={`bar-done-${storyIndex}-${pIdx}`}
-                                className="flex-1 h-0.5 sm:h-1 rounded-full bg-white/35 overflow-hidden"
-                              >
-                                <div className="h-full bg-white rounded-full w-full" />
-                              </div>
-                            );
-                          }
-
-                          if (pIdx === photoIndex) {
-                            return (
-                              <div
-                                key={`bar-active-${storyIndex}-${photoIndex}`}
-                                className="flex-1 h-0.5 sm:h-1 rounded-full bg-white/35 overflow-hidden"
-                              >
-                                <div
-                                  key={`bar-fill-${storyIndex}-${photoIndex}`}
-                                  className="h-full bg-white rounded-full"
-                                  style={{
-                                    animation: `storyBarProgressAnimation ${STORY_DURATION_MS}ms linear forwards`,
-                                    animationPlayState: isPaused ? 'paused' : 'running',
-                                  }}
-                                  onAnimationEnd={handleNext}
-                                />
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div
-                              key={`bar-future-${storyIndex}-${pIdx}`}
-                              className="flex-1 h-0.5 sm:h-1 rounded-full bg-white/35 overflow-hidden"
-                            >
-                              <div className="h-full bg-white rounded-full w-0" />
-                            </div>
-                          );
-                        })}
+                      {/* BARRA DE TEMPO DO STORY */}
+                      <div className="w-full h-0.5 sm:h-1 rounded-full bg-white/35 overflow-hidden">
+                        <div
+                          key={`bar-active-${storyIndex}`}
+                          className="h-full bg-white rounded-full"
+                          style={{
+                            animation: `storyBarProgressAnimation ${STORY_DURATION_MS}ms linear forwards`,
+                            animationPlayState: isPaused ? 'paused' : 'running',
+                          }}
+                          onAnimationEnd={handleNext}
+                        />
                       </div>
 
                       {/* Header com Loja, Avatar e Ações */}
@@ -399,50 +342,50 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                       </div>
                     </div>
 
-                    {/* RODAPÉ DO STORY (Limpo e Profissional) */}
+                    {/* ======================================================= */}
+                    {/* RODAPÉ DO STORY COM BOTÃO MINIMALISTA DE MAIS DETALHES  */}
+                    {/* ======================================================= */}
                     <div className="relative z-20 p-3.5 sm:p-4 space-y-2.5 pointer-events-auto">
-                      {/* Pill Minimalista de Produto e Preço */}
-                      <div className="px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between gap-2 shadow-lg">
-                        <div className="truncate">
-                          <h3 className="font-semibold text-xs text-white truncate drop-shadow">
-                            {offer.title}
-                          </h3>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-300 mt-0.5">
-                            {offer.freeShipping ? (
-                              <span className="text-[#00D287] font-semibold flex items-center gap-0.5">
-                                <Truck className="w-3 h-3" /> Frete Grátis
+                      {/* Cartão Minimalista com Preço e Ação Direta */}
+                      <div className="p-3 rounded-xl bg-black/60 backdrop-blur-md border border-white/15 shadow-xl space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="truncate pr-1">
+                            <h3 className="font-semibold text-xs text-white truncate drop-shadow">
+                              {offer.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-300 mt-0.5">
+                              {offer.freeShipping ? (
+                                <span className="text-[#00D287] font-semibold flex items-center gap-0.5">
+                                  <Truck className="w-3 h-3" /> Frete Grátis
+                                </span>
+                              ) : offer.shippingCost ? (
+                                <span>Frete: {formatBRL(offer.shippingCost)}</span>
+                              ) : null}
+                              <span>•</span>
+                              <span className="flex items-center gap-0.5 text-slate-400">
+                                <ShieldCheck className="w-3 h-3 text-[#00D287]" /> B2B
                               </span>
-                            ) : offer.shippingCost ? (
-                              <span>Frete: {formatBRL(offer.shippingCost)}</span>
-                            ) : null}
-                            <span>•</span>
-                            <span className="flex items-center gap-0.5 text-slate-400">
-                              <ShieldCheck className="w-3 h-3 text-[#00D287]" /> B2B
-                            </span>
+                            </div>
                           </div>
+
+                          <span className="text-sm font-black text-[#00D287] drop-shadow flex-shrink-0">
+                            {formatBRL(offer.price)}
+                          </span>
                         </div>
 
-                        <span className="text-sm font-black text-[#00D287] drop-shadow flex-shrink-0">
-                          {formatBRL(offer.price)}
-                        </span>
+                        {/* Botão Minimalista e Elegante de Mais Detalhes */}
+                        <button
+                          onClick={() => {
+                            onClose();
+                            onOpenDetails(offer);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-lg bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#00D287]/20 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" />
+                          <span>Mais Detalhes & Comprar</span>
+                          <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+                        </button>
                       </div>
-
-                      {/* Botão de Compra / Ver Oferta (Aparece na última foto da loja) */}
-                      {isLastPhotoOfOffer && (
-                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                          <button
-                            onClick={() => {
-                              onClose();
-                              onOpenDetails(offer);
-                            }}
-                            className="w-full py-3 px-4 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>Ver Oferta & Comprar</span>
-                            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
