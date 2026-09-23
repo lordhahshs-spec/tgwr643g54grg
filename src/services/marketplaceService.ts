@@ -444,9 +444,6 @@ export const marketplaceService = {
     return !error;
   },
 
-    return !error;
-  },
-
   // --- SELLER SHIPPING ADDRESS (ORIGIN) ---
   async getSellerOriginAddress(userId: string): Promise<ShippingAddress | null> {
     if (!userId || !isUuid(userId)) return null;
