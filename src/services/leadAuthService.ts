@@ -378,6 +378,60 @@ export const leadAuthService = {
     }
   },
 
+  async updateUserProfile(userId: string, updates: Partial<UserAccount>): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
+    try {
+      const payload: any = {};
+      if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
+      if (updates.tradeName !== undefined) payload.trade_name = updates.tradeName;
+      if (updates.ownerName !== undefined) payload.owner_name = updates.ownerName;
+      if (updates.companyName !== undefined) payload.company_name = updates.companyName;
+      if (updates.whatsapp !== undefined) payload.whatsapp = updates.whatsapp;
+
+      const { data, error } = await supabase
+        .from('user_accounts')
+        .update(payload)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error('[leadAuthService] Erro ao atualizar perfil:', error);
+        return { success: false, error: error?.message || 'Erro ao salvar alterações no perfil' };
+      }
+
+      const updatedUser: UserAccount = {
+        id: data.id,
+        companyName: data.company_name,
+        tradeName: data.trade_name || undefined,
+        ownerName: data.owner_name || data.trade_name || data.company_name,
+        cnpj: data.cnpj,
+        email: data.email,
+        whatsapp: data.whatsapp || undefined,
+        avatarUrl: data.avatar_url || undefined,
+        role: data.role || 'lead',
+        status: data.status || 'ativo',
+        planStatus: (data.plan_status as 'demo' | 'ativo') || 'demo',
+        banReason: data.ban_reason || undefined,
+        shippingZipCode: data.shipping_zip_code || undefined,
+        shippingStreet: data.shipping_street || undefined,
+        shippingNumber: data.shipping_number || undefined,
+        shippingComplement: data.shipping_complement || undefined,
+        shippingNeighborhood: data.shipping_neighborhood || undefined,
+        shippingCity: data.shipping_city || undefined,
+        shippingState: data.shipping_state || undefined,
+        shippingPhone: data.shipping_phone || undefined,
+        salesCancellationCount: data.sales_cancellation_count || 0,
+        createdAt: data.created_at,
+      };
+
+      this.setCurrentUser(updatedUser);
+      return { success: true, user: updatedUser };
+    } catch (e: any) {
+      console.error('[leadAuthService] Exceção em updateUserProfile:', e);
+      return { success: false, error: e?.message || 'Erro inesperado' };
+    }
+  },
+
   logout() {
     localStorage.removeItem(CURRENT_USER_KEY);
     localStorage.removeItem('aurus_current_user');

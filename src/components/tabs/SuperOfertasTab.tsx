@@ -337,7 +337,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-8 flex-1">
+      <main className="w-full px-4 sm:px-6 py-3.5 space-y-5 flex-1">
         {/* VIEW: PAINEL DO LOJISTA */}
         <div className={activeView === 'painel' ? 'block' : 'hidden'}>
           {currentUser && (
@@ -350,25 +350,25 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
         </div>
 
         {/* VIEW: VITRINE PÚBLICA */}
-        <div className={activeView === 'explorar' ? 'block space-y-8' : 'hidden'}>
+        <div className={activeView === 'explorar' ? 'block space-y-5' : 'hidden'}>
           {/* ========================================================================= */}
           {/* 1. SEÇÃO STORIES 9:16 (OFERTAS EM ALTA)                                   */}
           {/* ========================================================================= */}
-          <section className="space-y-3.5">
+          <section className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center shadow-sm">
-                  <Flame className="w-4 h-4 fill-orange-400" />
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center shadow-sm">
+                  <Flame className="w-3.5 h-3.5 fill-orange-400" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white tracking-tight leading-tight flex items-center gap-2">
+                  <h2 className="text-sm font-black text-white tracking-tight leading-tight flex items-center gap-2">
                     Ofertas em Alta
-                    <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                    <span className="text-[9px] uppercase px-1.5 py-0.2 rounded-full font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
                       Stories 9:16
                     </span>
                   </h2>
-                  <p className="text-xs text-slate-400">
-                    Toque em qualquer card para assistir em tela cheia com visual de Story
+                  <p className="text-[11px] text-slate-400">
+                    Toque em qualquer card para assistir em tela cheia no formato Story
                   </p>
                 </div>
               </div>

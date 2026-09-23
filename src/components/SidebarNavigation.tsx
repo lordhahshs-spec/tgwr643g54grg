@@ -29,6 +29,7 @@ interface SidebarNavigationProps {
   isMobileOpen: boolean;
   onCloseMobile: () => void;
   onUnlockModal?: (reason?: string) => void;
+  onOpenProfile?: () => void;
 }
 
 export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
@@ -39,6 +40,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   isMobileOpen,
   onCloseMobile,
   onUnlockModal,
+  onOpenProfile,
 }) => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
@@ -119,13 +121,17 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           {/* User Profile Mini Badge (When expanded) */}
           {(!isCollapsed || isMobileOpen) && (
             <div className="px-3 pt-3 pb-1 space-y-1.5">
-              <div className="bg-slate-950/80 border border-white/5 rounded-xl p-2.5 flex items-center justify-between">
+              <div
+                onClick={onOpenProfile}
+                className="bg-slate-950/80 hover:bg-slate-900 border border-white/5 hover:border-[#00D287]/40 rounded-xl p-2.5 flex items-center justify-between cursor-pointer transition-all group"
+                title="Editar meu perfil e foto"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {currentUser?.avatarUrl ? (
                     <img
                       src={currentUser.avatarUrl}
                       alt=""
-                      className="w-7 h-7 rounded-lg object-contain bg-slate-900 border border-white/10 flex-shrink-0 p-0.5"
+                      className="w-7 h-7 rounded-lg object-cover bg-slate-900 border border-white/10 flex-shrink-0"
                     />
                   ) : (
                     <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center text-xs font-bold flex-shrink-0">
@@ -133,7 +139,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-white truncate leading-tight">
+                    <span className="text-xs font-bold text-white group-hover:text-[#00D287] transition-colors truncate leading-tight">
                       {currentUser?.tradeName || currentUser?.companyName || 'Minha Loja'}
                     </span>
                     <span className="text-[10px] text-slate-400 truncate">

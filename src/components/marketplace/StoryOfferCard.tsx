@@ -27,7 +27,7 @@ export const StoryOfferCard: React.FC<StoryOfferCardProps> = ({
   return (
     <div
       onClick={() => onSelect(offer)}
-      className="group relative flex-shrink-0 w-44 sm:w-48 aspect-[9/16] rounded-2xl overflow-hidden bg-[#070b16] border border-white/10 hover:border-[#00D287]/70 shadow-lg hover:shadow-[#00D287]/20 transition-all duration-300 cursor-pointer select-none"
+      className="group relative flex-shrink-0 w-36 sm:w-44 aspect-[9/16] rounded-2xl overflow-hidden bg-[#070b16] border border-white/10 hover:border-[#00D287]/70 shadow-lg hover:shadow-[#00D287]/20 transition-all duration-300 cursor-pointer select-none"
     >
       {/* 9:16 Vertical Image */}
       {primaryImage ? (

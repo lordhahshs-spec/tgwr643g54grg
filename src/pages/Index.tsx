@@ -7,9 +7,12 @@ import { TradeInTab } from '@/components/tabs/TradeInTab';
 import { SuperOfertasTab } from '@/components/tabs/SuperOfertasTab';
 import { BannedScreen } from '@/components/BannedScreen';
 import { UnlockPlatformModal } from '@/components/demo/UnlockPlatformModal';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
+import { InstagramMobileBottomBar } from '@/components/mobile/InstagramMobileBottomBar';
+import { MobileAppInstallBanner } from '@/components/mobile/MobileAppInstallBanner';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
-import { Menu, Sparkles, Lock } from 'lucide-react';
+import { Menu, Sparkles, Lock, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -24,6 +27,9 @@ const Index: React.FC = () => {
   // Demo Mode & Unlock Modal State
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState<boolean>(false);
   const [unlockReason, setUnlockReason] = useState<string>('');
+  
+  // Profile Modal State
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let channel: any = null;
@@ -78,7 +84,15 @@ const Index: React.FC = () => {
 
     initUser();
 
-    // Verificação periódica de contingência em 2 segundos (garantia contra quedas de websocket)
+    // Sincronização de usuário
+    const handleUserUpdate = (e: any) => {
+      if (e.detail) {
+        setCurrentUser(e.detail);
+      }
+    };
+    window.addEventListener('cellhub_user_updated', handleUserUpdate);
+
+    // Verificação periódica de contingência em 2 segundos
     const interval = setInterval(async () => {
       const user = leadAuthService.getCurrentUser();
       if (user?.id) {
@@ -97,6 +111,7 @@ const Index: React.FC = () => {
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('cellhub_user_updated', handleUserUpdate);
       if (channel) {
         supabase.removeChannel(channel);
       }
@@ -132,6 +147,7 @@ const Index: React.FC = () => {
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onUnlockModal={() => handleOpenUnlockModal()}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -176,11 +192,23 @@ const Index: React.FC = () => {
             <Menu className="w-4 h-4" />
           </button>
 
-          <span className="text-xs font-semibold text-white truncate max-w-[200px]">
+          <span className="text-xs font-semibold text-white truncate max-w-[180px]">
             {currentTabConfig.label}
           </span>
 
-          <div className="w-6" />
+          <button
+            onClick={() => setIsProfileModalOpen(true)}
+            className="p-1 rounded-full bg-slate-900 border border-white/10 text-slate-300 hover:text-white"
+            title="Meu Perfil"
+          >
+            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black text-white bg-[#00D287]/20 text-[#00D287]">
+              {currentUser?.avatarUrl ? (
+                <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (currentUser?.tradeName || currentUser?.companyName || 'C').substring(0, 1)
+              )}
+            </div>
+          </button>
         </div>
 
         {/* Desktop Header for secondary tabs */}
@@ -192,15 +220,19 @@ const Index: React.FC = () => {
             </h1>
 
             {currentUser && (
-              <div className="text-[11px] text-slate-400">
-                Loja: <strong className="text-white">{currentUser.tradeName || currentUser.companyName}</strong>
+              <div 
+                onClick={() => setIsProfileModalOpen(true)}
+                className="text-[11px] text-slate-400 hover:text-white flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                title="Ver/Editar perfil"
+              >
+                <span>Loja: <strong className="text-white">{currentUser.tradeName || currentUser.companyName}</strong></span>
               </div>
             )}
           </header>
         )}
 
         {/* Tab Content Display Area (Mantém abas em memória sem destruição de estado/scroll) */}
-        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col">
+        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col pb-14 lg:pb-0">
           <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
@@ -215,6 +247,27 @@ const Index: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Instagram-Style Mobile Bottom Navigation */}
+      <InstagramMobileBottomBar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        currentUser={currentUser}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+      />
+
+      {/* Banner Flutuante de Instalação Mobile (Android & iOS) */}
+      <MobileAppInstallBanner />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={currentUser}
+        onUserUpdated={(updated) => setCurrentUser(updated)}
+        onLogout={handleLogout}
+        onUnlockModal={() => handleOpenUnlockModal('Desbloqueie o acesso vitalício à plataforma CellHub')}
+      />
 
       {/* Checkout & Lifetime Unlock Modal */}
       <UnlockPlatformModal

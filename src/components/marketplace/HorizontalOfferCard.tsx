@@ -30,16 +30,16 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
   return (
     <div
       onClick={() => onSelect(offer)}
-      className="group relative bg-[#090e1c] hover:bg-[#0d152a] border border-white/10 hover:border-[#00D287]/50 rounded-2xl p-3.5 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-lg hover:shadow-[#00D287]/5 flex flex-col justify-between select-none"
+      className="group relative bg-[#090e1c] hover:bg-[#0d152a] border border-white/10 hover:border-[#00D287]/50 rounded-2xl p-3 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-lg hover:shadow-[#00D287]/5 flex flex-col justify-between select-none"
     >
       <div>
-        {/* Imagem do Produto com Aspect Ratio 1:1 e Container Limpo */}
-        <div className="relative w-full aspect-square rounded-xl bg-[#040711] overflow-hidden flex items-center justify-center p-2 mb-3 border border-white/5">
+        {/* Imagem do Produto com Aspect Ratio 4:3 Compacto */}
+        <div className="relative w-full aspect-[4/3] rounded-xl bg-[#040711] overflow-hidden flex items-center justify-center p-1.5 mb-2.5 border border-white/5">
           {primaryImage ? (
             <img
               src={primaryImage}
               alt={offer.title}
-              className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300 ease-out"
+              className="w-full h-full object-contain p-0.5 group-hover:scale-105 transition-transform duration-300 ease-out"
               loading="lazy"
             />
           ) : (
