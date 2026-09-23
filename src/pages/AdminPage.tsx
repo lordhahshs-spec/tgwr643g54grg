@@ -1640,13 +1640,6 @@ export const AdminPage: React.FC = () => {
                   Fechar
                 </Button>
               </div>
-                  variant="outline"
-                  onClick={() => setSelectedAccountForModal(null)}
-                  className="bg-slate-900 border-slate-800 text-slate-300 text-xs h-9 rounded-xl"
-                >
-                  Fechar
-                </Button>
-              </div>
             </div>
           )}
         </DialogContent>
