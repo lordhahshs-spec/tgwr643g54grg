@@ -599,5 +599,59 @@ export const leadAuthService = {
     }
 
     return { success: true };
+  },
+
+  async saveShippingAddress(
+    userId: string,
+    address: {
+      zipCode: string;
+      street: string;
+      number: string;
+      complement?: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+      phone?: string;
+    }
+  ): Promise<boolean> {
+    if (!userId) return false;
+
+    const cleanZip = (address.zipCode || '').replace(/\D/g, '');
+    const payload = {
+      shipping_zip_code: cleanZip,
+      shipping_street: (address.street || '').trim(),
+      shipping_number: (address.number || '').trim(),
+      shipping_complement: (address.complement || '').trim() || null,
+      shipping_neighborhood: (address.neighborhood || '').trim(),
+      shipping_city: (address.city || '').trim(),
+      shipping_state: (address.state || '').trim().toUpperCase(),
+      shipping_phone: (address.phone || '').trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from('user_accounts')
+      .update(payload)
+      .eq('id', userId);
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao salvar endereço de entrega no Supabase:', error);
+      return false;
+    }
+
+    const current = this.getCurrentUser();
+    if (current && current.id === userId) {
+      current.shippingZipCode = payload.shipping_zip_code;
+      current.shippingStreet = payload.shipping_street;
+      current.shippingNumber = payload.shipping_number;
+      current.shippingComplement = payload.shipping_complement || undefined;
+      current.shippingNeighborhood = payload.shipping_neighborhood;
+      current.shippingCity = payload.shipping_city;
+      current.shippingState = payload.shipping_state;
+      current.shippingPhone = payload.shipping_phone || undefined;
+      this.setCurrentUser(current);
+    }
+
+    return true;
   }
 };

@@ -24,7 +24,8 @@ import {
   X,
   Flame,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -1582,6 +1583,36 @@ export const AdminPage: React.FC = () => {
                     <span className="text-rose-200 font-medium">{selectedAccountForModal.banReason}</span>
                   </div>
                 )}
+
+                {/* Endereço de Entrega / Envio do Lead */}
+                <div className="pt-2 border-t border-white/5 space-y-1.5">
+                  <span className="text-[#00D287] block text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#00D287]" />
+                    Endereço de Entrega Cadastrado:
+                  </span>
+                  {selectedAccountForModal.shippingZipCode ? (
+                    <div className="p-3 rounded-xl bg-slate-900 border border-white/5 text-slate-200 space-y-0.5">
+                      <div className="font-semibold text-white">
+                        {selectedAccountForModal.shippingStreet}, {selectedAccountForModal.shippingNumber || 'S/N'}
+                        {selectedAccountForModal.shippingComplement ? ` - ${selectedAccountForModal.shippingComplement}` : ''}
+                      </div>
+                      <div className="text-slate-400 text-[11px]">
+                        {selectedAccountForModal.shippingNeighborhood ? `${selectedAccountForModal.shippingNeighborhood} • ` : ''}
+                        {selectedAccountForModal.shippingCity}/{selectedAccountForModal.shippingState}
+                      </div>
+                      <div className="text-[11px] font-mono text-[#00D287] pt-0.5">
+                        CEP: {selectedAccountForModal.shippingZipCode.replace(/^(\d{5})(\d{3})$/, '$1-$2')}
+                        {selectedAccountForModal.shippingPhone && (
+                          <span className="text-slate-400 ml-2">Tel: {selectedAccountForModal.shippingPhone}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 italic p-2.5 bg-slate-900/40 rounded-xl border border-white/5">
+                      Nenhum endereço digitado ou cadastrado ainda.
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">

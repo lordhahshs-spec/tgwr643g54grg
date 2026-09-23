@@ -22,6 +22,52 @@ export interface IntegrationStatusResponse {
   error?: string;
 }
 
+export function formatShippingServiceName(companyName?: string, serviceName?: string): { company: string; service: string; fullName: string } {
+  let company = (companyName || '').trim();
+  let service = (serviceName || '').trim();
+
+  // Limpa pontos iniciais como ".Package" ou ".Com"
+  service = service.replace(/^\.+/, '').trim();
+
+  if (/jadlog/i.test(company) || /jad/i.test(company)) {
+    company = 'Jadlog';
+    if (/package/i.test(service)) {
+      service = 'Package (Econômico)';
+    } else if (/com/i.test(service)) {
+      service = '.Com (Expresso)';
+    } else if (!service) {
+      service = 'Envio Padrão';
+    }
+  } else if (/correios/i.test(company)) {
+    company = 'Correios';
+    if (/sedex/i.test(service)) {
+      service = 'SEDEX (Expresso)';
+    } else if (/pac/i.test(service)) {
+      service = 'PAC (Econômico)';
+    } else if (/mini/i.test(service)) {
+      service = 'Mini Envios';
+    }
+  } else if (/loggi/i.test(company)) {
+    company = 'Loggi';
+    service = 'Express';
+  } else if (/azul/i.test(company)) {
+    company = 'Azul Cargo';
+    service = 'Aéreo Expresso';
+  } else if (/latam/i.test(company)) {
+    company = 'LATAM Cargo';
+    service = 'Carga Aérea';
+  }
+
+  if (!company) company = 'Transportadora';
+  if (!service) service = 'Envio Padrão';
+
+  return {
+    company,
+    service,
+    fullName: `${company} • ${service}`,
+  };
+}
+
 export const melhorEnvioService = {
   /**
    * Obtém status da conexão, saldo da carteira CellHub e URL de autorização OAuth
@@ -146,7 +192,18 @@ export const melhorEnvioService = {
 
       const data = await res.json();
       if (data.success && Array.isArray(data.quotes) && data.quotes.length > 0) {
-        return { success: true, quotes: data.quotes };
+        const formattedQuotes: ShippingQuote[] = data.quotes.map((q: any) => {
+          const formatted = formatShippingServiceName(q.company?.name, q.name);
+          return {
+            ...q,
+            name: formatted.service,
+            company: {
+              ...q.company,
+              name: formatted.company,
+            },
+          };
+        });
+        return { success: true, quotes: formattedQuotes };
       }
 
       if (data.error && !data.needs_auth) {
@@ -176,7 +233,7 @@ export const melhorEnvioService = {
       quotes: [
         {
           id: 1,
-          name: 'PAC',
+          name: 'PAC (Econômico)',
           company: {
             id: 1,
             name: 'Correios',
@@ -189,7 +246,7 @@ export const melhorEnvioService = {
         },
         {
           id: 2,
-          name: 'SEDEX',
+          name: 'SEDEX (Expresso)',
           company: {
             id: 1,
             name: 'Correios',
@@ -202,7 +259,7 @@ export const melhorEnvioService = {
         },
         {
           id: 3,
-          name: '.Package',
+          name: 'Package (Econômico)',
           company: {
             id: 2,
             name: 'Jadlog',

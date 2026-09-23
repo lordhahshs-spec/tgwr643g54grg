@@ -15,18 +15,20 @@ import {
   Loader2,
   AlertCircle,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  Edit3,
+  Plus
 } from 'lucide-react';
-import { 
-  MarketplaceOffer, 
-  MarketplaceFeeSettings, 
-  ShippingQuote, 
+import {
+  MarketplaceOffer,
+  MarketplaceFeeSettings,
+  ShippingQuote,
   ShippingAddress,
   ShippingPackage
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
-import { melhorEnvioService } from '@/services/melhorEnvioService';
-import { UserAccount } from '@/services/leadAuthService';
+import { melhorEnvioService, formatShippingServiceName } from '@/services/melhorEnvioService';
+import { UserAccount, leadAuthService } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
 interface CheckoutModalProps {
@@ -66,6 +68,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     email: currentUser.email,
     cnpj: currentUser.cnpj,
   });
+
+  // Endereço salvo & alternância
+  const hasSavedAddress = Boolean(currentUser.shippingZipCode && currentUser.shippingStreet);
+  const [isEditingAddress, setIsEditingAddress] = useState<boolean>(!hasSavedAddress);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [isValidatingCep, setIsValidatingCep] = useState<boolean>(false);
 
   // Shipping Quotes via Melhor Envio
   const [quotes, setQuotes] = useState<ShippingQuote[]>([]);
@@ -109,6 +117,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const sellerShippingCost = isFreeShipping ? actualShippingCost : 0;
   const sellerNetAmount = productPrice - platformFeeAmount - sellerShippingCost;
 
+  // Salva o endereço no perfil do lead (Supabase) imediatamente
+  const handleSaveCurrentAddress = (addrToSave = address) => {
+    if (addrToSave.zipCode && addrToSave.street) {
+      leadAuthService.saveShippingAddress(currentUser.id, addrToSave);
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (address.zipCode && address.street) {
+      leadAuthService.saveShippingAddress(currentUser.id, address);
+    }
+    onClose();
+  };
+
   // Trigger Quote Calculation
   const fetchQuotes = async (destinationCep: string) => {
     const cleanTo = destinationCep.replace(/\D/g, '');
@@ -148,33 +170,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  // On CEP Change with debounce
+  // On CEP Change with real-time ViaCEP validation & not-found error
   const handleCepChange = (val: string) => {
     const clean = val.replace(/\D/g, '');
     setAddress((prev) => ({ ...prev, zipCode: clean }));
+    setCepError(null);
 
     if (clean.length === 8) {
-      // ViaCEP lookup
+      setIsValidatingCep(true);
       fetch(`https://viacep.com.br/ws/${clean}/json/`)
         .then((r) => r.json())
         .then((data) => {
-          if (!data.erro) {
-            setAddress((prev) => ({
-              ...prev,
-              street: data.logradouro || prev.street,
-              neighborhood: data.bairro || prev.neighborhood,
-              city: data.localidade || prev.city,
-              state: data.uf || prev.state,
-            }));
+          setIsValidatingCep(false);
+          if (data.erro) {
+            setCepError('Este CEP não existe nos Correios. Verifique o número digitado.');
+            toast.error('O CEP informado não existe. Por favor, confira o número digitado.');
+            setQuotes([]);
+            setSelectedQuote(null);
+            return;
           }
-        })
-        .catch(() => {});
 
-      // Debounce shipping calculation
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = setTimeout(() => {
-        fetchQuotes(clean);
-      }, 400);
+          setCepError(null);
+          const updated: ShippingAddress = {
+            ...address,
+            zipCode: clean,
+            street: data.logradouro || address.street,
+            neighborhood: data.bairro || address.neighborhood,
+            city: data.localidade || address.city,
+            state: data.uf || address.state,
+          };
+          setAddress(updated);
+
+          // Salva no perfil do lead imediatamente no Supabase
+          handleSaveCurrentAddress(updated);
+
+          // Cota frete com o CEP válido
+          if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = setTimeout(() => {
+            fetchQuotes(clean);
+          }, 300);
+        })
+        .catch(() => {
+          setIsValidatingCep(false);
+          setCepError('Não foi possível verificar o CEP no momento.');
+        });
     }
   };
 
@@ -311,8 +350,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div 
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={handleCloseModal}
+    >
+      <div
         className="relative w-full max-w-3xl max-h-[92vh] bg-[#070b16] border border-[#00D287]/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -333,7 +375,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleCloseModal}
             className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
@@ -373,7 +415,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex justify-between">
                   <span className="text-slate-400">Envio Selecionado:</span>
                   <span className="text-[#00D287] font-semibold">
-                    {selectedQuote ? `${selectedQuote.company.name} (${selectedQuote.name})` : 'Envio Padrão'}
+                    {selectedQuote ? formatShippingServiceName(selectedQuote.company.name, selectedQuote.name).fullName : 'Envio Padrão'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -395,7 +437,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <button
                 onClick={() => {
                   onSuccess(orderCompletedId);
-                  onClose();
+                  handleCloseModal();
                 }}
                 className="px-8 py-3 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-sm shadow-lg shadow-[#00D287]/20 transition-all"
               >
@@ -429,110 +471,237 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
 
-              {/* Delivery Address Form */}
+              {/* Delivery Address Form / Saved Address Card */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-[#00D287]" /> Endereço de Entrega do Lojista
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                      CEP de Destino *
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={9}
-                      value={address.zipCode}
-                      onChange={(e) => handleCepChange(e.target.value)}
-                      placeholder="00000-000"
-                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none font-mono"
-                      required
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                      Rua / Avenida *
-                    </label>
-                    <input
-                      type="text"
-                      value={address.street}
-                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                      placeholder="Ex: Av. Paulista"
-                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                      required
-                    />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-[#00D287]" /> Endereço de Entrega do Lojista
+                  </h4>
+                  {hasSavedAddress && !isEditingAddress && (
+                    <span className="text-[10px] bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 px-2 py-0.5 rounded-full font-bold">
+                      Endereço Salvo no Perfil
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                      Número *
-                    </label>
-                    <input
-                      type="text"
-                      value={address.number}
-                      onChange={(e) => setAddress({ ...address, number: e.target.value })}
-                      placeholder="1000"
-                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                      required
-                    />
-                  </div>
+                {hasSavedAddress && !isEditingAddress ? (
+                  /* Card de Endereço Já Cadastrado */
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-[#00D287]/30 space-y-3 shadow-md shadow-black/40">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>{address.street}, {address.number || 'S/N'}</span>
+                          {address.complement && <span className="text-slate-400 font-normal">({address.complement})</span>}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {address.neighborhood ? `${address.neighborhood} • ` : ''}
+                          {address.city}/{address.state}
+                        </div>
+                        <div className="text-[11px] font-mono text-[#00D287] pt-0.5">
+                          CEP: {address.zipCode.replace(/^(\d{5})(\d{3})$/, '$1-$2')}
+                        </div>
+                      </div>
 
-                  <div>
-                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                      Complemento
-                    </label>
-                    <input
-                      type="text"
-                      value={address.complement}
-                      onChange={(e) => setAddress({ ...address, complement: e.target.value })}
-                      placeholder="Sala 12"
-                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                      Bairro *
-                    </label>
-                    <input
-                      type="text"
-                      value={address.neighborhood}
-                      onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
-                      placeholder="Bela Vista"
-                      className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                      Cidade / UF *
-                    </label>
-                    <div className="flex gap-1">
-                      <input
-                        type="text"
-                        value={address.city}
-                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                        placeholder="São Paulo"
-                        className="w-2/3 bg-slate-950/70 border border-white/10 rounded-xl px-2 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                        required
-                      />
-                      <input
-                        type="text"
-                        maxLength={2}
-                        value={address.state}
-                        onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })}
-                        placeholder="SP"
-                        className="w-1/3 bg-slate-950/70 border border-white/10 rounded-xl px-1 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none text-center font-bold"
-                        required
-                      />
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingAddress(true)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                          title="Editar este endereço"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#00D287]" />
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddress({
+                              ...address,
+                              zipCode: '',
+                              street: '',
+                              number: '',
+                              complement: '',
+                              neighborhood: '',
+                              city: '',
+                              state: '',
+                            });
+                            setQuotes([]);
+                            setSelectedQuote(null);
+                            setIsEditingAddress(true);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                          title="Inserir um novo endereço de entrega"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#00D287]" />
+                          Novo
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  /* Formulário de Digitação / Edição de Endereço */
+                  <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 space-y-3">
+                    {hasSavedAddress && (
+                      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                        <span className="text-[11px] text-slate-400">Preencha os campos para alterar ou cadastrar novo endereço:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddress({
+                              ...address,
+                              zipCode: currentUser.shippingZipCode || '',
+                              street: currentUser.shippingStreet || '',
+                              number: currentUser.shippingNumber || '',
+                              complement: currentUser.shippingComplement || '',
+                              neighborhood: currentUser.shippingNeighborhood || '',
+                              city: currentUser.shippingCity || '',
+                              state: currentUser.shippingState || '',
+                            });
+                            setIsEditingAddress(false);
+                            setCepError(null);
+                            if (currentUser.shippingZipCode) fetchQuotes(currentUser.shippingZipCode);
+                          }}
+                          className="text-[11px] text-slate-400 hover:text-white underline"
+                        >
+                          Cancelar e manter salvo
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                          CEP de Destino * {isValidatingCep && <span className="text-[#00D287] animate-pulse">(Validando...)</span>}
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={9}
+                          value={address.zipCode}
+                          onChange={(e) => handleCepChange(e.target.value)}
+                          onBlur={() => handleSaveCurrentAddress()}
+                          placeholder="00000-000"
+                          className={`w-full bg-slate-950 border rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none font-mono ${
+                            cepError ? 'border-rose-500 focus:border-rose-500 text-rose-300' : 'border-white/10 focus:border-[#00D287]'
+                          }`}
+                          required
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                          Rua / Logradouro *
+                        </label>
+                        <input
+                          type="text"
+                          value={address.street}
+                          onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                          onBlur={() => handleSaveCurrentAddress()}
+                          placeholder="Ex: Av. Paulista"
+                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Alerta explícito quando o CEP não existe */}
+                    {cepError && (
+                      <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                        <span>{cepError}</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                          Número *
+                        </label>
+                        <input
+                          type="text"
+                          value={address.number}
+                          onChange={(e) => setAddress({ ...address, number: e.target.value })}
+                          onBlur={() => handleSaveCurrentAddress()}
+                          placeholder="1000"
+                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                          Complemento
+                        </label>
+                        <input
+                          type="text"
+                          value={address.complement}
+                          onChange={(e) => setAddress({ ...address, complement: e.target.value })}
+                          onBlur={() => handleSaveCurrentAddress()}
+                          placeholder="Sala 12"
+                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                          Bairro *
+                        </label>
+                        <input
+                          type="text"
+                          value={address.neighborhood}
+                          onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
+                          onBlur={() => handleSaveCurrentAddress()}
+                          placeholder="Bela Vista"
+                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                          Cidade / UF *
+                        </label>
+                        <div className="flex gap-1">
+                          <input
+                            type="text"
+                            value={address.city}
+                            onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="São Paulo"
+                            className="w-2/3 bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                            required
+                          />
+                          <input
+                            type="text"
+                            maxLength={2}
+                            value={address.state}
+                            onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="SP"
+                            className="w-1/3 bg-slate-950 border border-white/10 rounded-xl px-1 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none text-center font-bold"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {hasSavedAddress && (
+                      <div className="pt-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleSaveCurrentAddress();
+                            setIsEditingAddress(false);
+                            toast.success('Endereço salvo no seu perfil com sucesso!');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#00D287]/15 hover:bg-[#00D287]/25 border border-[#00D287]/30 text-[#00D287] text-xs font-bold transition-all flex items-center gap-1.5"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Concluir e Salvar Endereço
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Opções de Envio (Melhor Envio) */}
@@ -570,6 +739,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {quotes.map((q) => {
                       const isSelected = selectedQuote?.id === q.id;
+                      const formattedService = formatShippingServiceName(q.company?.name, q.name);
                       return (
                         <div
                           key={q.id}
@@ -586,7 +756,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             </div>
                             <div>
                               <div className="text-xs font-bold text-white">
-                                {q.company.name} • {q.name}
+                                {formattedService.fullName}
                               </div>
                               <div className="text-[10px] text-slate-400">
                                 Previsão: {q.delivery_time} {q.delivery_time === 1 ? 'dia útil' : 'dias úteis'}
