@@ -66,12 +66,7 @@ export const marketplaceService = {
       query = query.order('created_at', { ascending: false });
     }
 
-    // Carrega ofertas, vendas e avaliações em paralelo num único disparo assíncrono para máxima velocidade
-    const [offersRes, ordersRes, reviewsRes] = await Promise.all([
-      query,
-      supabase.from('marketplace_orders').select('offer_id'),
-      supabase.from('marketplace_reviews').select('offer_id, rating')
-    ]);
+    const offersRes = await query;
 
     if (offersRes.error) {
       console.error('[marketplaceService] Erro ao carregar ofertas:', offersRes.error);
@@ -79,6 +74,16 @@ export const marketplaceService = {
     }
 
     const data = offersRes.data || [];
+    if (data.length === 0) return [];
+
+    const offerIds = data.map(item => item.id);
+
+    // Busca vendas e avaliações filtradas estritamente pelos IDs das ofertas retornadas (alta performance)
+    const [ordersRes, reviewsRes] = await Promise.all([
+      supabase.from('marketplace_orders').select('offer_id').in('offer_id', offerIds),
+      supabase.from('marketplace_reviews').select('offer_id, rating').in('offer_id', offerIds)
+    ]);
+
     const orders = ordersRes.data || [];
     const reviews = reviewsRes.data || [];
 
@@ -236,6 +241,60 @@ export const marketplaceService = {
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
+  },
+
+  mapOfferRaw(item: any): MarketplaceOffer {
+    return {
+      id: item.id,
+      sellerId: item.seller_id,
+      sellerCompany: item.seller_company,
+      sellerOwner: item.seller_owner,
+      sellerEmail: item.seller_email || undefined,
+      sellerCnpj: item.seller_cnpj || undefined,
+      title: item.title,
+      category: item.category as OfferCategory,
+      subcategory: item.subcategory,
+      condition: item.condition as OfferCondition,
+      description: item.description,
+      details: item.details,
+      price: Number(item.price),
+      freeShipping: Boolean(item.free_shipping),
+      shippingCost: Number(item.shipping_cost || 0),
+      shippingPolicy: (item.shipping_policy as ShippingPolicy) || (item.free_shipping ? 'frete_gratis' : 'comprador_paga'),
+      packageWeight: Number(item.package_weight || 0.5),
+      packageHeight: Number(item.package_height || 8),
+      packageWidth: Number(item.package_width || 15),
+      packageLength: Number(item.package_length || 20),
+      originZipCode: item.origin_zip_code || undefined,
+      originStreet: item.origin_street || undefined,
+      originNumber: item.origin_number || undefined,
+      originComplement: item.origin_complement || undefined,
+      originNeighborhood: item.origin_neighborhood || undefined,
+      originCity: item.origin_city || undefined,
+      originState: item.origin_state || undefined,
+      images: Array.isArray(item.images) ? item.images : [],
+      status: item.status as OfferStatus,
+      views: Number(item.views || 0),
+      salesCount: 0,
+      rating: null,
+      reviewsCount: 0,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    };
+  },
+
+  async getOffersByIds(ids: string[]): Promise<MarketplaceOffer[]> {
+    if (!ids || ids.length === 0) return [];
+    const validIds = ids.filter(isUuid);
+    if (validIds.length === 0) return [];
+
+    const { data, error } = await supabase
+      .from('marketplace_offers')
+      .select('*')
+      .in('id', validIds);
+
+    if (error || !data) return [];
+    return data.map(item => this.mapOfferRaw(item));
   },
 
   async createOffer(offerData: Omit<MarketplaceOffer, 'id' | 'views' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; id?: string; error?: string }> {

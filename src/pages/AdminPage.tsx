@@ -206,11 +206,13 @@ export const AdminPage: React.FC = () => {
 
   const loadAllData = async () => {
     setLoading(true);
-    const accs = await leadAuthService.getAccounts();
+    const [accs, devs, schs] = await Promise.all([
+      leadAuthService.getAccounts(),
+      catalogService.getDevices(),
+      schematicService.getSchematics(),
+    ]);
     setAccounts(accs);
-    const devs = await catalogService.getDevices();
     setDevices(devs);
-    const schs = await schematicService.getSchematics();
     setSchematics(schs);
     setLoading(false);
   };

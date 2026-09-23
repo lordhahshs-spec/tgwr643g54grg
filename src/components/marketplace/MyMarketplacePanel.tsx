@@ -106,18 +106,25 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [offers, sales, purchases, allOffers, favIds] = await Promise.all([
+      // Carregamento paralelo focado estritamente no lojista logado
+      const [offers, sales, purchases, favIds] = await Promise.all([
         marketplaceService.getOffers({ sellerId: currentUser.id, status: 'todas' }),
         marketplaceService.getSellerOrders(currentUser.id),
         marketplaceService.getBuyerOrders(currentUser.id),
-        marketplaceService.getOffers({ status: 'todas' }),
         marketplaceService.getFavorites(currentUser.id),
       ]);
 
       setMyOffers(offers);
       setMySales(sales);
       setMyPurchases(purchases);
-      setFavoriteOffers(allOffers.filter((o) => favIds.includes(o.id)));
+
+      // Carrega somente os produtos favoritados pelo lojista, sem puxar toda a tabela
+      if (favIds.length > 0) {
+        const favOffers = await marketplaceService.getOffersByIds(favIds);
+        setFavoriteOffers(favOffers);
+      } else {
+        setFavoriteOffers([]);
+      }
     } catch (e) {
       console.error(e);
     } finally {

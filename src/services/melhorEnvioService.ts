@@ -71,28 +71,31 @@ export function formatShippingServiceName(companyName?: string, serviceName?: st
 export const melhorEnvioService = {
   /**
    * Obtém status da conexão, saldo da carteira CellHub e URL de autorização OAuth
+   * Por padrão busca direto do banco de dados para velocidade instantânea (0ms de espera externa)
    */
-  async getStatus(): Promise<IntegrationStatusResponse> {
-    try {
-      const res = await fetch(FUNCTION_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get_status' }),
-      });
+  async getStatus(refreshFromApi = false): Promise<IntegrationStatusResponse> {
+    if (refreshFromApi) {
+      try {
+        const res = await fetch(FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_status' }),
+        });
 
-      if (res.ok) {
-        return await res.json();
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.warn('[melhor-envio] Edge function offline or unavailable, checking db fallback:', err);
       }
-    } catch (err) {
-      console.warn('[melhor-envio] Edge function offline or unavailable, checking db fallback:', err);
     }
 
-    // Fallback directly to DB
+    // Leitura direta instantânea do banco Supabase
     const { data } = await supabase
       .from('melhor_envio_integration')
       .select('*')
       .eq('id', 'config')
-      .single();
+      .maybeSingle();
 
     const isConnected = Boolean(data?.access_token);
     const env = (data?.environment as 'production' | 'sandbox') || 'production';

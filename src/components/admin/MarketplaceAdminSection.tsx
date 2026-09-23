@@ -72,13 +72,12 @@ export const MarketplaceAdminSection: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allOffers, allOrders, allReports, settings, defaults, meStatus] = await Promise.all([
+      // 1. Carregamento prioritário instantâneo: Vendas, Produtos Cadastrados e Métricas Financeiras
+      const [allOffers, allOrders, allReports, settings] = await Promise.all([
         marketplaceService.getOffers({ status: 'todas' }),
         marketplaceService.getAllOrders(),
         marketplaceService.getReports(),
         marketplaceService.getFeeSettings(),
-        melhorEnvioService.getPackageDefaults(),
-        melhorEnvioService.getStatus(),
       ]);
 
       setOffers(allOffers);
@@ -86,18 +85,25 @@ export const MarketplaceAdminSection: React.FC = () => {
       setReports(allReports);
       setFeeSettings(settings);
       setFeeInput(String(settings.defaultFeePercent));
-      setPackageDefaults(defaults);
-      setIntegrationStatus(meStatus);
+      setLoading(false); // Libera a exibição das tabelas imediatamente
 
-      if (meStatus) {
-        setEnvChoice(meStatus.environment || 'production');
-        setClientIdInput(meStatus.client_id || '30171');
-        setRedirectUriInput(meStatus.redirect_uri || 'https://cellhub.shop/api/melhor-envio/callback');
-      }
+      // 2. Carregamento secundário de configurações do Melhor Envio (leitura direta e instantânea do banco)
+      Promise.all([
+        melhorEnvioService.getPackageDefaults(),
+        melhorEnvioService.getStatus(false),
+      ]).then(([defaults, meStatus]) => {
+        setPackageDefaults(defaults);
+        setIntegrationStatus(meStatus);
+
+        if (meStatus) {
+          setEnvChoice(meStatus.environment || 'production');
+          setClientIdInput(meStatus.client_id || '30171');
+          setRedirectUriInput(meStatus.redirect_uri || 'https://cellhub.shop/api/melhor-envio/callback');
+        }
+      });
     } catch (e) {
       console.error(e);
       toast.error('Erro ao carregar dados do marketplace.');
-    } finally {
       setLoading(false);
     }
   };
