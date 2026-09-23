@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Flame, 
-  Package, 
-  Plus, 
-  Sparkles, 
-  RefreshCw, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Flame,
+  Package,
+  Plus,
+  Sparkles,
+  RefreshCw,
+  Trash2,
   ShoppingBag,
   Search,
   X,
@@ -82,8 +80,6 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
 
   // Carousel ref for smooth horizontal scrolling
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const handleGenerateSamples = async () => {
     setIsGeneratingSamples(true);
@@ -167,26 +163,6 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
       console.error('[SuperOfertasTab] Erro ao carregar ofertas:', e);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateScrollState = () => {
-    if (carouselRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
-  useEffect(() => {
-    updateScrollState();
-  }, [hotOffers]);
-
-  const scrollCarousel = (dir: 'left' | 'right') => {
-    if (carouselRef.current) {
-      const amount = dir === 'left' ? -380 : 380;
-      carouselRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-      setTimeout(updateScrollState, 350);
     }
   };
 
@@ -380,32 +356,9 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
                 <RefreshCw className="w-6 h-6 animate-spin text-[#00D287]" />
               </div>
             ) : hotOffers.length > 0 ? (
-              <div className="relative group/carousel">
-                {/* Botão Scroll Esquerda */}
-                {canScrollLeft && (
-                  <button
-                    onClick={() => scrollCarousel('left')}
-                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/80 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/20 hover:border-[#00D287] shadow-xl backdrop-blur-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                    title="Voltar"
-                  >
-                    <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-                  </button>
-                )}
-
-                {/* Botão Scroll Direita */}
-                {canScrollRight && (
-                  <button
-                    onClick={() => scrollCarousel('right')}
-                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/80 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/20 hover:border-[#00D287] shadow-xl backdrop-blur-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                    title="Avançar"
-                  >
-                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-                  </button>
-                )}
-
+              <div className="relative">
                 <div
                   ref={carouselRef}
-                  onScroll={updateScrollState}
                   className="flex items-center gap-3 sm:gap-4 overflow-x-auto px-1 py-1.5 snap-x snap-mandatory scroll-smooth no-scrollbar"
                 >
                   {hotOffers.map((offer) => (
