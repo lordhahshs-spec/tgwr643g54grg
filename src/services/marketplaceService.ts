@@ -66,29 +66,29 @@ export const marketplaceService = {
       query = query.order('created_at', { ascending: false });
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('[marketplaceService] Erro ao carregar ofertas:', error);
+    // Carrega ofertas, vendas e avaliações em paralelo num único disparo assíncrono para máxima velocidade
+    const [offersRes, ordersRes, reviewsRes] = await Promise.all([
+      query,
+      supabase.from('marketplace_orders').select('offer_id'),
+      supabase.from('marketplace_reviews').select('offer_id, rating')
+    ]);
+
+    if (offersRes.error) {
+      console.error('[marketplaceService] Erro ao carregar ofertas:', offersRes.error);
       return [];
     }
 
-    // Busca vendas reais registradas
-    const { data: orders } = await supabase
-      .from('marketplace_orders')
-      .select('offer_id');
+    const data = offersRes.data || [];
+    const orders = ordersRes.data || [];
+    const reviews = reviewsRes.data || [];
 
     const salesMap: Record<string, number> = {};
-    (orders || []).forEach(o => {
+    orders.forEach(o => {
       if (o.offer_id) salesMap[o.offer_id] = (salesMap[o.offer_id] || 0) + 1;
     });
 
-    // Busca avaliações reais registradas
-    const { data: reviews } = await supabase
-      .from('marketplace_reviews')
-      .select('offer_id, rating');
-
     const reviewsMap: Record<string, { total: number; count: number }> = {};
-    (reviews || []).forEach(r => {
+    reviews.forEach(r => {
       if (r.offer_id) {
         if (!reviewsMap[r.offer_id]) reviewsMap[r.offer_id] = { total: 0, count: 0 };
         reviewsMap[r.offer_id].total += Number(r.rating || 0);

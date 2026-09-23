@@ -17,7 +17,8 @@ import {
   Box,
   Scale,
   Edit3,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { 
   OfferCategory, 
@@ -273,48 +274,53 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
     const parsedPrice = parseFloat(price.replace(',', '.'));
     const isFree = shippingPolicy === 'frete_gratis';
 
-    // Save origin address to seller profile permanently
-    await marketplaceService.saveSellerOriginAddress(currentUser.id, originAddress);
+    try {
+      // Disparo em paralelo para máxima velocidade no envio da oferta
+      const [result] = await Promise.all([
+        marketplaceService.createOffer({
+          sellerId: currentUser.id,
+          sellerCompany: currentUser.tradeName || currentUser.companyName,
+          sellerOwner: currentUser.ownerName,
+          sellerEmail: currentUser.email,
+          sellerCnpj: currentUser.cnpj,
+          title: title.trim(),
+          category,
+          subcategory: subcategory.trim() || undefined,
+          condition,
+          description: description.trim(),
+          details: details.trim() || undefined,
+          price: parsedPrice,
+          freeShipping: isFree,
+          shippingCost: 0,
+          shippingPolicy,
+          packageWeight: Number(packageWeight) || 0.5,
+          packageHeight: Number(packageHeight) || 8,
+          packageWidth: Number(packageWidth) || 15,
+          packageLength: Number(packageLength) || 20,
+          originZipCode: originAddress.zipCode.replace(/\D/g, ''),
+          originStreet: originAddress.street.trim(),
+          originNumber: originAddress.number.trim(),
+          originComplement: originAddress.complement?.trim() || undefined,
+          originNeighborhood: originAddress.neighborhood.trim(),
+          originCity: originAddress.city.trim(),
+          originState: originAddress.state.trim().toUpperCase(),
+          images,
+          status: 'publicada',
+        }),
+        marketplaceService.saveSellerOriginAddress(currentUser.id, originAddress).catch(() => false)
+      ]);
 
-    const result = await marketplaceService.createOffer({
-      sellerId: currentUser.id,
-      sellerCompany: currentUser.tradeName || currentUser.companyName,
-      sellerOwner: currentUser.ownerName,
-      sellerEmail: currentUser.email,
-      sellerCnpj: currentUser.cnpj,
-      title: title.trim(),
-      category,
-      subcategory: subcategory.trim() || undefined,
-      condition,
-      description: description.trim(),
-      details: details.trim() || undefined,
-      price: parsedPrice,
-      freeShipping: isFree,
-      shippingCost: 0,
-      shippingPolicy,
-      packageWeight: Number(packageWeight) || 0.5,
-      packageHeight: Number(packageHeight) || 8,
-      packageWidth: Number(packageWidth) || 15,
-      packageLength: Number(packageLength) || 20,
-      originZipCode: originAddress.zipCode.replace(/\D/g, ''),
-      originStreet: originAddress.street.trim(),
-      originNumber: originAddress.number.trim(),
-      originComplement: originAddress.complement?.trim() || undefined,
-      originNeighborhood: originAddress.neighborhood.trim(),
-      originCity: originAddress.city.trim(),
-      originState: originAddress.state.trim().toUpperCase(),
-      images,
-      status: 'publicada',
-    });
-
-    setIsSubmitting(false);
-
-    if (result.success) {
-      toast.success('Super Oferta publicada com sucesso na rede de lojistas!');
-      onCreated();
-      onClose();
-    } else {
-      toast.error(result.error || 'Erro ao publicar oferta.');
+      if (result.success) {
+        toast.success('Super Oferta publicada com sucesso no Marketplace!');
+        onCreated();
+        onClose();
+      } else {
+        toast.error(result.error || 'Erro ao publicar oferta.');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao publicar oferta.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -917,10 +923,10 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
                   type="button"
                   onClick={handlePublishOffer}
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00D287]/90 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00D287]/90 text-black text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50 min-w-[140px]"
                 >
                   {isSubmitting ? (
-                    'Publicando Oferta...'
+                    <RefreshCw className="w-4 h-4 text-slate-950 animate-spin" />
                   ) : (
                     <>
                       <Check className="w-4 h-4" />

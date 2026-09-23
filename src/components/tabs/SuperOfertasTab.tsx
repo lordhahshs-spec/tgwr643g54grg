@@ -94,18 +94,24 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Carrega ofertas quentes baseadas estritamente em interações reais do banco
-      const hot = await marketplaceService.getHotOffers();
-      setHotOffers(hot);
-
-      // 2. Carrega lista geral de ofertas
+      // Carrega a lista geral de ofertas de forma paralela e ultra veloz
       const regular = await marketplaceService.getOffers({
         status: 'publicada',
       });
       setRegularOffers(regular);
+
+      // Extrai ofertas quentes instantaneamente a partir das métricas em memória (zero requisições duplicadas)
+      const scored = [...regular].sort((a, b) => {
+        const scoreA = ((a.salesCount || 0) * 5) + (a.views || 0) + ((a.rating || 0) * 2);
+        const scoreB = ((b.salesCount || 0) * 5) + (b.views || 0) + ((b.rating || 0) * 2);
+        return scoreB - scoreA;
+      });
+
+      const hot = scored.filter(o => (o.views || 0) > 0 || (o.salesCount || 0) > 0 || o.rating !== null);
+      setHotOffers(hot.length > 0 ? hot : regular.slice(0, 8));
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao carregar dados do marketplace.');
+      toast.error('Erro ao carregar ofertas do marketplace.');
     } finally {
       setLoading(false);
     }
@@ -302,9 +308,8 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
 
               {/* Stories Carousel Content with Dynamic Floating Buttons */}
               {loading ? (
-                <div className="flex items-center justify-center py-12 text-slate-400 text-xs">
-                  <RefreshCw className="w-5 h-5 animate-spin mr-2 text-[#00D287]" />
-                  Consultando ofertas do banco de dados...
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-5 h-5 animate-spin text-[#00D287]" />
                 </div>
               ) : hotOffers.length > 0 ? (
                 <div className="relative group">
@@ -399,9 +404,8 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
             {/* Feed de Ofertas */}
             <section className="space-y-4">
               {loading ? (
-                <div className="py-16 text-center space-y-3">
-                  <RefreshCw className="w-6 h-6 text-[#00D287] animate-spin mx-auto" />
-                  <p className="text-xs text-slate-400">Buscando ofertas reais no Supabase...</p>
+                <div className="py-16 text-center flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-[#00D287] animate-spin" />
                 </div>
               ) : regularOffers.length === 0 ? (
                 /* Estado Vazio Apropriado para Demais Ofertas */
