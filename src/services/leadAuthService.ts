@@ -485,5 +485,119 @@ export const leadAuthService = {
     }
 
     return { success: true };
+  },
+
+  async createAdminAccount(email: string, password: string): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password.trim()) {
+      return { success: false, error: 'E-mail e senha são obrigatórios.' };
+    }
+
+    // Check if exists
+    const { data: existing } = await supabase
+      .from('user_accounts')
+      .select('id')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: 'Já existe uma conta com este e-mail.' };
+    }
+
+    const newAdminPayload = {
+      company_name: 'CellHub Admin',
+      trade_name: 'Administrador',
+      owner_name: 'Administrador CellHub',
+      cnpj: '00.000.000/0001-00',
+      email: cleanEmail,
+      password: password.trim(),
+      role: 'admin',
+      status: 'ativo',
+      plan_status: 'ativo',
+    };
+
+    const { data, error } = await supabase
+      .from('user_accounts')
+      .insert(newAdminPayload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao criar conta de admin:', error);
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      user: {
+        id: data.id,
+        companyName: data.company_name,
+        tradeName: data.trade_name,
+        ownerName: data.owner_name,
+        cnpj: data.cnpj,
+        email: data.email,
+        role: data.role,
+        status: data.status,
+        planStatus: data.plan_status,
+        createdAt: data.created_at,
+      }
+    };
+  },
+
+  async updateAccountFull(
+    id: string,
+    updates: {
+      companyName?: string;
+      tradeName?: string;
+      ownerName?: string;
+      cnpj?: string;
+      email?: string;
+      whatsapp?: string;
+      password?: string;
+      status?: 'ativo' | 'analise' | 'bloqueado';
+      planStatus?: 'demo' | 'ativo';
+      role?: 'lead' | 'admin';
+      banReason?: string;
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    const payload: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (updates.companyName !== undefined) payload.company_name = updates.companyName.trim();
+    if (updates.tradeName !== undefined) payload.trade_name = updates.tradeName.trim();
+    if (updates.ownerName !== undefined) payload.owner_name = updates.ownerName.trim();
+    if (updates.cnpj !== undefined) payload.cnpj = updates.cnpj.trim();
+    if (updates.email !== undefined) payload.email = updates.email.trim().toLowerCase();
+    if (updates.whatsapp !== undefined) payload.whatsapp = updates.whatsapp.trim();
+    if (updates.status !== undefined) payload.status = updates.status;
+    if (updates.planStatus !== undefined) payload.plan_status = updates.planStatus;
+    if (updates.role !== undefined) payload.role = updates.role;
+    if (updates.banReason !== undefined) payload.ban_reason = updates.banReason.trim() || null;
+    if (updates.password && updates.password.trim()) payload.password = updates.password.trim();
+
+    const { error } = await supabase
+      .from('user_accounts')
+      .update(payload)
+      .eq('id', id);
+
+    if (error) {
+      console.error('[leadAuthService] Erro ao atualizar conta:', error);
+      return { success: false, error: error.message };
+    }
+
+    const current = this.getCurrentUser();
+    if (current && current.id === id) {
+      if (updates.email) current.email = updates.email.trim().toLowerCase();
+      if (updates.companyName) current.companyName = updates.companyName.trim();
+      if (updates.tradeName) current.tradeName = updates.tradeName.trim();
+      if (updates.ownerName) current.ownerName = updates.ownerName.trim();
+      if (updates.status) current.status = updates.status;
+      if (updates.planStatus) current.planStatus = updates.planStatus;
+      if (updates.role) current.role = updates.role;
+      this.setCurrentUser(current);
+    }
+
+    return { success: true };
   }
 };
