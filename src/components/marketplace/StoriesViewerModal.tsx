@@ -11,7 +11,6 @@ import {
   Pause,
   Play,
   ArrowRight,
-  Flame,
   ShieldCheck
 } from 'lucide-react';
 
@@ -173,8 +172,8 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   const canGoNext = storyIndex < totalOffers - 1 || photoIndex < totalPhotos - 1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none">
-      {/* Estilos CSS Injetados para Animação Nativa GPU da Barra e Transição 3D da Tela do Story */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
+      {/* Estilos CSS Injetados para Animação Nativa GPU da Barra e Transição 3D do QUADRO INTEIRO DO STORY */}
       <style>{`
         @keyframes storyBarProgressAnimation {
           0% {
@@ -185,25 +184,29 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
           }
         }
 
-        @keyframes storyScreen3DFlipNext {
+        @keyframes storyCard3DCubeNext {
           0% {
             opacity: 0.5;
-            transform: perspective(1200px) rotateY(22deg) scale(0.95) translateX(50px);
+            transform: perspective(1400px) rotateY(28deg) scale(0.92) translateX(45px);
+            box-shadow: -25px 15px 50px rgba(0, 0, 0, 0.9);
           }
           100% {
             opacity: 1;
-            transform: perspective(1200px) rotateY(0deg) scale(1) translateX(0px);
+            transform: perspective(1400px) rotateY(0deg) scale(1) translateX(0px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
           }
         }
 
-        @keyframes storyScreen3DFlipPrev {
+        @keyframes storyCard3DCubePrev {
           0% {
             opacity: 0.5;
-            transform: perspective(1200px) rotateY(-22deg) scale(0.95) translateX(-50px);
+            transform: perspective(1400px) rotateY(-28deg) scale(0.92) translateX(-45px);
+            box-shadow: 25px 15px 50px rgba(0, 0, 0, 0.9);
           }
           100% {
             opacity: 1;
-            transform: perspective(1200px) rotateY(0deg) scale(1) translateX(0px);
+            transform: perspective(1400px) rotateY(0deg) scale(1) translateX(0px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
           }
         }
       `}</style>
@@ -238,24 +241,25 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         </button>
       )}
 
-      {/* Conteiner Central do Story (Proporção 9:16 Instagram com Perspectiva 3D na Tela Inteira) */}
+      {/* Viewport 3D do Story (Perspectiva para o quadro inteiro) */}
       <div
-        className="relative w-full h-full sm:h-[92vh] sm:max-w-[420px] sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border sm:border-white/15 bg-slate-950"
-        onMouseDown={() => setIsPaused(true)}
-        onMouseUp={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        style={{ perspective: '1200px' }}
+        className="relative flex items-center justify-center w-full h-full p-0 sm:p-4"
+        style={{ perspective: '1400px', transformStyle: 'preserve-3d' }}
       >
-        {/* TELA INTEIRA DO STORY COM TRANSIÇÃO 3D FLIP / VIRAR DE TELA ESTILO INSTAGRAM */}
+        {/* QUADRO COMPLETO DO STORY COM ANIMAÇÃO NO CONTAINER INTEIRO (Bordas, Sombra, Foto, Topo e Rodapé) */}
         <div
-          key={`story-full-screen-${storyIndex}-${photoIndex}`}
-          className="relative w-full h-full flex flex-col justify-between"
+          key={`story-frame-${storyIndex}-${photoIndex}`}
+          className="relative w-full h-full sm:h-[92vh] sm:max-w-[420px] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border sm:border-white/15 bg-slate-950 flex flex-col justify-between will-change-transform"
           style={{
-            animation: `${direction === 'next' ? 'storyScreen3DFlipNext' : 'storyScreen3DFlipPrev'} 320ms cubic-bezier(0.2, 0.9, 0.4, 1) forwards`,
+            animation: `${direction === 'next' ? 'storyCard3DCubeNext' : 'storyCard3DCubePrev'} 320ms cubic-bezier(0.2, 0.9, 0.4, 1) forwards`,
             transformStyle: 'preserve-3d',
             backfaceVisibility: 'hidden',
+            transformOrigin: direction === 'next' ? 'right center' : 'left center',
           }}
+          onMouseDown={() => setIsPaused(true)}
+          onMouseUp={() => setIsPaused(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           {/* IMAGEM DE FUNDO DO STORY */}
           <div className="absolute inset-0 z-0 bg-slate-950">
