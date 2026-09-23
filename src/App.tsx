@@ -8,7 +8,6 @@ import AdminPage from "./pages/AdminPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import MelhorEnvioCallback from "./pages/MelhorEnvioCallback";
-import ShippingLabelPage from "./pages/ShippingLabelPage";
 
 const queryClient = new QueryClient();
 
@@ -36,9 +35,6 @@ const App = () => (
           {/* 4. Integração Melhor Envio OAuth Callback */}
           <Route path="/api/melhor-envio/callback" element={<MelhorEnvioCallback />} />
           <Route path="/melhor-envio/callback" element={<MelhorEnvioCallback />} />
-
-          {/* 5. Emissão e Impressão de Etiqueta de Envio Oficial */}
-          <Route path="/label/:orderId" element={<ShippingLabelPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />

@@ -176,10 +176,14 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
     try {
       const res = await melhorEnvioService.createAndPurchaseLabel(orderId);
       if (res.success) {
-        toast.success('Etiqueta gerada com sucesso via Melhor Envio!');
+        toast.success('Etiqueta oficial gerada com sucesso via Melhor Envio!');
         loadData();
       } else {
-        toast.error(res.error || 'Erro ao gerar etiqueta no Melhor Envio.');
+        if (res.needs_auth) {
+          toast.error('A conta oficial do Melhor Envio ainda não foi conectada no Painel Admin pelo Administrador.');
+        } else {
+          toast.error(res.error || 'Erro ao gerar etiqueta no Melhor Envio.');
+        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro de comunicação ao gerar etiqueta.');

@@ -189,15 +189,66 @@ serve(async (req) => {
       if (client_secret !== undefined) updates.client_secret = client_secret;
       if (redirect_uri !== undefined) updates.redirect_uri = redirect_uri;
       if (access_token !== undefined) {
-        updates.access_token = access_token;
-        updates.is_connected = Boolean(access_token);
+        const cleanTok = access_token.trim();
+        updates.access_token = cleanTok || null;
+        updates.is_connected = Boolean(cleanTok);
+      }
+
+      const { config } = await getIntegrationConfig();
+      const targetEnv = environment || config.environment || "production";
+      const effectiveBaseUrl = targetEnv === "sandbox"
+        ? "https://sandbox.melhorenvio.com.br"
+        : "https://melhorenvio.com.br";
+
+      let tokenValidationSuccess = false;
+      let accountName = "";
+      let accountEmail = "";
+      let balance = 0;
+
+      // Se um access_token foi fornecido, valida diretamente na API oficial do Melhor Envio
+      if (updates.access_token) {
+        try {
+          const accRes = await fetch(`${effectiveBaseUrl}/api/v2/me`, {
+            headers: {
+              "Authorization": `Bearer ${updates.access_token}`,
+              "Accept": "application/json",
+              "User-Agent": "CellHub (lordhahshs@gmail.com)",
+            },
+          });
+
+          if (accRes.ok) {
+            const accData = await accRes.json();
+            accountName = accData.firstname ? `${accData.firstname} ${accData.lastname || ""}`.trim() : "";
+            accountEmail = accData.email || "";
+            balance = accData.balance || 0;
+            updates.account_name = accountName;
+            updates.account_email = accountEmail;
+            updates.account_balance = balance;
+            updates.is_connected = true;
+            updates.last_sync_at = new Date().toISOString();
+            tokenValidationSuccess = true;
+          } else {
+            console.warn(`[melhor-envio] Token validation status: ${accRes.status}`);
+          }
+        } catch (vErr) {
+          console.error("[melhor-envio] Error validating token with Melhor Envio:", vErr);
+        }
       }
 
       await supabase.from("melhor_envio_integration").upsert({ id: "config", ...updates });
       console.log("[melhor-envio] Settings updated");
 
       return new Response(
-        JSON.stringify({ success: true, message: "Configurações atualizadas com sucesso." }),
+        JSON.stringify({
+          success: true,
+          token_valid: tokenValidationSuccess,
+          account_name: accountName,
+          account_email: accountEmail,
+          balance: balance,
+          message: tokenValidationSuccess
+            ? `Conexão estabelecida com sucesso com o Melhor Envio! Titular: ${accountName || accountEmail}`
+            : "Configurações salvas no sistema.",
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -422,44 +473,19 @@ serve(async (req) => {
 
       const { token, baseUrl } = await getValidToken();
       if (!token) {
-        console.log(`[melhor-envio] Sem token configurado para order ${order_id}. Gerando etiqueta oficial interna.`);
-        const quote = order.shipping_quote_snapshot;
-        const isJadlog = /jadlog/i.test(quote?.company?.name || "");
-        const trackingCode = order.tracking_code || (isJadlog
-          ? `JAD${Date.now().toString().slice(-8)}${Math.floor(10 + Math.random() * 89)}`
-          : `BR${Math.floor(100000000 + Math.random() * 900000000)}BR`);
-        const shipmentId = order.melhor_envio_shipment_id || `ch_env_${order.id.slice(0, 8)}`;
-        const printUrl = `/label/${order.id}`;
-
-        await supabase
-          .from("marketplace_orders")
-          .update({
-            shipping_status: "etiqueta_disponivel",
-            tracking_status: "etiqueta_gerada",
-            tracking_code: trackingCode,
-            melhor_envio_shipment_id: shipmentId,
-            melhor_envio_print_url: printUrl,
-            melhor_envio_label_url: printUrl,
-            actual_shipping_cost: order.actual_shipping_cost || order.shipping_cost || 22.80,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", order_id);
-
+        console.warn(`[melhor-envio] Sem token do Melhor Envio configurado para compra de etiqueta do pedido ${order_id}`);
         await supabase.from("shipping_logs").insert({
           order_id,
-          event: "label_generated",
-          status: "success",
-          message: `Etiqueta oficial gerada com sucesso. Rastreamento: ${trackingCode}`,
-          payload: { trackingCode, shipmentId, printUrl, carrier: isJadlog ? "Jadlog" : "Correios" },
+          event: "label_failed",
+          status: "error",
+          message: "Tentativa de compra de etiqueta sem token do Melhor Envio conectado no sistema.",
         });
 
         return new Response(
           JSON.stringify({
-            success: true,
-            shipment_id: shipmentId,
-            print_url: printUrl,
-            tracking_code: trackingCode,
-            message: "Etiqueta oficial gerada com sucesso!",
+            success: false,
+            needs_auth: true,
+            error: "Integração do Melhor Envio não autorizada. O Administrador precisa conectar o Token de Acesso no Painel Admin para gerar etiquetas oficiais.",
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

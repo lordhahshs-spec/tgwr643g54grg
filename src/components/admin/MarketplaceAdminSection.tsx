@@ -165,11 +165,44 @@ export const MarketplaceAdminSection: React.FC = () => {
     setIsSavingSettings(false);
 
     if (res.success) {
-      toast.success('Configurações do Melhor Envio atualizadas com sucesso!');
+      toast.success(res.message || 'Configurações do Melhor Envio atualizadas com sucesso!');
       setEditingSettings(false);
+      setManualTokenInput('');
       loadData();
     } else {
       toast.error(res.error || 'Erro ao salvar configurações.');
+    }
+  };
+
+  const handleQuickSaveToken = async () => {
+    if (!manualTokenInput.trim()) {
+      toast.error('Informe o token de acesso do Melhor Envio.');
+      return;
+    }
+    setIsSavingSettings(true);
+    const res = await melhorEnvioService.updateSettings({
+      access_token: manualTokenInput.trim(),
+      environment: envChoice,
+    });
+    setIsSavingSettings(false);
+    if (res.success) {
+      toast.success(res.message || 'Token do Melhor Envio validado e salvo com sucesso!');
+      setManualTokenInput('');
+      loadData();
+    } else {
+      toast.error(res.error || 'Erro ao validar token com o Melhor Envio.');
+    }
+  };
+
+  const handleDisconnectToken = async () => {
+    if (confirm('Deseja realmente desconectar o token do Melhor Envio? As novas etiquetas oficiais ficarão pausadas até um novo token ser conectado.')) {
+      setIsSavingSettings(true);
+      await melhorEnvioService.updateSettings({
+        access_token: '',
+      });
+      setIsSavingSettings(false);
+      toast.info('Token do Melhor Envio desconectado.');
+      loadData();
     }
   };
 
@@ -415,25 +448,68 @@ export const MarketplaceAdminSection: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                {integrationStatus?.authorize_url && (
-                  <a
-                    href={integrationStatus.authorize_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all"
+                {integrationStatus?.connected ? (
+                  <button
+                    onClick={handleDisconnectToken}
+                    disabled={isSavingSettings}
+                    className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/30 transition-colors"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Conectar Conta CellHub (OAuth)
-                  </a>
+                    Desconectar Token
+                  </button>
+                ) : (
+                  integrationStatus?.authorize_url && (
+                    <a
+                      href={integrationStatus.authorize_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Conectar Conta (OAuth)
+                    </a>
+                  )
                 )}
                 <button
                   onClick={() => setEditingSettings(!editingSettings)}
                   className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-white/10"
                 >
-                  {editingSettings ? 'Fechar' : 'Configurar Credenciais'}
+                  {editingSettings ? 'Fechar' : 'Configurações Avançadas'}
                 </button>
               </div>
             </div>
+
+            {/* Aviso se a integração não estiver conectada */}
+            {!integrationStatus?.connected && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-3">
+                <div className="flex items-center gap-2 text-amber-400 font-bold">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>Atenção: Token do Melhor Envio não conectado</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Para que os lojistas consigam gerar etiquetas reais dos Correios e Jadlog diretamente pela plataforma, a conta oficial do Melhor Envio precisa estar conectada. Você pode conectar via OAuth (botão acima) ou inserir o <strong>Token de Acesso Pessoal</strong> abaixo:
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <input
+                    type="password"
+                    value={manualTokenInput}
+                    onChange={(e) => setManualTokenInput(e.target.value)}
+                    placeholder="Cole o Bearer Token do Melhor Envio (ex: eyJ0eXAi...)"
+                    className="flex-1 bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none font-mono focus:border-[#00D287]"
+                  />
+                  <button
+                    onClick={handleQuickSaveToken}
+                    disabled={isSavingSettings || !manualTokenInput.trim()}
+                    className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#00D287]/20 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {isSavingSettings ? 'Validando...' : 'Validar e Conectar Token'}
+                  </button>
+                </div>
+                <div className="text-[10px] text-slate-400 pt-1">
+                  💡 Como gerar: Acesse seu painel no Melhor Envio → <strong>Gerenciar</strong> → <strong>Tokens</strong> → <strong>Novo Token</strong> com permissões de envios/carrinho/impressão e cole aqui.
+                </div>
+              </div>
+            )}
 
             {/* Balanço e Detalhes da Carteira */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -452,9 +528,9 @@ export const MarketplaceAdminSection: React.FC = () => {
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Conta Conectada
                 </span>
                 <div className="text-sm font-bold text-white truncate">
-                  {integrationStatus?.account_name || 'Conta CellHub Intermediação'}
+                  {integrationStatus?.account_name || (integrationStatus?.connected ? 'Conta CellHub Oficial' : 'Nenhuma conta vinculada')}
                 </div>
-                <p className="text-[10px] text-slate-500 truncate">{integrationStatus?.account_email || 'lordhahshs@gmail.com'}</p>
+                <p className="text-[10px] text-slate-500 truncate">{integrationStatus?.account_email || 'Aguardando conexão'}</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
