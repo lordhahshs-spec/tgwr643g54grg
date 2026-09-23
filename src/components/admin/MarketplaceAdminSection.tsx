@@ -43,11 +43,19 @@ import { melhorEnvioService, IntegrationStatusResponse } from '@/services/melhor
 import { toast } from 'sonner';
 
 export const MarketplaceAdminSection: React.FC = () => {
-  const [subTab, setSubTab] = useState<'overview' | 'offers' | 'reports' | 'orders' | 'logistics' | 'settings'>('overview');
+  const [subTab, setSubTab] = useState<'overview' | 'offers' | 'reports' | 'orders' | 'withdrawals' | 'logistics' | 'settings'>('overview');
   const [offers, setOffers] = useState<MarketplaceOffer[]>([]);
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [reports, setReports] = useState<MarketplaceReport[]>([]);
-  const [feeSettings, setFeeSettings] = useState<MarketplaceFeeSettings>({ defaultFeePercent: 6.5, pixDiscountPercent: 0 });
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [feeSettings, setFeeSettings] = useState<MarketplaceFeeSettings>({
+    defaultFeePercent: 6.0,
+    pixDiscountPercent: 0,
+    payoutsLocked: false,
+    payoutFixedFee: 1.99,
+    salesPercentFee: 6.0,
+    salesFixedFee: 4.99,
+  });
   const [packageDefaults, setPackageDefaults] = useState<CategoryPackageDefault[]>([]);
   const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatusResponse | null>(null);
   
@@ -55,8 +63,11 @@ export const MarketplaceAdminSection: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Fee form state
-  const [feeInput, setFeeInput] = useState('6.5');
+  const [salesPercentInput, setSalesPercentInput] = useState('6.0');
+  const [salesFixedInput, setSalesFixedInput] = useState('4.99');
+  const [payoutFixedInput, setPayoutFixedInput] = useState('1.99');
   const [isSavingFee, setIsSavingFee] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   // Settings / Credentials form state
   const [editingSettings, setEditingSettings] = useState(false);
@@ -76,20 +87,25 @@ export const MarketplaceAdminSection: React.FC = () => {
       setLoading(true);
     }
     try {
-      // 1. Carregamento prioritário instantâneo: Vendas, Produtos Cadastrados e Métricas Financeiras
-      const [allOffers, allOrders, allReports, settings] = await Promise.all([
+      // 1. Carregamento prioritário instantâneo: Vendas, Produtos, Relatórios, Configurações e Saques
+      const [allOffers, allOrders, allReports, settings, allWithdrawals] = await Promise.all([
         marketplaceService.getOffers({ status: 'todas' }),
         marketplaceService.getAllOrders(),
         marketplaceService.getReports(),
         marketplaceService.getFeeSettings(),
+        marketplaceService.getAllWithdrawals(),
       ]);
 
       setOffers(allOffers);
       setOrders(allOrders);
       setReports(allReports);
       setFeeSettings(settings);
+      setWithdrawals(allWithdrawals);
+
       if (!silent) {
-        setFeeInput(String(settings.defaultFeePercent));
+        setSalesPercentInput(String(settings.salesPercentFee ?? settings.defaultFeePercent ?? 6.0));
+        setSalesFixedInput(String(settings.salesFixedFee ?? 4.99));
+        setPayoutFixedInput(String(settings.payoutFixedFee ?? 1.99));
       }
       if (!silent) {
         setLoading(false); // Libera a exibição das tabelas imediatamente
@@ -143,27 +159,86 @@ export const MarketplaceAdminSection: React.FC = () => {
   const totalFeeCollected = orders.reduce((acc, curr) => acc + curr.platformFeeAmount, 0);
   const totalActualShipping = orders.reduce((acc, curr) => acc + (curr.actualShippingCost || 0), 0);
   const pendingReportsCount = reports.filter(r => r.status === 'pendente').length;
+  const pendingWithdrawalsCount = withdrawals.filter(w => w.status === 'solicitado' || w.status === 'processando').length;
+
+  const handleTogglePayoutsLock = async () => {
+    const nextState = !feeSettings.payoutsLocked;
+    setIsTogglingLock(true);
+    try {
+      const success = await marketplaceService.togglePayoutsLock(nextState);
+      if (success) {
+        setFeeSettings(prev => ({ ...prev, payoutsLocked: nextState }));
+        if (nextState) {
+          toast.warning('🔒 Trava de saques ATIVADA! Os lojistas não conseguirão solicitar saques até que a trava seja desativada.');
+        } else {
+          toast.success('🔓 Trava de saques DESATIVADA! Os saques via PIX estão liberados normalmente para os lojistas.');
+        }
+      } else {
+        toast.error('Erro ao alternar status da trava de saques.');
+      }
+    } catch (e) {
+      toast.error('Erro ao comunicar com o servidor.');
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
 
   const handleSaveFee = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = parseFloat(feeInput.replace(',', '.'));
-    if (isNaN(parsed) || parsed < 0 || parsed > 50) {
+    const percent = parseFloat(salesPercentInput.replace(',', '.'));
+    const fixed = parseFloat(salesFixedInput.replace(',', '.'));
+    const payout = parseFloat(payoutFixedInput.replace(',', '.'));
+
+    if (isNaN(percent) || percent < 0 || percent > 50) {
       toast.error('Informe uma taxa percentual válida entre 0% e 50%.');
+      return;
+    }
+    if (isNaN(fixed) || fixed < 0) {
+      toast.error('Informe uma taxa fixa por venda válida.');
+      return;
+    }
+    if (isNaN(payout) || payout < 0) {
+      toast.error('Informe uma taxa de saque válida.');
       return;
     }
 
     setIsSavingFee(true);
     const success = await marketplaceService.updateFeeSettings({
-      defaultFeePercent: parsed,
-      pixDiscountPercent: feeSettings.pixDiscountPercent,
+      salesPercentFee: percent,
+      salesFixedFee: fixed,
+      defaultFeePercent: percent,
+      payoutFixedFee: payout,
     });
     setIsSavingFee(false);
 
     if (success) {
-      setFeeSettings({ ...feeSettings, defaultFeePercent: parsed });
-      toast.success(`Taxa da plataforma atualizada para ${parsed}%!`);
+      setFeeSettings(prev => ({
+        ...prev,
+        salesPercentFee: percent,
+        salesFixedFee: fixed,
+        defaultFeePercent: percent,
+        payoutFixedFee: payout,
+      }));
+      toast.success(`Taxas atualizadas: ${percent}% + ${formatBRL(fixed)} por venda | ${formatBRL(payout)} por saque!`);
     } else {
-      toast.error('Erro ao atualizar taxa da plataforma.');
+      toast.error('Erro ao atualizar taxas da plataforma.');
+    }
+  };
+
+  const handleUpdateWithdrawalStatus = async (id: string, status: 'solicitado' | 'processando' | 'pago' | 'rejeitado') => {
+    let rejectionReason: string | undefined;
+    if (status === 'rejeitado') {
+      const reason = window.prompt('Informe o motivo da rejeição do saque (ex: chave PIX não pertence ao titular):');
+      if (reason === null) return;
+      rejectionReason = reason || 'Chave PIX divergente do titular da conta.';
+    }
+
+    const success = await marketplaceService.updateWithdrawalStatus(id, status, rejectionReason);
+    if (success) {
+      toast.success(`Status do saque atualizado para: ${status.toUpperCase()}`);
+      loadData(true);
+    } else {
+      toast.error('Erro ao atualizar status do saque.');
     }
   };
 
@@ -417,6 +492,20 @@ export const MarketplaceAdminSection: React.FC = () => {
             Pedidos ({orders.length})
           </button>
           <button
+            onClick={() => setSubTab('withdrawals')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 relative ${
+              subTab === 'withdrawals' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            Saques PIX ({withdrawals.length})
+            {pendingWithdrawalsCount > 0 && (
+              <span className="px-1.5 py-0.2 text-[9px] bg-amber-500 text-slate-950 rounded-full font-black">
+                {pendingWithdrawalsCount}
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => setSubTab('reports')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all relative ${
               subTab === 'reports' ? 'bg-[#00D287] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
@@ -487,6 +576,56 @@ export const MarketplaceAdminSection: React.FC = () => {
               <h3 className="text-2xl font-black text-white">{activeOffersCount} / {totalOffersCount}</h3>
               <p className="text-[11px] text-slate-500">Anúncios de lojistas ativos</p>
             </div>
+          </div>
+
+          {/* Card de Trava de Segurança de Saques (Modo Manutenção) */}
+          <div className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+            feeSettings.payoutsLocked
+              ? 'bg-amber-500/10 border-amber-500/40 shadow-lg shadow-amber-500/5'
+              : 'bg-[#080d1a] border-white/10'
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-lg ${feeSettings.payoutsLocked ? 'bg-amber-500/20 text-amber-400' : 'bg-[#00D287]/20 text-[#00D287]'}`}>
+                  <Lock className="w-4 h-4" />
+                </div>
+                <h4 className="text-sm font-bold text-white">
+                  Trava de Segurança de Saques PIX ({feeSettings.payoutsLocked ? '⚠️ EM MANUTENÇÃO' : '✅ ATIVO / LIBERADO'})
+                </h4>
+              </div>
+              <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+                {feeSettings.payoutsLocked
+                  ? 'Os saques estão bloqueados para todos os lojistas. Ao tentarem sacar, uma notificação informando manutenção preventiva será exibida.'
+                  : 'Os lojistas podem solicitar saques de seus saldos liberados normalmente via PIX com taxa de R$ 1,99 por transferência.'}
+              </p>
+            </div>
+
+            <button
+              onClick={handleTogglePayoutsLock}
+              disabled={isTogglingLock}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-md cursor-pointer whitespace-nowrap ${
+                feeSettings.payoutsLocked
+                  ? 'bg-[#00D287] hover:bg-[#00b875] text-slate-950 shadow-[#00D287]/20'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+              }`}
+            >
+              {isTogglingLock ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Atualizando...</span>
+                </>
+              ) : feeSettings.payoutsLocked ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Destravar / Liberar Saques</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Travar Saques (Manutenção)</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Card de Gestão de Banco & Limpeza de Faturamento */}
@@ -1080,42 +1219,273 @@ export const MarketplaceAdminSection: React.FC = () => {
         </div>
       )}
 
-      {/* SETTINGS SUBTAB */}
-      {subTab === 'settings' && (
-        <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/5 max-w-lg space-y-4">
-          <div className="flex items-center gap-2 text-white font-bold text-base">
-            <Settings className="w-5 h-5 text-[#00D287]" />
-            Taxa de Intermediação CellHub
-          </div>
-          <p className="text-xs text-slate-400">
-            Defina o percentual de retenção operacional cobrado sobre o valor bruto de cada venda realizada entre lojistas.
-          </p>
-
-          <form onSubmit={handleSaveFee} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Comissão Padrão da Plataforma (%)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={feeInput}
-                  onChange={(e) => setFeeInput(e.target.value)}
-                  placeholder="6.5"
-                  className="w-full bg-slate-950 border border-white/10 rounded-2xl p-3 text-sm text-white font-bold focus:border-[#00D287] outline-none"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+      {/* WITHDRAWALS SUBTAB (SAQUES PIX) */}
+      {subTab === 'withdrawals' && (
+        <div className="space-y-4">
+          {/* Card de Gestão Rápida da Trava */}
+          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+            feeSettings.payoutsLocked
+              ? 'bg-amber-500/10 border-amber-500/40 text-amber-200'
+              : 'bg-[#090e1c] border-white/10 text-slate-300'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <Lock className={`w-5 h-5 ${feeSettings.payoutsLocked ? 'text-amber-400' : 'text-[#00D287]'}`} />
+              <div>
+                <span className="text-xs font-bold text-white block">
+                  Status Global de Saques: {feeSettings.payoutsLocked ? 'TRAVADO (Modo Manutenção)' : 'LIBERADO (Normal)'}
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Taxa configurada: {formatBRL(feeSettings.payoutFixedFee ?? 1.99)} por transferência PIX
+                </span>
               </div>
             </div>
 
             <button
-              type="submit"
-              disabled={isSavingFee}
-              className="px-6 py-2.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50"
+              onClick={handleTogglePayoutsLock}
+              disabled={isTogglingLock}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                feeSettings.payoutsLocked
+                  ? 'bg-[#00D287] hover:bg-[#00b875] text-slate-950'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+              }`}
             >
-              {isSavingFee ? 'Salvando...' : 'Salvar Taxa da Plataforma'}
+              {feeSettings.payoutsLocked ? 'Destravar Saques' : 'Travar Saques (Manutenção)'}
             </button>
-          </form>
+          </div>
+
+          {withdrawals.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-[#090e1c] border border-white/5 space-y-2">
+              <Wallet className="w-10 h-10 text-slate-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">Nenhum saque solicitado</h3>
+              <p className="text-xs text-slate-400">Quando os lojistas solicitarem saques de seus saldos liberados via PIX, eles aparecerão aqui para auditoria e conferência.</p>
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-[#090e1c] border border-white/5 overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="text-[11px] uppercase text-slate-400 border-b border-white/5">
+                  <tr>
+                    <th className="pb-3">Data</th>
+                    <th className="pb-3">Lojista / Empresa</th>
+                    <th className="pb-3">Titular / Documento</th>
+                    <th className="pb-3">Chave PIX</th>
+                    <th className="pb-3">Valor Solicitado</th>
+                    <th className="pb-3">Taxa ({formatBRL(feeSettings.payoutFixedFee ?? 1.99)})</th>
+                    <th className="pb-3">Valor Líquido</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {withdrawals.map((w) => (
+                    <tr key={w.id} className="hover:bg-white/[0.02]">
+                      <td className="py-3 text-slate-400 whitespace-nowrap">
+                        {new Date(w.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="py-3 font-bold text-white">
+                        {w.sellerCompany}
+                      </td>
+                      <td className="py-3 text-slate-300">
+                        {w.pixHolderName || w.sellerOwner || '-'}
+                      </td>
+                      <td className="py-3 font-mono text-[11px] text-slate-300 max-w-[150px] truncate">
+                        {w.pixKey}
+                      </td>
+                      <td className="py-3 font-bold text-white">
+                        {formatBRL(w.requestedAmount)}
+                      </td>
+                      <td className="py-3 text-rose-400 font-semibold">
+                        - {formatBRL(w.feeAmount)}
+                      </td>
+                      <td className="py-3 font-bold text-[#00D287]">
+                        {formatBRL(w.netAmount)}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          w.status === 'pago'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : w.status === 'processando'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : w.status === 'rejeitado'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-amber-500/20 text-amber-400'
+                        }`}>
+                          {w.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {w.status !== 'pago' && (
+                            <button
+                              onClick={() => handleUpdateWithdrawalStatus(w.id, 'pago')}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold text-[10px] transition-colors"
+                              title="Marcar como Pago via PIX"
+                            >
+                              Marcar Pago
+                            </button>
+                          )}
+                          {w.status === 'solicitado' && (
+                            <button
+                              onClick={() => handleUpdateWithdrawalStatus(w.id, 'processando')}
+                              className="px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold text-[10px] transition-colors"
+                            >
+                              Processando
+                            </button>
+                          )}
+                          {w.status !== 'rejeitado' && (
+                            <button
+                              onClick={() => handleUpdateWithdrawalStatus(w.id, 'rejeitado')}
+                              className="px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 font-semibold text-[10px] transition-colors"
+                            >
+                              Rejeitar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SETTINGS SUBTAB */}
+      {subTab === 'settings' && (
+        <div className="space-y-6 max-w-2xl">
+          {/* Card 1: Trava de Saques */}
+          <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-xl ${feeSettings.payoutsLocked ? 'bg-amber-500/20 text-amber-400' : 'bg-[#00D287]/20 text-[#00D287]'}`}>
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Trava de Segurança de Saques PIX
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Bloqueio emergencial para manutenção bancária
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleTogglePayoutsLock}
+                disabled={isTogglingLock}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  feeSettings.payoutsLocked
+                    ? 'bg-[#00D287] hover:bg-[#00b875] text-slate-950 shadow-md shadow-[#00D287]/20'
+                    : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                }`}
+              >
+                {feeSettings.payoutsLocked ? '🔓 Liberar Saques' : '🔒 Ativar Trava (Manutenção)'}
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5">
+              {feeSettings.payoutsLocked ? (
+                <span className="text-amber-300 font-medium">
+                  ⚠️ <strong>Atenção:</strong> A trava está ativada. Quando qualquer lojista tentar solicitar um saque, receberá a mensagem: <em>"Os saques estão temporariamente em manutenção preventiva pela equipe CellHub. Tente novamente mais tarde."</em>
+                </span>
+              ) : (
+                <span className="text-slate-400">
+                  Os saques estão operando normalmente. Os lojistas conseguem solicitar transferências PIX sempre que possuírem saldo liberado.
+                </span>
+              )}
+            </p>
+          </div>
+
+          {/* Card 2: Taxas da Plataforma */}
+          <div className="p-6 rounded-3xl bg-[#090e1c] border border-white/10 space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  Taxas Oficiais CellHub Marketplace
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Defina as taxas retidas por venda e o custo fixo por transferência de saque
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveFee} className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Taxa por Venda (%)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={salesPercentInput}
+                      onChange={(e) => setSalesPercentInput(e.target.value)}
+                      placeholder="6.0"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 pr-8 text-sm text-white font-bold focus:border-[#00D287] outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Taxa Fixa por Venda (R$)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={salesFixedInput}
+                      onChange={(e) => setSalesFixedInput(e.target.value)}
+                      placeholder="4.99"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 pl-9 text-sm text-white font-bold focus:border-[#00D287] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Taxa por Saque PIX (R$)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={payoutFixedInput}
+                      onChange={(e) => setPayoutFixedInput(e.target.value)}
+                      placeholder="1.99"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 pl-9 text-sm text-white font-bold focus:border-[#00D287] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 text-xs text-slate-300 space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Regra de Venda:</span>
+                  <span className="font-bold text-white">{salesPercentInput}% + R$ {salesFixedInput} por produto vendido</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Regra de Saque:</span>
+                  <span className="font-bold text-white">R$ {payoutFixedInput} por solicitação de PIX</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingFee}
+                className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSavingFee ? 'Salvando Taxas...' : 'Salvar Novas Taxas'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

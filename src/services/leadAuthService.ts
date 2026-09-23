@@ -23,6 +23,9 @@ export interface UserAccount {
   shippingState?: string;
   shippingPhone?: string;
   salesCancellationCount?: number;
+  pixKeyType?: 'cpf_cnpj' | 'email' | 'telefone' | 'aleatoria';
+  pixKey?: string;
+  pixHolderName?: string;
   createdAt: string;
 }
 
@@ -76,6 +79,9 @@ export const leadAuthService = {
       shippingState: row.shipping_state || undefined,
       shippingPhone: row.shipping_phone || undefined,
       salesCancellationCount: row.sales_cancellation_count || 0,
+      pixKeyType: row.pix_key_type || undefined,
+      pixKey: row.pix_key || undefined,
+      pixHolderName: row.pix_holder_name || undefined,
       createdAt: row.created_at,
     }));
   },
@@ -318,6 +324,9 @@ export const leadAuthService = {
           shippingState: data.shipping_state || undefined,
           shippingPhone: data.shipping_phone || undefined,
           salesCancellationCount: data.sales_cancellation_count || 0,
+          pixKeyType: data.pix_key_type || undefined,
+          pixKey: data.pix_key || undefined,
+          pixHolderName: data.pix_holder_name || undefined,
           createdAt: data.created_at,
         };
         this.setCurrentUser(synced);
@@ -356,6 +365,9 @@ export const leadAuthService = {
           shippingState: userByEmail.shipping_state || undefined,
           shippingPhone: userByEmail.shipping_phone || undefined,
           salesCancellationCount: userByEmail.sales_cancellation_count || 0,
+          pixKeyType: userByEmail.pix_key_type || undefined,
+          pixKey: userByEmail.pix_key || undefined,
+          pixHolderName: userByEmail.pix_holder_name || undefined,
           createdAt: userByEmail.created_at,
         };
         this.setCurrentUser(synced);
@@ -421,6 +433,9 @@ export const leadAuthService = {
         shippingState: data.shipping_state || undefined,
         shippingPhone: data.shipping_phone || undefined,
         salesCancellationCount: data.sales_cancellation_count || 0,
+        pixKeyType: data.pix_key_type || undefined,
+        pixKey: data.pix_key || undefined,
+        pixHolderName: data.pix_holder_name || undefined,
         createdAt: data.created_at,
       };
 
@@ -429,6 +444,58 @@ export const leadAuthService = {
     } catch (e: any) {
       console.error('[leadAuthService] Exceção em updateUserProfile:', e);
       return { success: false, error: e?.message || 'Erro inesperado' };
+    }
+  },
+
+  async updatePixKey(userId: string, pixData: { pixKeyType: 'cpf_cnpj' | 'email' | 'telefone' | 'aleatoria'; pixKey: string; pixHolderName?: string }): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('user_accounts')
+        .update({
+          pix_key_type: pixData.pixKeyType,
+          pix_key: pixData.pixKey.trim(),
+          pix_holder_name: pixData.pixHolderName?.trim() || null,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Erro ao salvar Chave PIX' };
+      }
+
+      const updatedUser: UserAccount = {
+        id: data.id,
+        companyName: data.company_name,
+        tradeName: data.trade_name || undefined,
+        ownerName: data.owner_name || data.trade_name || data.company_name,
+        cnpj: data.cnpj,
+        email: data.email,
+        whatsapp: data.whatsapp || undefined,
+        avatarUrl: data.avatar_url || undefined,
+        role: data.role || 'lead',
+        status: data.status || 'ativo',
+        planStatus: (data.plan_status as 'demo' | 'ativo') || 'demo',
+        banReason: data.ban_reason || undefined,
+        shippingZipCode: data.shipping_zip_code || undefined,
+        shippingStreet: data.shipping_street || undefined,
+        shippingNumber: data.shipping_number || undefined,
+        shippingComplement: data.shipping_complement || undefined,
+        shippingNeighborhood: data.shipping_neighborhood || undefined,
+        shippingCity: data.shipping_city || undefined,
+        shippingState: data.shipping_state || undefined,
+        shippingPhone: data.shipping_phone || undefined,
+        salesCancellationCount: data.sales_cancellation_count || 0,
+        pixKeyType: data.pix_key_type || undefined,
+        pixKey: data.pix_key || undefined,
+        pixHolderName: data.pix_holder_name || undefined,
+        createdAt: data.created_at,
+      };
+
+      this.setCurrentUser(updatedUser);
+      return { success: true, user: updatedUser };
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Erro ao salvar Chave PIX' };
     }
   },
 

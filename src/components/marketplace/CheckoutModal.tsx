@@ -135,8 +135,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   
   // What buyer actually pays for shipping
   const shippingAmountCharged = isFreeShipping ? 0 : (selectedQuote ? selectedQuote.price : (offer.shippingCost || 0));
-  const feePercent = feeSettings.defaultFeePercent || 6.5;
-  const platformFeeAmount = (productPrice * feePercent) / 100;
+  const feePercent = feeSettings.salesPercentFee ?? feeSettings.defaultFeePercent ?? 6.0;
+  const feeFixed = feeSettings.salesFixedFee ?? 4.99;
+  const platformFeeAmount = (productPrice * feePercent) / 100 + feeFixed;
   const totalAmount = productPrice + shippingAmountCharged;
 
   // Real label cost (from quote snapshot)

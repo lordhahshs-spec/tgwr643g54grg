@@ -250,7 +250,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
               }`}
             >
               <Package className="w-3.5 h-3.5" />
-              <span>Meu Painel</span>
+              <span>Meu Painel & Finanças</span>
             </button>
           </div>
         </div>

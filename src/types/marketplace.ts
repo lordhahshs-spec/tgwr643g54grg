@@ -232,7 +232,34 @@ export interface MarketplaceReview {
   createdAt: string;
 }
 
+export type PixKeyType = 'cpf_cnpj' | 'email' | 'telefone' | 'aleatoria';
+
+export type WithdrawalStatus = 'solicitado' | 'processando' | 'pago' | 'rejeitado';
+
+export interface MarketplaceWithdrawal {
+  id: string;
+  sellerId: string;
+  sellerCompany: string;
+  sellerOwner?: string;
+  requestedAmount: number;
+  feeAmount: number;
+  netAmount: number;
+  pixKeyType: PixKeyType;
+  pixKey: string;
+  pixHolderName?: string;
+  status: WithdrawalStatus;
+  rejectionReason?: string;
+  paidAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface MarketplaceFeeSettings {
   defaultFeePercent: number;
   pixDiscountPercent: number;
+  payoutsLocked?: boolean;
+  payoutFixedFee?: number;
+  salesPercentFee?: number;
+  salesFixedFee?: number;
 }
+

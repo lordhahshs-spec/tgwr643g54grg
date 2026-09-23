@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Package, 
-  ShoppingBag, 
-  TrendingUp, 
-  Heart, 
-  Plus, 
-  ExternalLink, 
-  Truck, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Package,
+  ShoppingBag,
+  TrendingUp,
+  Heart,
+  Plus,
+  ExternalLink,
+  Truck,
+  CheckCircle2,
+  Clock,
   AlertCircle,
   Copy,
   Check,
@@ -23,7 +23,8 @@ import {
   Box,
   MapPin,
   FileText,
-  XCircle
+  XCircle,
+  Wallet
 } from 'lucide-react';
 import {
   MarketplaceOffer,
@@ -34,6 +35,7 @@ import {
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
 import { UserAccount, leadAuthService } from '@/services/leadAuthService';
+import { SellerFinancesTab } from '@/components/marketplace/SellerFinancesTab';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -49,7 +51,7 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
   onOpenCreateModal,
   onSelectOffer,
 }) => {
-  const [subTab, setSubTab] = useState<'ofertas' | 'vendas' | 'compras' | 'favoritos'>('ofertas');
+  const [subTab, setSubTab] = useState<'ofertas' | 'vendas' | 'financas' | 'compras' | 'favoritos'>('ofertas');
   
   // Inicialização instantânea a partir de cache local (0ms)
   const [myOffers, setMyOffers] = useState<MarketplaceOffer[]>(() => {
@@ -306,6 +308,18 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
           >
             <TrendingUp className="w-4 h-4" />
             Minhas Vendas ({mySales.length})
+          </button>
+
+          <button
+            onClick={() => setSubTab('financas')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              subTab === 'financas'
+                ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Wallet className="w-4 h-4" />
+            Minhas Finanças & Saque PIX
           </button>
 
           <button
@@ -641,6 +655,14 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB CONTENT: MINHAS FINANÇAS & SAQUE PIX */}
+      {subTab === 'financas' && (
+        <SellerFinancesTab
+          currentUser={currentUser}
+          onRefreshParent={loadData}
+        />
       )}
 
       {/* TAB CONTENT: MINHAS COMPRAS */}

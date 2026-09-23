@@ -887,26 +887,328 @@ export const marketplaceService = {
       .maybeSingle();
 
     if (error || !data) {
-      return { defaultFeePercent: 6.5, pixDiscountPercent: 0 };
+      return {
+        defaultFeePercent: 6.0,
+        pixDiscountPercent: 0,
+        payoutsLocked: false,
+        payoutFixedFee: 1.99,
+        salesPercentFee: 6.0,
+        salesFixedFee: 4.99,
+      };
     }
 
     return {
-      defaultFeePercent: Number(data.default_fee_percent || 6.5),
-      pixDiscountPercent: Number(data.pix_discount_percent || 0)
+      defaultFeePercent: Number(data.sales_percent_fee ?? data.default_fee_percent ?? 6.0),
+      pixDiscountPercent: Number(data.pix_discount_percent ?? 0),
+      payoutsLocked: Boolean(data.payouts_locked),
+      payoutFixedFee: Number(data.payout_fixed_fee ?? 1.99),
+      salesPercentFee: Number(data.sales_percent_fee ?? 6.0),
+      salesFixedFee: Number(data.sales_fixed_fee ?? 4.99),
     };
   },
 
-  async updateFeeSettings(settings: MarketplaceFeeSettings): Promise<boolean> {
+  async updateFeeSettings(settings: Partial<MarketplaceFeeSettings>): Promise<boolean> {
+    const payload: any = {
+      id: 'config',
+      updated_at: new Date().toISOString(),
+    };
+    if (settings.salesPercentFee !== undefined) payload.sales_percent_fee = settings.salesPercentFee;
+    if (settings.salesFixedFee !== undefined) payload.sales_fixed_fee = settings.salesFixedFee;
+    if (settings.defaultFeePercent !== undefined) payload.default_fee_percent = settings.defaultFeePercent;
+    if (settings.pixDiscountPercent !== undefined) payload.pix_discount_percent = settings.pixDiscountPercent;
+    if (settings.payoutFixedFee !== undefined) payload.payout_fixed_fee = settings.payoutFixedFee;
+    if (settings.payoutsLocked !== undefined) payload.payouts_locked = settings.payoutsLocked;
+
+    const { error } = await supabase
+      .from('marketplace_settings')
+      .upsert(payload);
+
+    return !error;
+  },
+
+  async togglePayoutsLock(locked: boolean): Promise<boolean> {
     const { error } = await supabase
       .from('marketplace_settings')
       .upsert({
         id: 'config',
-        default_fee_percent: settings.defaultFeePercent,
-        pix_discount_percent: settings.pixDiscountPercent,
-        updated_at: new Date().toISOString()
+        payouts_locked: locked,
+        updated_at: new Date().toISOString(),
       });
 
     return !error;
+  },
+
+  // --- SAQUES VIA PIX & GESTÃO FINANCEIRA DO LOJISTA ---
+  mapWithdrawalRecord(row: any): MarketplaceWithdrawal {
+    return {
+      id: row.id,
+      sellerId: row.seller_id,
+      sellerCompany: row.seller_company,
+      sellerOwner: row.seller_owner || undefined,
+      requestedAmount: Number(row.requested_amount),
+      feeAmount: Number(row.fee_amount || 1.99),
+      netAmount: Number(row.net_amount),
+      pixKeyType: row.pix_key_type as any,
+      pixKey: row.pix_key,
+      pixHolderName: row.pix_holder_name || undefined,
+      status: row.status as any,
+      rejectionReason: row.rejection_reason || undefined,
+      paidAt: row.paid_at || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  },
+
+  async getSellerWithdrawals(sellerId: string): Promise<MarketplaceWithdrawal[]> {
+    if (!sellerId || !isUuid(sellerId)) return [];
+    const { data, error } = await supabase
+      .from('marketplace_withdrawals')
+      .select('*')
+      .eq('seller_id', sellerId)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map(this.mapWithdrawalRecord);
+  },
+
+  async getAllWithdrawals(): Promise<MarketplaceWithdrawal[]> {
+    const { data, error } = await supabase
+      .from('marketplace_withdrawals')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map(this.mapWithdrawalRecord);
+  },
+
+  async updateWithdrawalStatus(
+    id: string,
+    status: 'solicitado' | 'processando' | 'pago' | 'rejeitado',
+    rejectionReason?: string
+  ): Promise<boolean> {
+    const payload: any = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+    if (status === 'pago') {
+      payload.paid_at = new Date().toISOString();
+    }
+    if (rejectionReason !== undefined) {
+      payload.rejection_reason = rejectionReason;
+    }
+
+    const { error } = await supabase
+      .from('marketplace_withdrawals')
+      .update(payload)
+      .eq('id', id);
+
+    return !error;
+  },
+
+  async requestWithdrawal(params: {
+    sellerId: string;
+    sellerCompany: string;
+    sellerOwner?: string;
+    amount: number;
+    pixKeyType: 'cpf_cnpj' | 'email' | 'telefone' | 'aleatoria';
+    pixKey: string;
+    pixHolderName?: string;
+  }): Promise<{ success: boolean; error?: string; message?: string; withdrawal?: MarketplaceWithdrawal }> {
+    // 1. Checa trava de saques do admin
+    const feeSettings = await this.getFeeSettings();
+    if (feeSettings.payoutsLocked) {
+      return {
+        success: false,
+        error: 'MAINTENANCE',
+        message: 'O sistema de saques via PIX está temporariamente em manutenção preventiva pela equipe CellHub. Nenhum valor será perdido. Por favor, tente novamente mais tarde.',
+      };
+    }
+
+    // 2. Checa saldo disponível liberado
+    const summary = await this.getSellerFinancialSummary(params.sellerId);
+    const payoutFee = feeSettings.payoutFixedFee || 1.99;
+
+    if (params.amount <= payoutFee) {
+      return {
+        success: false,
+        error: 'INVALID_AMOUNT',
+        message: `O valor do saque deve ser superior à taxa de saque de R$ ${payoutFee.toFixed(2).replace('.', ',')}.`,
+      };
+    }
+
+    if (params.amount > summary.availableForWithdrawal) {
+      return {
+        success: false,
+        error: 'INSUFFICIENT_FUNDS',
+        message: `Saldo liberado insuficiente. Você possui R$ ${summary.availableForWithdrawal.toFixed(2).replace('.', ',')} disponível para saque.`,
+      };
+    }
+
+    const netAmount = Math.max(0, params.amount - payoutFee);
+
+    const { data, error } = await supabase
+      .from('marketplace_withdrawals')
+      .insert({
+        seller_id: params.sellerId,
+        seller_company: params.sellerCompany,
+        seller_owner: params.sellerOwner || null,
+        requested_amount: params.amount,
+        fee_amount: payoutFee,
+        net_amount: netAmount,
+        pix_key_type: params.pixKeyType,
+        pix_key: params.pixKey.trim(),
+        pix_holder_name: params.pixHolderName?.trim() || null,
+        status: 'solicitado',
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      return {
+        success: false,
+        error: 'DB_ERROR',
+        message: error?.message || 'Erro ao processar solicitação de saque no banco.',
+      };
+    }
+
+    // Salva a chave PIX no perfil do usuário para próximas operações
+    await leadAuthService.updatePixKey(params.sellerId, {
+      pixKeyType: params.pixKeyType,
+      pixKey: params.pixKey,
+      pixHolderName: params.pixHolderName,
+    });
+
+    clearMarketplaceCache();
+    return {
+      success: true,
+      withdrawal: this.mapWithdrawalRecord(data),
+    };
+  },
+
+  async getSellerFinancialSummary(sellerId: string): Promise<{
+    grossSalesTotal: number;
+    platformFeesTotal: number;
+    netSalesTotal: number;
+    releasedAmount: number;
+    pendingAmount: number;
+    totalWithdrawn: number;
+    availableForWithdrawal: number;
+    withdrawnPaidAmount: number;
+    withdrawnPendingAmount: number;
+    salesCount: number;
+    salesBreakdown: Array<{
+      order: MarketplaceOrder;
+      grossAmount: number;
+      platformFeeAmount: number;
+      netAmount: number;
+      isReleased: boolean;
+      releaseReason: string;
+      releaseDate: Date;
+      daysRemaining: number;
+    }>;
+    withdrawals: MarketplaceWithdrawal[];
+  }> {
+    const [orders, withdrawals] = await Promise.all([
+      this.getSellerOrders(sellerId),
+      this.getSellerWithdrawals(sellerId),
+    ]);
+
+    const activePaidOrders = orders.filter(
+      (o) => o.paymentStatus === 'pago' && o.orderStatus !== 'cancelado'
+    );
+
+    let grossSalesTotal = 0;
+    let platformFeesTotal = 0;
+    let netSalesTotal = 0;
+    let releasedAmount = 0;
+    let pendingAmount = 0;
+
+    const now = Date.now();
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const salesBreakdown = activePaidOrders.map((order) => {
+      const gross = Number(order.productAmount || order.productPrice || 0);
+      const fee = Number(order.platformFeeAmount || (gross * 0.06 + 4.99));
+      const net = Number(order.sellerNetAmount > 0 ? order.sellerNetAmount : Math.max(0, gross - fee));
+
+      grossSalesTotal += gross;
+      platformFeesTotal += fee;
+      netSalesTotal += net;
+
+      // Critério de liberação:
+      // 1. Pedido marcado como 'entregue' ou 'finalizado'
+      // 2. OU 7 dias corridos após a criação do pedido / entrega estimada sem contato/reclamação
+      const createdAtMs = new Date(order.createdAt).getTime();
+      const releaseTime = createdAtMs + SEVEN_DAYS_MS;
+      const isDelivered =
+        order.orderStatus === 'entregue' ||
+        order.orderStatus === 'finalizado' ||
+        order.shippingStatus === 'entregue';
+
+      const isSevenDaysPassed = now >= releaseTime;
+      const isReleased = isDelivered || isSevenDaysPassed;
+
+      let releaseReason = '';
+      let daysRemaining = 0;
+
+      if (isDelivered) {
+        releaseReason = 'Entrega do produto confirmada ao comprador';
+      } else if (isSevenDaysPassed) {
+        releaseReason = 'Prazo de segurança de 7 dias concluído';
+      } else {
+        daysRemaining = Math.max(1, Math.ceil((releaseTime - now) / (24 * 60 * 60 * 1000)));
+        releaseReason = `Aguardando entrega ou prazo de 7 dias (${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} restante${daysRemaining > 1 ? 's' : ''})`;
+      }
+
+      if (isReleased) {
+        releasedAmount += net;
+      } else {
+        pendingAmount += net;
+      }
+
+      return {
+        order,
+        grossAmount: gross,
+        platformFeeAmount: fee,
+        netAmount: net,
+        isReleased,
+        releaseReason,
+        releaseDate: new Date(releaseTime),
+        daysRemaining,
+      };
+    });
+
+    let totalWithdrawn = 0;
+    let withdrawnPaidAmount = 0;
+    let withdrawnPendingAmount = 0;
+
+    withdrawals.forEach((w) => {
+      if (w.status !== 'rejeitado') {
+        totalWithdrawn += w.requestedAmount;
+        if (w.status === 'pago') {
+          withdrawnPaidAmount += w.requestedAmount;
+        } else if (w.status === 'solicitado' || w.status === 'processando') {
+          withdrawnPendingAmount += w.requestedAmount;
+        }
+      }
+    });
+
+    const availableForWithdrawal = Math.max(0, releasedAmount - totalWithdrawn);
+
+    return {
+      grossSalesTotal,
+      platformFeesTotal,
+      netSalesTotal,
+      releasedAmount,
+      pendingAmount,
+      totalWithdrawn,
+      availableForWithdrawal,
+      withdrawnPaidAmount,
+      withdrawnPendingAmount,
+      salesCount: activePaidOrders.length,
+      salesBreakdown,
+      withdrawals,
+    };
   },
 
   mapOrderRecord(item: any): MarketplaceOrder {
@@ -1307,7 +1609,12 @@ export const marketplaceService = {
         return { success: false, error: ordersError.message };
       }
 
-      // 2. Limpa logs de envio
+      // 2. Limpa saques e logs de envio
+      await supabase
+        .from('marketplace_withdrawals')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
       await supabase
         .from('shipping_logs')
         .delete()
@@ -1339,6 +1646,7 @@ export const marketplaceService = {
   async clearEntireMarketplace(): Promise<{ success: boolean; error?: string }> {
     try {
       await supabase.from('marketplace_orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('marketplace_withdrawals').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('shipping_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('marketplace_reports').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('marketplace_favorites').delete().neq('id', '00000000-0000-0000-0000-000000000000');
