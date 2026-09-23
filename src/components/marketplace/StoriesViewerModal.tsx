@@ -187,8 +187,8 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
         @keyframes storyScreen3DFlipNext {
           0% {
-            opacity: 0.6;
-            transform: perspective(1200px) rotateY(-18deg) scale(0.96) translateX(40px);
+            opacity: 0.5;
+            transform: perspective(1200px) rotateY(22deg) scale(0.95) translateX(50px);
           }
           100% {
             opacity: 1;
@@ -198,8 +198,8 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
         @keyframes storyScreen3DFlipPrev {
           0% {
-            opacity: 0.6;
-            transform: perspective(1200px) rotateY(18deg) scale(0.96) translateX(-40px);
+            opacity: 0.5;
+            transform: perspective(1200px) rotateY(-22deg) scale(0.95) translateX(-50px);
           }
           100% {
             opacity: 1;
