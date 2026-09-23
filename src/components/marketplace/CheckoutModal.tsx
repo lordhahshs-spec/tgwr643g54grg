@@ -740,8 +740,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                   </div>
                 )}
-                  </div>
-                )}
               </div>
 
               {/* Opções de Envio (Melhor Envio) */}
