@@ -42,19 +42,21 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Touch handling for swipe gestures
+  // Refs de estado para evitar re-criação de loops e descompassos
+  const currentOfferIndexRef = useRef(currentOfferIndex);
+  const currentPhotoIndexRef = useRef(currentPhotoIndex);
+  const isPausedRef = useRef(isPaused);
+  const offersRef = useRef(offers);
+
+  // Touch handling para gestos de swipe
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Sync initial offer
+  // Sincroniza oferta inicial ao abrir
   useEffect(() => {
     if (isOpen && initialOfferId && offers.length > 0) {
       const idx = offers.findIndex((o) => o.id === initialOfferId);
-      if (idx !== -1) {
-        setCurrentOfferIndex(idx);
-      } else {
-        setCurrentOfferIndex(0);
-      }
+      setCurrentOfferIndex(idx !== -1 ? idx : 0);
       setCurrentPhotoIndex(0);
       setProgress(0);
       setIsPaused(false);
@@ -66,63 +68,89 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     ? activeOffer.images
     : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80'];
 
+  const imagesRef = useRef(images);
+
+  useEffect(() => {
+    currentOfferIndexRef.current = currentOfferIndex;
+    currentPhotoIndexRef.current = currentPhotoIndex;
+    isPausedRef.current = isPaused;
+    offersRef.current = offers;
+    imagesRef.current = images;
+  }, [currentOfferIndex, currentPhotoIndex, isPaused, offers, images]);
+
   const isLastPhotoOfOffer = currentPhotoIndex === images.length - 1;
-  const isFirstPhotoOfOffer = currentPhotoIndex === 0;
 
   const nextStory = useCallback(() => {
-    if (currentPhotoIndex < images.length - 1) {
-      // Avança para a próxima foto da mesma loja/oferta
-      setCurrentPhotoIndex((prev) => prev + 1);
+    const cPhoto = currentPhotoIndexRef.current;
+    const cImages = imagesRef.current;
+    const cOffer = currentOfferIndexRef.current;
+    const allOffers = offersRef.current;
+
+    if (cPhoto < cImages.length - 1) {
+      setCurrentPhotoIndex(cPhoto + 1);
       setProgress(0);
     } else {
-      // Chegou na última foto da oferta atual -> vai para a próxima oferta/loja
-      if (currentOfferIndex < offers.length - 1) {
-        setCurrentOfferIndex((prev) => prev + 1);
+      if (cOffer < allOffers.length - 1) {
+        setCurrentOfferIndex(cOffer + 1);
         setCurrentPhotoIndex(0);
         setProgress(0);
       } else {
-        // Chegou ao fim de todos os stories -> fecha
         onClose();
       }
     }
-  }, [currentPhotoIndex, images.length, currentOfferIndex, offers.length, onClose]);
+  }, [onClose]);
 
   const prevStory = useCallback(() => {
-    if (currentPhotoIndex > 0) {
-      // Volta para a foto anterior da mesma oferta
-      setCurrentPhotoIndex((prev) => prev - 1);
+    const cPhoto = currentPhotoIndexRef.current;
+    const cOffer = currentOfferIndexRef.current;
+    const allOffers = offersRef.current;
+
+    if (cPhoto > 0) {
+      setCurrentPhotoIndex(cPhoto - 1);
       setProgress(0);
     } else {
-      // Está na primeira foto -> se houver oferta anterior, vai para a última foto dela
-      if (currentOfferIndex > 0) {
-        const prevOfferIdx = currentOfferIndex - 1;
-        const prevImages = offers[prevOfferIdx]?.images || [];
+      if (cOffer > 0) {
+        const prevOfferIdx = cOffer - 1;
+        const prevImages = allOffers[prevOfferIdx]?.images || [];
         setCurrentOfferIndex(prevOfferIdx);
         setCurrentPhotoIndex(Math.max(0, prevImages.length - 1));
         setProgress(0);
       }
     }
-  }, [currentPhotoIndex, currentOfferIndex, offers]);
+  }, []);
 
-  // Timer automático de progressão do Story
+  // Timer de Barra de Progresso Preciso estilo Instagram (com pausa contínua)
   useEffect(() => {
-    if (!isOpen || isPaused || !activeOffer) return;
+    if (!isOpen || !activeOffer) return;
 
-    const intervalTime = 50; // atualiza a cada 50ms
-    const step = (intervalTime / STORY_DURATION_MS) * 100;
+    setProgress(0);
+    const startTime = Date.now();
+    let accumulatedPauseTime = 0;
+    let pauseStartTime: number | null = null;
 
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          nextStory();
-          return 0;
+    const interval = setInterval(() => {
+      if (isPausedRef.current) {
+        if (!pauseStartTime) {
+          pauseStartTime = Date.now();
         }
-        return prev + step;
-      });
-    }, intervalTime);
+        return;
+      } else if (pauseStartTime) {
+        accumulatedPauseTime += Date.now() - pauseStartTime;
+        pauseStartTime = null;
+      }
 
-    return () => clearInterval(timer);
-  }, [isOpen, isPaused, activeOffer, nextStory]);
+      const elapsed = Date.now() - startTime - accumulatedPauseTime;
+      const pct = Math.min(100, (elapsed / STORY_DURATION_MS) * 100);
+      setProgress(pct);
+
+      if (pct >= 100) {
+        clearInterval(interval);
+        nextStory();
+      }
+    }, 25);
+
+    return () => clearInterval(interval);
+  }, [isOpen, currentOfferIndex, currentPhotoIndex, activeOffer, nextStory]);
 
   // Teclado: Escape (fechar), Seta Esquerda (voltar), Seta Direita (avançar), Espaço (pausar)
   useEffect(() => {
@@ -145,7 +173,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, nextStory, prevStory, onClose]);
 
-  // Touch handlers
+  // Touch handlers para gestos e pausa ao segurar
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
@@ -159,13 +187,13 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
     const diffY = touchStartYRef.current - e.changedTouches[0].clientY;
 
-    // Se arrastou pra baixo, fecha o story (gesto clássico do Instagram)
+    // Se arrastou pra baixo, fecha o story
     if (diffY < -60 && Math.abs(diffX) < 80) {
       onClose();
       return;
     }
 
-    // Se arrastou para a esquerda (próximo) ou direita (anterior)
+    // Swipe horizontal
     if (Math.abs(diffX) > 50) {
       if (diffX > 0) {
         nextStory();
@@ -192,7 +220,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-200 select-none">
-      {/* Botão de Fechar Geral (topo direito da tela) */}
+      {/* Botão de Fechar Geral */}
       <button
         onClick={onClose}
         className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white/90 hover:text-white border border-white/10 hover:border-white/20 transition-all shadow-xl backdrop-blur-md cursor-pointer"
@@ -201,7 +229,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         <X className="w-5 h-5" />
       </button>
 
-      {/* Botões Laterais Desktop para Navegar entre Lojas/Ofertas */}
+      {/* Botões Laterais Desktop */}
       {currentOfferIndex > 0 && (
         <button
           onClick={() => {
@@ -230,7 +258,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         </button>
       )}
 
-      {/* Conteiner Central do Story (Proporção 9:16 Instagram Stories) */}
+      {/* Conteiner Central do Story (Proporção 9:16) */}
       <div
         className="relative w-full h-full sm:h-[92vh] sm:max-w-[420px] sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border sm:border-white/15 bg-slate-950 flex flex-col justify-between"
         onMouseDown={() => setIsPaused(true)}
@@ -238,19 +266,18 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* IMAGEM PRINCIPAL DO STORY */}
+        {/* IMAGEM DO STORY */}
         <div className="absolute inset-0 z-0 bg-slate-950">
           <img
             key={currentImage}
             src={currentImage}
             alt={activeOffer.title}
-            className="w-full h-full object-cover object-center animate-in fade-in zoom-in-95 duration-300"
+            className="w-full h-full object-cover object-center animate-in fade-in zoom-in-95 duration-200"
           />
-          {/* Vinheta gradiente superior e inferior estilo Instagram para leitura limpa */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-transparent to-black/90 pointer-events-none" />
         </div>
 
-        {/* ZONAS DE CLIQUE INVISÍVEIS PARA PASSAR FOTO (Igual Instagram: Esquerda volta, Direita avança) */}
+        {/* ZONAS DE CLIQUE INVISÍVEIS */}
         <div className="absolute inset-0 z-10 flex">
           <div
             onClick={(e) => {
@@ -274,20 +301,21 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         {/* CABEÇALHO DO STORY (Barras de Progresso Segmentadas + Info da Loja) */}
         {/* ========================================================================= */}
         <div className="relative z-20 p-3 sm:p-4 space-y-3 pointer-events-none">
-          {/* Barras de Progresso Segmentadas do Instagram (Uma por foto do produto) */}
+          {/* BARRAS DE TEMPO SEGMENTADAS ESTILO INSTAGRAM */}
           <div className="flex items-center gap-1.5 w-full">
             {images.map((_, idx) => {
               let fillPercent = 0;
               if (idx < currentPhotoIndex) fillPercent = 100;
               else if (idx === currentPhotoIndex) fillPercent = progress;
+              else fillPercent = 0;
 
               return (
                 <div
                   key={idx}
-                  className="flex-1 h-1 rounded-full bg-white/30 backdrop-blur-sm overflow-hidden"
+                  className="flex-1 h-1 sm:h-1.5 rounded-full bg-white/30 backdrop-blur-md overflow-hidden shadow-sm"
                 >
                   <div
-                    className="h-full bg-white transition-all duration-75 ease-linear rounded-full"
+                    className="h-full bg-white rounded-full transition-all duration-75 ease-linear"
                     style={{ width: `${fillPercent}%` }}
                   />
                 </div>
@@ -320,7 +348,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
               </div>
             </div>
 
-            {/* Ações do Topo: Pausar e Favoritar */}
+            {/* Ações do Topo */}
             <div className="flex items-center gap-1.5">
               <button
                 type="button"

@@ -1217,6 +1217,8 @@ export const marketplaceService = {
           origin_state: 'SP',
           images: [
             'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1588508065123-287b28e013da?w=800&auto=format&fit=crop&q=80',
           ],
           status: 'publicada',
           views: 52,
@@ -1247,6 +1249,8 @@ export const marketplaceService = {
           origin_state: 'SP',
           images: [
             'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1581092162384-8987c1d64718?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=800&auto=format&fit=crop&q=80',
           ],
           status: 'publicada',
           views: 16,
