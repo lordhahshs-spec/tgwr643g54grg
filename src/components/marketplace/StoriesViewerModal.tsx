@@ -186,9 +186,9 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
         @keyframes storyCard3DCubeNext {
           0% {
-            opacity: 0.5;
-            transform: perspective(1400px) rotateY(28deg) scale(0.92) translateX(45px);
-            box-shadow: -25px 15px 50px rgba(0, 0, 0, 0.9);
+            opacity: 0.6;
+            transform: perspective(1400px) rotateY(-26deg) scale(0.93) translateX(50px);
+            box-shadow: -20px 15px 40px rgba(0, 0, 0, 0.85);
           }
           100% {
             opacity: 1;
@@ -199,9 +199,9 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
         @keyframes storyCard3DCubePrev {
           0% {
-            opacity: 0.5;
-            transform: perspective(1400px) rotateY(-28deg) scale(0.92) translateX(-45px);
-            box-shadow: 25px 15px 50px rgba(0, 0, 0, 0.9);
+            opacity: 0.6;
+            transform: perspective(1400px) rotateY(26deg) scale(0.93) translateX(-50px);
+            box-shadow: 20px 15px 40px rgba(0, 0, 0, 0.85);
           }
           100% {
             opacity: 1;
@@ -254,7 +254,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
             animation: `${direction === 'next' ? 'storyCard3DCubeNext' : 'storyCard3DCubePrev'} 320ms cubic-bezier(0.2, 0.9, 0.4, 1) forwards`,
             transformStyle: 'preserve-3d',
             backfaceVisibility: 'hidden',
-            transformOrigin: direction === 'next' ? 'right center' : 'left center',
+            transformOrigin: direction === 'next' ? 'left center' : 'right center',
           }}
           onMouseDown={() => setIsPaused(true)}
           onMouseUp={() => setIsPaused(false)}
