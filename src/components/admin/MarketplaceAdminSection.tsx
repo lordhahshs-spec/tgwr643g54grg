@@ -26,7 +26,8 @@ import {
   Wallet,
   Globe,
   Sliders,
-  AlertCircle
+  AlertCircle,
+  Box
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
