@@ -429,16 +429,14 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 flex-shrink-0">
-                    {currentUser?.role === 'admin' && (
-                      <button
-                        onClick={handleGenerateSamples}
-                        disabled={isGeneratingSamples}
-                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold transition-all flex items-center gap-1.5"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
-                        Gerar Exemplos (Stories & Feed)
-                      </button>
-                    )}
+                    <button
+                      onClick={handleGenerateSamples}
+                      disabled={isGeneratingSamples}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
+                      <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Exemplos (Stories & Feed)'}</span>
+                    </button>
 
                     <button
                       onClick={() => {
@@ -481,16 +479,14 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                    {currentUser?.role === 'admin' && (
-                      <button
-                        onClick={handleGenerateSamples}
-                        disabled={isGeneratingSamples}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all"
-                      >
-                        <Sparkles className="w-4 h-4 text-[#00D287]" />
-                        <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={handleGenerateSamples}
+                      disabled={isGeneratingSamples}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-[#00D287]" />
+                      <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
+                    </button>
 
                     <button
                       onClick={() => {
