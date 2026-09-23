@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   Heart,
   Truck,
-  Building2,
   CheckCircle2,
   Pause,
   Play,
@@ -42,84 +41,81 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Refs de estado para evitar re-criação de loops e descompassos
-  const currentOfferIndexRef = useRef(currentOfferIndex);
-  const currentPhotoIndexRef = useRef(currentPhotoIndex);
+  // Guarda se o modal acabou de abrir para NÃO resetar em atualizações de segundo plano
+  const wasOpenRef = useRef(false);
   const isPausedRef = useRef(isPaused);
-  const offersRef = useRef(offers);
+  isPausedRef.current = isPaused;
 
   // Touch handling para gestos de swipe
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Sincroniza oferta inicial ao abrir
+  // Sincroniza APENAS no momento da abertura do modal
   useEffect(() => {
-    if (isOpen && initialOfferId && offers.length > 0) {
-      const idx = offers.findIndex((o) => o.id === initialOfferId);
-      setCurrentOfferIndex(idx !== -1 ? idx : 0);
+    if (isOpen && !wasOpenRef.current) {
+      if (initialOfferId && offers.length > 0) {
+        const idx = offers.findIndex((o) => o.id === initialOfferId);
+        setCurrentOfferIndex(idx !== -1 ? idx : 0);
+      } else {
+        setCurrentOfferIndex(0);
+      }
       setCurrentPhotoIndex(0);
       setProgress(0);
       setIsPaused(false);
     }
-  }, [isOpen, initialOfferId, offers]);
+    wasOpenRef.current = isOpen;
+  }, [isOpen, initialOfferId]);
 
   const activeOffer: MarketplaceOffer | undefined = offers[currentOfferIndex];
   const images = activeOffer?.images && activeOffer.images.length > 0
     ? activeOffer.images
     : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80'];
 
-  const imagesRef = useRef(images);
-
-  useEffect(() => {
-    currentOfferIndexRef.current = currentOfferIndex;
-    currentPhotoIndexRef.current = currentPhotoIndex;
-    isPausedRef.current = isPaused;
-    offersRef.current = offers;
-    imagesRef.current = images;
-  }, [currentOfferIndex, currentPhotoIndex, isPaused, offers, images]);
-
   const isLastPhotoOfOffer = currentPhotoIndex === images.length - 1;
 
+  // Função para avançar story / foto
   const nextStory = useCallback(() => {
-    const cPhoto = currentPhotoIndexRef.current;
-    const cImages = imagesRef.current;
-    const cOffer = currentOfferIndexRef.current;
-    const allOffers = offersRef.current;
-
-    if (cPhoto < cImages.length - 1) {
-      setCurrentPhotoIndex(cPhoto + 1);
-      setProgress(0);
-    } else {
-      if (cOffer < allOffers.length - 1) {
-        setCurrentOfferIndex(cOffer + 1);
-        setCurrentPhotoIndex(0);
-        setProgress(0);
+    setCurrentPhotoIndex((prevPhoto) => {
+      if (prevPhoto < images.length - 1) {
+        return prevPhoto + 1;
       } else {
-        onClose();
+        // Chegou na última foto da oferta atual -> vai para a próxima oferta
+        setCurrentOfferIndex((prevOffer) => {
+          if (prevOffer < offers.length - 1) {
+            return prevOffer + 1;
+          } else {
+            onClose();
+            return prevOffer;
+          }
+        });
+        return 0;
       }
-    }
-  }, [onClose]);
+    });
+    setProgress(0);
+  }, [images.length, offers.length, onClose]);
 
+  // Função para voltar story / foto
   const prevStory = useCallback(() => {
-    const cPhoto = currentPhotoIndexRef.current;
-    const cOffer = currentOfferIndexRef.current;
-    const allOffers = offersRef.current;
-
-    if (cPhoto > 0) {
-      setCurrentPhotoIndex(cPhoto - 1);
-      setProgress(0);
-    } else {
-      if (cOffer > 0) {
-        const prevOfferIdx = cOffer - 1;
-        const prevImages = allOffers[prevOfferIdx]?.images || [];
-        setCurrentOfferIndex(prevOfferIdx);
-        setCurrentPhotoIndex(Math.max(0, prevImages.length - 1));
-        setProgress(0);
+    setCurrentPhotoIndex((prevPhoto) => {
+      if (prevPhoto > 0) {
+        return prevPhoto - 1;
+      } else {
+        setCurrentOfferIndex((prevOffer) => {
+          if (prevOffer > 0) {
+            const prevOfferIdx = prevOffer - 1;
+            const prevImgs = offers[prevOfferIdx]?.images?.length || 1;
+            setTimeout(() => setCurrentPhotoIndex(prevImgs - 1), 0);
+            return prevOfferIdx;
+          }
+          return prevOffer;
+        });
+        return 0;
       }
-    }
-  }, []);
+    });
+    setProgress(0);
+  }, [offers]);
 
-  // Timer de Barra de Progresso Preciso estilo Instagram (com pausa contínua)
+  // Timer preciso estilo Instagram que preenche a barra de 0 a 100% e avança
   useEffect(() => {
     if (!isOpen || !activeOffer) return;
 
@@ -150,7 +146,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     }, 25);
 
     return () => clearInterval(interval);
-  }, [isOpen, currentOfferIndex, currentPhotoIndex, activeOffer, nextStory]);
+  }, [isOpen, currentOfferIndex, currentPhotoIndex, nextStory]);
 
   // Teclado: Escape (fechar), Seta Esquerda (voltar), Seta Direita (avançar), Espaço (pausar)
   useEffect(() => {
@@ -187,7 +183,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
     const diffY = touchStartYRef.current - e.changedTouches[0].clientY;
 
-    // Se arrastou pra baixo, fecha o story
+    // Swipe para baixo fecha o story
     if (diffY < -60 && Math.abs(diffX) < 80) {
       onClose();
       return;
@@ -353,7 +349,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPaused((p) => !p)}
-                className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/90 border border-white/10 backdrop-blur-md transition-colors"
+                className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/90 border border-white/10 backdrop-blur-md transition-colors cursor-pointer"
                 title={isPaused ? 'Reproduzir' : 'Pausar'}
               >
                 {isPaused ? <Play className="w-3.5 h-3.5 fill-white" /> : <Pause className="w-3.5 h-3.5 fill-white" />}
@@ -363,7 +359,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                 <button
                   type="button"
                   onClick={(e) => onToggleFavorite(activeOffer.id, e)}
-                  className={`p-1.5 rounded-full backdrop-blur-md border transition-colors ${
+                  className={`p-1.5 rounded-full backdrop-blur-md border transition-colors cursor-pointer ${
                     isFavorite
                       ? 'bg-rose-500/40 text-rose-400 border-rose-500/50'
                       : 'bg-black/40 text-slate-200 hover:text-white border-white/10'
@@ -377,7 +373,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md transition-colors"
+                className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md transition-colors cursor-pointer"
                 title="Fechar"
               >
                 <X className="w-3.5 h-3.5" />
