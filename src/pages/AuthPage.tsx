@@ -128,7 +128,12 @@ export const AuthPage: React.FC = () => {
 
         // Master admin direct check
         if (email.toLowerCase().trim() === 'lordhahshs@gmail.com') {
-          const { user } = await leadAuthService.login('lordhahshs@gmail.com', password);
+          const { user, error } = await leadAuthService.login('lordhahshs@gmail.com', password);
+          if (error) {
+            setErrorMessage(error);
+            setIsSubmitting(false);
+            return;
+          }
           if (user && user.role === 'admin') {
             navigate('/admin');
             return;
