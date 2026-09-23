@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Flame, 
-  TrendingUp, 
-  ShoppingBag, 
-  AlertTriangle, 
-  ShieldAlert, 
-  Settings, 
-  Trash2, 
-  Check, 
-  Eye, 
-  PauseCircle, 
+import {
+  Flame,
+  TrendingUp,
+  ShoppingBag,
+  AlertTriangle,
+  ShieldAlert,
+  Settings,
+  Trash2,
+  Check,
+  Eye,
+  PauseCircle,
   PlayCircle,
   Package,
   DollarSign,
@@ -27,7 +27,9 @@ import {
   Globe,
   Sliders,
   AlertCircle,
-  Box
+  Box,
+  RotateCcw,
+  History
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
@@ -295,6 +297,30 @@ export const MarketplaceAdminSection: React.FC = () => {
     }
   };
 
+  const handleClearSalesAndHistory = async () => {
+    if (window.confirm('Deseja ZERAR todos os dados de faturamento, pedidos, vendas e histórico do marketplace?\n\n• Todos os pedidos serão excluídos.\n• O faturamento e taxas acumuladas serão zerados (R$ 0,00).\n• Ofertas marcadas como vendidas voltarão a ficar disponíveis.\n• Logs de envio e rastreio serão limpos.')) {
+      const res = await marketplaceService.clearSalesAndBillingHistory();
+      if (res.success) {
+        toast.success('Histórico de vendas e faturamento zerado com sucesso!');
+        loadData();
+      } else {
+        toast.error(`Erro ao zerar histórico de vendas: ${res.error}`);
+      }
+    }
+  };
+
+  const handleClearEntireMarketplace = async () => {
+    if (window.confirm('⚠️ ATENÇÃO: Deseja realizar o RESET COMPLETO do Marketplace?\n\nIsso irá apagar:\n1. Todas as ofertas cadastradas\n2. Todas as vendas e faturamento\n3. Todos os pedidos e histórico\n4. Todas as denúncias e logs de rastreamento\n\nEssa ação é irreversível. Deseja continuar?')) {
+      const res = await marketplaceService.clearEntireMarketplace();
+      if (res.success) {
+        toast.success('Marketplace resetado completamente!');
+        loadData();
+      } else {
+        toast.error(`Erro ao resetar marketplace: ${res.error}`);
+      }
+    }
+  };
+
   const filteredOffers = offers.filter(o => 
     o.title.toLowerCase().includes(search.toLowerCase()) ||
     o.sellerCompany.toLowerCase().includes(search.toLowerCase()) ||
@@ -315,23 +341,43 @@ export const MarketplaceAdminSection: React.FC = () => {
           <p className="text-xs text-slate-400 mt-1">
             Intermediação, logística integrada via Melhor Envio e custódia financeira entre lojistas.
           </p>
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex flex-wrap items-center gap-2 mt-3">
             <button
               onClick={handleGenerateSamples}
-              className="px-3 py-1.5 rounded-xl bg-[#00D287]/20 hover:bg-[#00D287]/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-3 py-1.5 rounded-xl bg-[#00D287]/20 hover:bg-[#00D287]/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               Gerar Ofertas de Exemplo
             </button>
+
+            <button
+              onClick={handleClearSalesAndHistory}
+              className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Zera todas as vendas, histórico de faturamento, pedidos e logs"
+            >
+              <History className="w-3.5 h-3.5" />
+              Zerar Vendas & Faturamento
+            </button>
+
             {offers.length > 0 && (
               <button
                 onClick={handleClearAllOffers}
-                className="px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                className="px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exclui todas as ofertas da vitrine"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Limpar Ofertas
               </button>
             )}
+
+            <button
+              onClick={handleClearEntireMarketplace}
+              className="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Reset total do Marketplace (Ofertas + Vendas + Histórico)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset Geral (Tudo)
+            </button>
           </div>
         </div>
 
@@ -440,6 +486,35 @@ export const MarketplaceAdminSection: React.FC = () => {
               </div>
               <h3 className="text-2xl font-black text-white">{activeOffersCount} / {totalOffersCount}</h3>
               <p className="text-[11px] text-slate-500">Anúncios de lojistas ativos</p>
+            </div>
+          </div>
+
+          {/* Card de Gestão de Banco & Limpeza de Faturamento */}
+          <div className="p-5 rounded-2xl bg-[#080d1a] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <History className="w-4 h-4 text-amber-400" />
+                Gerenciamento de Faturamento & Banco de Dados
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Zere os dados de faturamento/vendas de teste ou resete o marketplace quando desejar reiniciar as operações.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleClearSalesAndHistory}
+                className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <History className="w-3.5 h-3.5" />
+                Zerar Vendas & Faturamento
+              </button>
+              <button
+                onClick={handleClearEntireMarketplace}
+                className="px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset Geral (Tudo)
+              </button>
             </div>
           </div>
         </div>

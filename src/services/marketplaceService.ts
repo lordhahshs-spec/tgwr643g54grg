@@ -1289,5 +1289,67 @@ export const marketplaceService = {
       console.error('[marketplaceService] Erro em clearAllOffers:', e);
       return false;
     }
+  },
+
+  /**
+   * Zera todo o histórico de vendas, faturamento, pedidos e rastreamentos do marketplace
+   */
+  async clearSalesAndBillingHistory(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 1. Exclui todos os pedidos de venda do marketplace
+      const { error: ordersError } = await supabase
+        .from('marketplace_orders')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (ordersError) {
+        console.error('[marketplaceService] Erro ao limpar pedidos:', ordersError);
+        return { success: false, error: ordersError.message };
+      }
+
+      // 2. Limpa logs de envio
+      await supabase
+        .from('shipping_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      // 3. Reseta contadores de cancelamento de vendas dos lojistas
+      await supabase
+        .from('user_accounts')
+        .update({ sales_cancellation_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      // 4. Se houver ofertas com status "vendida", coloca de volta para "publicada"
+      await supabase
+        .from('marketplace_offers')
+        .update({ status: 'publicada' })
+        .eq('status', 'vendida');
+
+      clearMarketplaceCache();
+      return { success: true };
+    } catch (e: any) {
+      console.error('[marketplaceService] Erro ao limpar histórico de vendas:', e);
+      return { success: false, error: e?.message || 'Erro desconhecido' };
+    }
+  },
+
+  /**
+   * Limpa TODOS os dados do marketplace: pedidos, faturamento, histórico, logs, denúncias e ofertas
+   */
+  async clearEntireMarketplace(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await supabase.from('marketplace_orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('shipping_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('marketplace_reports').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('marketplace_favorites').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('marketplace_offers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('user_accounts').update({ sales_cancellation_count: 0 }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+      clearMarketplaceCache();
+      return { success: true };
+    } catch (e: any) {
+      console.error('[marketplaceService] Erro ao resetar marketplace:', e);
+      return { success: false, error: e?.message || 'Erro desconhecido' };
+    }
   }
 };
