@@ -32,13 +32,33 @@ export const EsquemasTab: React.FC<EsquemasTabProps> = ({ isDemo = false, onUnlo
 
   useEffect(() => {
     loadSchematics();
+
+    // Sistema de Tick a cada 3 segundos: atualiza silenciosamente sem reiniciar scroll nem PDF viewer
+    const tickInterval = setInterval(() => {
+      loadSchematics(true);
+    }, 3000);
+
+    return () => clearInterval(tickInterval);
   }, []);
 
-  const loadSchematics = async () => {
-    setLoading(true);
-    const data = await schematicService.getSchematics();
-    setSchematics(data);
-    setLoading(false);
+  const loadSchematics = async (silent = false) => {
+    if (!silent && schematics.length === 0) {
+      setLoading(true);
+    }
+    try {
+      const data = await schematicService.getSchematics();
+      setSchematics(data);
+      if (selectedSchematic) {
+        const found = data.find((s) => s.id === selectedSchematic.id);
+        if (found) setSelectedSchematic(found);
+      }
+    } catch (e) {
+      if (!silent) console.error(e);
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
   };
 
   const filteredSchematics = schematics.filter((s) => {

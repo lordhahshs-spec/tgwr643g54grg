@@ -103,8 +103,10 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
     }
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent && myOffers.length === 0 && mySales.length === 0 && myPurchases.length === 0) {
+      setLoading(true);
+    }
     try {
       // Carregamento paralelo focado estritamente no lojista logado
       const [offers, sales, purchases, favIds] = await Promise.all([
@@ -126,14 +128,25 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
         setFavoriteOffers([]);
       }
     } catch (e) {
-      console.error(e);
+      if (!silent) {
+        console.error('[MyMarketplacePanel] Erro ao carregar dados:', e);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     loadData();
+
+    // Sistema de Tick a cada 3 segundos: atualiza silenciosamente os dados do painel sem interromper o usuário
+    const tickInterval = setInterval(() => {
+      loadData(true);
+    }, 3000);
+
+    return () => clearInterval(tickInterval);
   }, [currentUser.id]);
 
   const formatBRL = (val: number) => {

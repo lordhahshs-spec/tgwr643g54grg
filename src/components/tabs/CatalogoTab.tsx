@@ -39,13 +39,29 @@ export const CatalogoTab: React.FC<CatalogoTabProps> = ({ onGoToAurusSimulator }
 
   useEffect(() => {
     loadDevices();
+
+    // Sistema de Tick a cada 3 segundos: atualiza silenciosamente os dados sem perder o scroll do catálogo
+    const tickInterval = setInterval(() => {
+      loadDevices(true);
+    }, 3000);
+
+    return () => clearInterval(tickInterval);
   }, []);
 
-  const loadDevices = async () => {
-    setLoading(true);
-    const data = await catalogService.getDevices();
-    setDevices(data);
-    setLoading(false);
+  const loadDevices = async (silent = false) => {
+    if (!silent && devices.length === 0) {
+      setLoading(true);
+    }
+    try {
+      const data = await catalogService.getDevices();
+      setDevices(data);
+    } catch (e) {
+      if (!silent) console.error(e);
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
   };
 
   const handleAddDevice = async (e: React.FormEvent) => {

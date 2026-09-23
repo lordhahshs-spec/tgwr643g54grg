@@ -69,8 +69,10 @@ export const MarketplaceAdminSection: React.FC = () => {
   const [editingPackages, setEditingPackages] = useState<Record<string, Partial<CategoryPackageDefault>>>({});
   const [savingPackageId, setSavingPackageId] = useState<string | null>(null);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent && offers.length === 0 && orders.length === 0) {
+      setLoading(true);
+    }
     try {
       // 1. Carregamento prioritário instantâneo: Vendas, Produtos Cadastrados e Métricas Financeiras
       const [allOffers, allOrders, allReports, settings] = await Promise.all([
@@ -84,8 +86,12 @@ export const MarketplaceAdminSection: React.FC = () => {
       setOrders(allOrders);
       setReports(allReports);
       setFeeSettings(settings);
-      setFeeInput(String(settings.defaultFeePercent));
-      setLoading(false); // Libera a exibição das tabelas imediatamente
+      if (!silent) {
+        setFeeInput(String(settings.defaultFeePercent));
+      }
+      if (!silent) {
+        setLoading(false); // Libera a exibição das tabelas imediatamente
+      }
 
       // 2. Carregamento secundário de configurações do Melhor Envio (leitura direta e instantânea do banco)
       Promise.all([
@@ -95,21 +101,30 @@ export const MarketplaceAdminSection: React.FC = () => {
         setPackageDefaults(defaults);
         setIntegrationStatus(meStatus);
 
-        if (meStatus) {
+        if (meStatus && !editingSettings) {
           setEnvChoice(meStatus.environment || 'production');
           setClientIdInput(meStatus.client_id || '30171');
           setRedirectUriInput(meStatus.redirect_uri || 'https://cellhub.shop/api/melhor-envio/callback');
         }
       });
     } catch (e) {
-      console.error(e);
-      toast.error('Erro ao carregar dados do marketplace.');
-      setLoading(false);
+      if (!silent) {
+        console.error(e);
+        toast.error('Erro ao carregar dados do marketplace.');
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     loadData();
+
+    // Sistema de Tick a cada 3 segundos: atualiza ofertas e pedidos do marketplace em tempo real
+    const tickInterval = setInterval(() => {
+      loadData(true);
+    }, 3000);
+
+    return () => clearInterval(tickInterval);
   }, []);
 
   const formatBRL = (val: number) => {

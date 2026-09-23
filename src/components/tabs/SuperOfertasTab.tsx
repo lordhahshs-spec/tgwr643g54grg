@@ -92,8 +92,15 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
       }
     };
     window.addEventListener('cellhub_user_updated', handleUserUpdated);
+
+    // Sistema de Tick a cada 3 segundos: atualiza silenciosamente os dados sem perder o scroll nem a posição do lead
+    const tickInterval = setInterval(() => {
+      loadData(true);
+    }, 3000);
+
     return () => {
       window.removeEventListener('cellhub_user_updated', handleUserUpdated);
+      clearInterval(tickInterval);
     };
   }, []);
 
@@ -102,14 +109,23 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
     setFavorites(favs);
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent && regularOffers.length === 0) {
+      setLoading(true);
+    }
     try {
       // Carrega a lista geral de ofertas de forma paralela e ultra veloz
       const regular = await marketplaceService.getOffers({
         status: 'publicada',
       });
       setRegularOffers(regular);
+
+      // Se o lead estiver visualizando os detalhes de uma oferta, mantém atualizado sem fechar nem mover
+      setSelectedOfferForDetails((prev) => {
+        if (!prev) return null;
+        const updated = regular.find((o) => o.id === prev.id);
+        return updated || prev;
+      });
 
       // Extrai ofertas quentes instantaneamente a partir das métricas em memória (zero requisições duplicadas)
       const scored = [...regular].sort((a, b) => {
@@ -121,10 +137,14 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
       const hot = scored.filter(o => (o.views || 0) > 0 || (o.salesCount || 0) > 0 || o.rating !== null);
       setHotOffers(hot.length > 0 ? hot : regular.slice(0, 8));
     } catch (err) {
-      console.error(err);
-      toast.error('Erro ao carregar ofertas do marketplace.');
+      if (!silent) {
+        console.error(err);
+        toast.error('Erro ao carregar ofertas do marketplace.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 

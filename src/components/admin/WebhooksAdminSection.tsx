@@ -83,6 +83,13 @@ export const WebhooksAdminSection: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    // Sistema de Tick a cada 3 segundos: atualiza logs e status dos webhooks silenciosamente
+    const tickInterval = setInterval(() => {
+      loadData(true);
+    }, 3000);
+
+    return () => clearInterval(tickInterval);
   }, []);
 
   // Periodic Auto-Healthcheck

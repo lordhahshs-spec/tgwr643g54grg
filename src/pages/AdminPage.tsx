@@ -199,22 +199,37 @@ export const AdminPage: React.FC = () => {
       )
       .subscribe();
 
+    // Sistema de Tick a cada 3 segundos: atualiza silenciosamente os dados de admin sem perder a posição do admin
+    const tickInterval = setInterval(() => {
+      loadAllData(true);
+    }, 3000);
+
     return () => {
       supabase.removeChannel(realtimeChannel);
+      clearInterval(tickInterval);
     };
   }, [navigate]);
 
-  const loadAllData = async () => {
-    setLoading(true);
-    const [accs, devs, schs] = await Promise.all([
-      leadAuthService.getAccounts(),
-      catalogService.getDevices(),
-      schematicService.getSchematics(),
-    ]);
-    setAccounts(accs);
-    setDevices(devs);
-    setSchematics(schs);
-    setLoading(false);
+  const loadAllData = async (silent = false) => {
+    if (!silent && accounts.length === 0) {
+      setLoading(true);
+    }
+    try {
+      const [accs, devs, schs] = await Promise.all([
+        leadAuthService.getAccounts(),
+        catalogService.getDevices(),
+        schematicService.getSchematics(),
+      ]);
+      setAccounts(accs);
+      setDevices(devs);
+      setSchematics(schs);
+    } catch (e) {
+      if (!silent) console.error(e);
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
   };
 
   const handleSaveAdminCredentials = async (e: React.FormEvent) => {

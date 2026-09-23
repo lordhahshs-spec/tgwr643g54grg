@@ -20,6 +20,26 @@ const isUuid = (val?: string): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val || '');
 };
 
+// Cache ultra-rápido em memória para resposta instantânea (0ms) e prevenção de requisições repetidas
+const memoryCache = new Map<string, { timestamp: number; data: any }>();
+const CACHE_TTL_MS = 2500; // 2.5 segundos
+
+const getCached = <T>(key: string): T | null => {
+  const hit = memoryCache.get(key);
+  if (hit && Date.now() - hit.timestamp < CACHE_TTL_MS) {
+    return hit.data as T;
+  }
+  return null;
+};
+
+const setCached = (key: string, data: any) => {
+  memoryCache.set(key, { timestamp: Date.now(), data });
+};
+
+export const clearMarketplaceCache = () => {
+  memoryCache.clear();
+};
+
 export const marketplaceService = {
   // --- OFERTAS ---
   async getOffers(params?: {
@@ -30,6 +50,12 @@ export const marketplaceService = {
     status?: OfferStatus | 'todas';
     sortBy?: 'recent' | 'price_asc' | 'price_desc' | 'views';
   }): Promise<MarketplaceOffer[]> {
+    const cacheKey = `offers_${JSON.stringify(params || {})}`;
+    const cached = getCached<MarketplaceOffer[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     let query = supabase.from('marketplace_offers').select('*');
 
     if (params?.sellerId && isUuid(params.sellerId)) {
@@ -74,34 +100,45 @@ export const marketplaceService = {
     }
 
     const data = offersRes.data || [];
-    if (data.length === 0) return [];
+    if (data.length === 0) {
+      setCached(cacheKey, []);
+      return [];
+    }
 
     const offerIds = data.map(item => item.id);
 
-    // Busca vendas e avaliações filtradas estritamente pelos IDs das ofertas retornadas (alta performance)
-    const [ordersRes, reviewsRes] = await Promise.all([
-      supabase.from('marketplace_orders').select('offer_id').in('offer_id', offerIds),
-      supabase.from('marketplace_reviews').select('offer_id, rating').in('offer_id', offerIds)
-    ]);
+    // Se a busca for específica de um vendedor (ex: Painel Minhas Ofertas),
+    // pula requisições de métricas extras para resposta instantânea (<20ms)
+    let salesMap: Record<string, number> = {};
+    let reviewsMap: Record<string, { total: number; count: number }> = {};
 
-    const orders = ordersRes.data || [];
-    const reviews = reviewsRes.data || [];
+    if (!params?.sellerId && offerIds.length > 0) {
+      try {
+        const [ordersRes, reviewsRes] = await Promise.all([
+          supabase.from('marketplace_orders').select('offer_id').in('offer_id', offerIds),
+          supabase.from('marketplace_reviews').select('offer_id, rating').in('offer_id', offerIds)
+        ]);
 
-    const salesMap: Record<string, number> = {};
-    orders.forEach(o => {
-      if (o.offer_id) salesMap[o.offer_id] = (salesMap[o.offer_id] || 0) + 1;
-    });
+        const orders = ordersRes.data || [];
+        const reviews = reviewsRes.data || [];
 
-    const reviewsMap: Record<string, { total: number; count: number }> = {};
-    reviews.forEach(r => {
-      if (r.offer_id) {
-        if (!reviewsMap[r.offer_id]) reviewsMap[r.offer_id] = { total: 0, count: 0 };
-        reviewsMap[r.offer_id].total += Number(r.rating || 0);
-        reviewsMap[r.offer_id].count += 1;
+        orders.forEach(o => {
+          if (o.offer_id) salesMap[o.offer_id] = (salesMap[o.offer_id] || 0) + 1;
+        });
+
+        reviews.forEach(r => {
+          if (r.offer_id) {
+            if (!reviewsMap[r.offer_id]) reviewsMap[r.offer_id] = { total: 0, count: 0 };
+            reviewsMap[r.offer_id].total += Number(r.rating || 0);
+            reviewsMap[r.offer_id].count += 1;
+          }
+        });
+      } catch (err) {
+        console.warn('[marketplaceService] Aviso ao carregar métricas secundárias:', err);
       }
-    });
+    }
 
-    return (data || []).map(item => {
+    const mappedOffers: MarketplaceOffer[] = (data || []).map(item => {
       const revData = reviewsMap[item.id];
       const avgRating = revData && revData.count > 0
         ? Number((revData.total / revData.count).toFixed(1))
@@ -145,6 +182,9 @@ export const marketplaceService = {
         updatedAt: item.updated_at
       };
     });
+
+    setCached(cacheKey, mappedOffers);
+    return mappedOffers;
   },
 
   async getHotOffers(): Promise<MarketplaceOffer[]> {
@@ -355,6 +395,7 @@ export const marketplaceService = {
       return { success: false, error: error.message };
     }
 
+    clearMarketplaceCache();
     return { success: true, id: data.id };
   },
 
@@ -389,6 +430,7 @@ export const marketplaceService = {
       .update(payload)
       .eq('id', id);
 
+    if (!error) clearMarketplaceCache();
     return !error;
   },
 
@@ -397,6 +439,10 @@ export const marketplaceService = {
       .from('marketplace_offers')
       .delete()
       .eq('id', id);
+
+    if (!error) clearMarketplaceCache();
+    return !error;
+  },
 
     return !error;
   },
@@ -563,11 +609,16 @@ export const marketplaceService = {
       },
     });
 
+    clearMarketplaceCache();
     return { success: true, orderId: data.id };
   },
 
   async getBuyerOrders(buyerId: string): Promise<MarketplaceOrder[]> {
     if (!buyerId || !isUuid(buyerId)) return [];
+    const cacheKey = `buyer_orders_${buyerId}`;
+    const cached = getCached<MarketplaceOrder[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from('marketplace_orders')
       .select('*')
@@ -575,11 +626,17 @@ export const marketplaceService = {
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data.map(this.mapOrderRecord);
+    const mapped = data.map(this.mapOrderRecord);
+    setCached(cacheKey, mapped);
+    return mapped;
   },
 
   async getSellerOrders(sellerId: string): Promise<MarketplaceOrder[]> {
     if (!sellerId || !isUuid(sellerId)) return [];
+    const cacheKey = `seller_orders_${sellerId}`;
+    const cached = getCached<MarketplaceOrder[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from('marketplace_orders')
       .select('*')
@@ -587,7 +644,9 @@ export const marketplaceService = {
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data.map(this.mapOrderRecord);
+    const mapped = data.map(this.mapOrderRecord);
+    setCached(cacheKey, mapped);
+    return mapped;
   },
 
   async getAllOrders(): Promise<MarketplaceOrder[]> {
@@ -621,6 +680,7 @@ export const marketplaceService = {
       .update(payload)
       .eq('id', orderId);
 
+    if (!error) clearMarketplaceCache();
     return !error;
   },
 
@@ -640,6 +700,7 @@ export const marketplaceService = {
       .update(payload)
       .eq('id', orderId);
 
+    if (!error) clearMarketplaceCache();
     return !error;
   },
 
@@ -739,6 +800,8 @@ export const marketplaceService = {
       message: `Venda cancelada pelo vendedor. Cancelamento ${nextCount}/3. Oferta retornada para a vitrine do marketplace.`,
       payload: { reason: params.reason || 'Cancelamento solicitado pelo lojista vendedor' },
     });
+
+    clearMarketplaceCache();
 
     return {
       success: true,
