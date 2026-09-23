@@ -36,12 +36,14 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   favorites = [],
   onToggleFavorite,
 }) => {
-  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  // Snapshot estável e congelado dos stories ao abrir (imune a re-renders e polling de fundo)
+  const [frozenOffers, setFrozenOffers] = useState<MarketplaceOffer[]>([]);
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [direction, setDirection] = useState<'next' | 'prev'>('next');
 
-  // Guarda se o modal acabou de abrir para NÃO resetar em atualizações de segundo plano
   const wasOpenRef = useRef(false);
   const isPausedRef = useRef(isPaused);
   isPausedRef.current = isPaused;
@@ -50,105 +52,125 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Sincroniza APENAS no momento da abertura do modal
+  // Inicializa e congela os dados no instante exato em que o modal abre
   useEffect(() => {
-    if (isOpen && !wasOpenRef.current) {
-      if (initialOfferId && offers.length > 0) {
-        const idx = offers.findIndex((o) => o.id === initialOfferId);
-        setCurrentOfferIndex(idx !== -1 ? idx : 0);
-      } else {
-        setCurrentOfferIndex(0);
-      }
-      setCurrentPhotoIndex(0);
+    if (isOpen && !wasOpenRef.current && offers.length > 0) {
+      // Cria snapshot congelado e imutável
+      setFrozenOffers([...offers]);
+      const initialIdx = initialOfferId ? offers.findIndex((o) => o.id === initialOfferId) : 0;
+      setStoryIndex(initialIdx !== -1 ? initialIdx : 0);
+      setPhotoIndex(0);
+      setProgress(0);
+      setIsPaused(false);
+      setDirection('next');
+    }
+    if (!isOpen) {
       setProgress(0);
       setIsPaused(false);
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen, initialOfferId]);
+  }, [isOpen, initialOfferId, offers]);
 
-  const activeOffer: MarketplaceOffer | undefined = offers[currentOfferIndex];
-  const images = activeOffer?.images && activeOffer.images.length > 0
-    ? activeOffer.images
+  const currentOffer: MarketplaceOffer | undefined = frozenOffers[storyIndex];
+  const images = currentOffer?.images && currentOffer.images.length > 0
+    ? currentOffer.images
     : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80'];
 
-  const isLastPhotoOfOffer = currentPhotoIndex === images.length - 1;
+  const totalPhotos = images.length;
+  const totalOffers = frozenOffers.length;
+  const isLastPhotoOfOffer = photoIndex === totalPhotos - 1;
 
-  // Função para avançar story / foto
-  const nextStory = useCallback(() => {
-    setCurrentPhotoIndex((prevPhoto) => {
-      if (prevPhoto < images.length - 1) {
-        return prevPhoto + 1;
+  // Função Determinística de Avanço (Passa foto da loja atual e só avança de loja após a última foto)
+  const handleNext = useCallback(() => {
+    setDirection('next');
+    setProgress(0);
+
+    setPhotoIndex((currentP) => {
+      if (currentP < totalPhotos - 1) {
+        // Avança para a próxima foto da MESMA loja
+        return currentP + 1;
       } else {
-        // Chegou na última foto da oferta atual -> vai para a próxima oferta
-        setCurrentOfferIndex((prevOffer) => {
-          if (prevOffer < offers.length - 1) {
-            return prevOffer + 1;
+        // Chegou na última foto da loja atual -> avança para a próxima loja
+        setStoryIndex((currentS) => {
+          if (currentS < totalOffers - 1) {
+            return currentS + 1;
           } else {
             onClose();
-            return prevOffer;
+            return currentS;
           }
         });
-        return 0;
+        return 0; // Primeira foto da nova loja
       }
     });
-    setProgress(0);
-  }, [images.length, offers.length, onClose]);
+  }, [totalPhotos, totalOffers, onClose]);
 
-  // Função para voltar story / foto
-  const prevStory = useCallback(() => {
-    setCurrentPhotoIndex((prevPhoto) => {
-      if (prevPhoto > 0) {
-        return prevPhoto - 1;
+  // Função Determinística de Retrocesso (Volta foto da mesma loja ou vai para a última foto da loja anterior)
+  const handlePrev = useCallback(() => {
+    setDirection('prev');
+    setProgress(0);
+
+    setPhotoIndex((currentP) => {
+      if (currentP > 0) {
+        // Volta para a foto anterior da MESMA loja
+        return currentP - 1;
       } else {
-        setCurrentOfferIndex((prevOffer) => {
-          if (prevOffer > 0) {
-            const prevOfferIdx = prevOffer - 1;
-            const prevImgs = offers[prevOfferIdx]?.images?.length || 1;
-            setTimeout(() => setCurrentPhotoIndex(prevImgs - 1), 0);
-            return prevOfferIdx;
+        // Está na foto 0 -> volta para a loja anterior
+        setStoryIndex((currentS) => {
+          if (currentS > 0) {
+            const prevStore = frozenOffers[currentS - 1];
+            const prevStorePhotos = prevStore?.images?.length || 1;
+            // Define a última foto da loja anterior
+            setTimeout(() => setPhotoIndex(prevStorePhotos - 1), 0);
+            return currentS - 1;
           }
-          return prevOffer;
+          return currentS;
         });
         return 0;
       }
     });
-    setProgress(0);
-  }, [offers]);
+  }, [frozenOffers]);
 
-  // Timer preciso estilo Instagram que preenche a barra de 0 a 100% e avança
+  // Temporizador Fluido e Contínuo a 60fps via requestAnimationFrame
   useEffect(() => {
-    if (!isOpen || !activeOffer) return;
+    if (!isOpen || frozenOffers.length === 0 || !currentOffer) return;
 
     setProgress(0);
-    const startTime = Date.now();
-    let accumulatedPauseTime = 0;
-    let pauseStartTime: number | null = null;
+    const startTime = performance.now();
+    let pausedAt: number | null = null;
+    let totalPausedDuration = 0;
+    let animId: number;
 
-    const interval = setInterval(() => {
+    const frame = (now: number) => {
       if (isPausedRef.current) {
-        if (!pauseStartTime) {
-          pauseStartTime = Date.now();
+        if (pausedAt === null) {
+          pausedAt = now;
         }
+        animId = requestAnimationFrame(frame);
         return;
-      } else if (pauseStartTime) {
-        accumulatedPauseTime += Date.now() - pauseStartTime;
-        pauseStartTime = null;
+      } else if (pausedAt !== null) {
+        totalPausedDuration += now - pausedAt;
+        pausedAt = null;
       }
 
-      const elapsed = Date.now() - startTime - accumulatedPauseTime;
-      const pct = Math.min(100, (elapsed / STORY_DURATION_MS) * 100);
-      setProgress(pct);
+      const elapsed = now - startTime - totalPausedDuration;
+      const currentPct = Math.min(100, (elapsed / STORY_DURATION_MS) * 100);
+      setProgress(currentPct);
 
-      if (pct >= 100) {
-        clearInterval(interval);
-        nextStory();
+      if (currentPct >= 100) {
+        handleNext();
+      } else {
+        animId = requestAnimationFrame(frame);
       }
-    }, 25);
+    };
 
-    return () => clearInterval(interval);
-  }, [isOpen, currentOfferIndex, currentPhotoIndex, nextStory]);
+    animId = requestAnimationFrame(frame);
 
-  // Teclado: Escape (fechar), Seta Esquerda (voltar), Seta Direita (avançar), Espaço (pausar)
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [isOpen, storyIndex, photoIndex, currentOffer, frozenOffers.length, handleNext]);
+
+  // Controles de Teclado
   useEffect(() => {
     if (!isOpen) return;
 
@@ -156,9 +178,9 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
       if (e.key === 'Escape') {
         onClose();
       } else if (e.key === 'ArrowRight') {
-        nextStory();
+        handleNext();
       } else if (e.key === 'ArrowLeft') {
-        prevStory();
+        handlePrev();
       } else if (e.key === ' ') {
         e.preventDefault();
         setIsPaused((p) => !p);
@@ -167,9 +189,9 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, nextStory, prevStory, onClose]);
+  }, [isOpen, handleNext, handlePrev, onClose]);
 
-  // Touch handlers para gestos e pausa ao segurar
+  // Touch handlers para gestos e pausa
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
@@ -183,18 +205,16 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
     const diffY = touchStartYRef.current - e.changedTouches[0].clientY;
 
-    // Swipe para baixo fecha o story
     if (diffY < -60 && Math.abs(diffX) < 80) {
       onClose();
       return;
     }
 
-    // Swipe horizontal
     if (Math.abs(diffX) > 50) {
       if (diffX > 0) {
-        nextStory();
+        handleNext();
       } else {
-        prevStory();
+        handlePrev();
       }
     }
 
@@ -209,13 +229,13 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
     }).format(val);
   };
 
-  if (!isOpen || !activeOffer) return null;
+  if (!isOpen || !currentOffer) return null;
 
-  const currentImage = images[currentPhotoIndex] || images[0];
-  const isFavorite = favorites.includes(activeOffer.id);
+  const currentImage = images[photoIndex] || images[0];
+  const isFavorite = favorites.includes(currentOffer.id);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-200 select-none">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none">
       {/* Botão de Fechar Geral */}
       <button
         onClick={onClose}
@@ -226,11 +246,12 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
       </button>
 
       {/* Botões Laterais Desktop */}
-      {currentOfferIndex > 0 && (
+      {storyIndex > 0 && (
         <button
           onClick={() => {
-            setCurrentOfferIndex((prev) => prev - 1);
-            setCurrentPhotoIndex(0);
+            setDirection('prev');
+            setStoryIndex((prev) => prev - 1);
+            setPhotoIndex(0);
             setProgress(0);
           }}
           className="hidden md:flex absolute left-8 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-full bg-slate-900/80 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/15 hover:border-[#00D287] shadow-2xl backdrop-blur-md items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
@@ -240,11 +261,12 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         </button>
       )}
 
-      {currentOfferIndex < offers.length - 1 && (
+      {storyIndex < totalOffers - 1 && (
         <button
           onClick={() => {
-            setCurrentOfferIndex((prev) => prev + 1);
-            setCurrentPhotoIndex(0);
+            setDirection('next');
+            setStoryIndex((prev) => prev + 1);
+            setPhotoIndex(0);
             setProgress(0);
           }}
           className="hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 z-40 w-12 h-12 rounded-full bg-slate-900/80 hover:bg-[#00D287] text-white hover:text-slate-950 border border-white/15 hover:border-[#00D287] shadow-2xl backdrop-blur-md items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
@@ -254,31 +276,39 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         </button>
       )}
 
-      {/* Conteiner Central do Story (Proporção 9:16) */}
+      {/* Conteiner Central do Story (Proporção 9:16 Instagram com Perspectiva 3D) */}
       <div
         className="relative w-full h-full sm:h-[92vh] sm:max-w-[420px] sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border sm:border-white/15 bg-slate-950 flex flex-col justify-between"
         onMouseDown={() => setIsPaused(true)}
         onMouseUp={() => setIsPaused(false)}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        style={{ perspective: '1200px' }}
       >
-        {/* IMAGEM DO STORY */}
-        <div className="absolute inset-0 z-0 bg-slate-950">
+        {/* IMAGEM DO STORY COM TRANSIÇÃO 3D CUBE / FLIP ESTILO INSTAGRAM */}
+        <div
+          key={`${storyIndex}-${photoIndex}`}
+          className={`absolute inset-0 z-0 bg-slate-950 transition-all duration-300 ease-out transform-gpu ${
+            direction === 'next'
+              ? 'animate-in fade-in slide-in-from-right-8 zoom-in-[0.97]'
+              : 'animate-in fade-in slide-in-from-left-8 zoom-in-[0.97]'
+          }`}
+        >
           <img
-            key={currentImage}
             src={currentImage}
-            alt={activeOffer.title}
-            className="w-full h-full object-cover object-center animate-in fade-in zoom-in-95 duration-200"
+            alt={currentOffer.title}
+            className="w-full h-full object-cover object-center"
           />
+          {/* Vinheta gradiente superior e inferior estilo Instagram */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-transparent to-black/90 pointer-events-none" />
         </div>
 
-        {/* ZONAS DE CLIQUE INVISÍVEIS */}
+        {/* ZONAS DE CLIQUE INVISÍVEIS (Esquerda volta foto, Direita avança foto) */}
         <div className="absolute inset-0 z-10 flex">
           <div
             onClick={(e) => {
               e.stopPropagation();
-              prevStory();
+              handlePrev();
             }}
             className="w-[35%] h-full cursor-pointer"
             title="Foto Anterior"
@@ -286,7 +316,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
           <div
             onClick={(e) => {
               e.stopPropagation();
-              nextStory();
+              handleNext();
             }}
             className="w-[65%] h-full cursor-pointer"
             title="Próxima Foto"
@@ -297,13 +327,17 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         {/* CABEÇALHO DO STORY (Barras de Progresso Segmentadas + Info da Loja) */}
         {/* ========================================================================= */}
         <div className="relative z-20 p-3 sm:p-4 space-y-3 pointer-events-none">
-          {/* BARRAS DE TEMPO SEGMENTADAS ESTILO INSTAGRAM */}
+          {/* BARRAS DE TEMPO SEGMENTADAS ESTILO INSTAGRAM (Uma por foto da loja atual) */}
           <div className="flex items-center gap-1.5 w-full">
             {images.map((_, idx) => {
               let fillPercent = 0;
-              if (idx < currentPhotoIndex) fillPercent = 100;
-              else if (idx === currentPhotoIndex) fillPercent = progress;
-              else fillPercent = 0;
+              if (idx < photoIndex) {
+                fillPercent = 100;
+              } else if (idx === photoIndex) {
+                fillPercent = progress;
+              } else {
+                fillPercent = 0;
+              }
 
               return (
                 <div
@@ -311,8 +345,11 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                   className="flex-1 h-1 sm:h-1.5 rounded-full bg-white/30 backdrop-blur-md overflow-hidden shadow-sm"
                 >
                   <div
-                    className="h-full bg-white rounded-full transition-all duration-75 ease-linear"
-                    style={{ width: `${fillPercent}%` }}
+                    className="h-full bg-white rounded-full"
+                    style={{
+                      width: `${fillPercent}%`,
+                      transition: idx === photoIndex && !isPaused ? 'none' : 'width 0.1s ease-out'
+                    }}
                   />
                 </div>
               );
@@ -325,21 +362,21 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
               {/* Avatar da Loja com anel de Story gradiente */}
               <div className="p-0.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-[#00D287]">
                 <div className="w-9 h-9 rounded-full bg-slate-900 border-2 border-black flex items-center justify-center text-white font-bold text-xs uppercase overflow-hidden">
-                  {activeOffer.sellerCompany.substring(0, 2)}
+                  {currentOffer.sellerCompany.substring(0, 2)}
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-xs text-white drop-shadow truncate max-w-[140px] sm:max-w-[170px]">
-                    {activeOffer.sellerCompany}
+                    {currentOffer.sellerCompany}
                   </span>
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#00D287] fill-[#00D287]/20 flex-shrink-0" />
                 </div>
                 <div className="text-[10px] text-slate-300 drop-shadow flex items-center gap-1">
-                  <span>Foto {currentPhotoIndex + 1} de {images.length}</span>
+                  <span>Foto {photoIndex + 1} de {totalPhotos}</span>
                   <span>•</span>
-                  <span>{activeOffer.condition}</span>
+                  <span>{currentOffer.condition}</span>
                 </div>
               </div>
             </div>
@@ -358,7 +395,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
               {onToggleFavorite && (
                 <button
                   type="button"
-                  onClick={(e) => onToggleFavorite(activeOffer.id, e)}
+                  onClick={(e) => onToggleFavorite(currentOffer.id, e)}
                   className={`p-1.5 rounded-full backdrop-blur-md border transition-colors cursor-pointer ${
                     isFavorite
                       ? 'bg-rose-500/40 text-rose-400 border-rose-500/50'
@@ -390,29 +427,29 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
           <div className="p-3.5 rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 space-y-2 text-left shadow-2xl">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-black text-sm text-white leading-tight drop-shadow">
-                {activeOffer.title}
+                {currentOffer.title}
               </h3>
               <div className="flex-shrink-0 text-right">
                 <span className="text-base font-black text-[#00D287] drop-shadow">
-                  {formatBRL(activeOffer.price)}
+                  {formatBRL(currentOffer.price)}
                 </span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
-              {activeOffer.description}
+              {currentOffer.description}
             </p>
 
             {/* Badges de Garantia e Frete */}
             <div className="flex items-center gap-2 pt-1 border-t border-white/10 text-[10px]">
-              {activeOffer.freeShipping ? (
+              {currentOffer.freeShipping ? (
                 <div className="flex items-center gap-1 font-bold text-emerald-400">
                   <Truck className="w-3 h-3" />
                   <span>Frete Grátis</span>
                 </div>
-              ) : activeOffer.shippingCost ? (
+              ) : currentOffer.shippingCost ? (
                 <span className="text-slate-400">
-                  Frete: {formatBRL(activeOffer.shippingCost)}
+                  Frete: {formatBRL(currentOffer.shippingCost)}
                 </span>
               ) : null}
 
@@ -436,7 +473,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
               <button
                 onClick={() => {
                   onClose();
-                  onOpenDetails(activeOffer);
+                  onOpenDetails(currentOffer);
                 }}
                 className="w-full py-3.5 px-4 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#00D287]/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer animate-pulse"
               >
@@ -450,7 +487,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
             <button
               onClick={() => {
                 onClose();
-                onOpenDetails(activeOffer);
+                onOpenDetails(currentOffer);
               }}
               className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/20 backdrop-blur-md transition-all cursor-pointer"
             >
@@ -463,7 +500,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
           <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-1">
             <span>Toque à direita para avançar • à esquerda para voltar</span>
             <span className="font-bold text-slate-300">
-              Loja {currentOfferIndex + 1} de {offers.length}
+              Loja {storyIndex + 1} de {totalOffers}
             </span>
           </div>
         </div>
