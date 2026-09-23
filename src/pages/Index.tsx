@@ -10,6 +10,8 @@ import { UnlockPlatformModal } from '@/components/demo/UnlockPlatformModal';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { Menu, Sparkles, Lock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -24,11 +26,12 @@ const Index: React.FC = () => {
   const [unlockReason, setUnlockReason] = useState<string>('');
 
   useEffect(() => {
+    let channel: any = null;
+
     // Initial user check & auto-sync real UUID with Supabase
     const initUser = async () => {
       const user = await leadAuthService.syncCurrentUserWithDatabase() || leadAuthService.getCurrentUser();
       if (!user) {
-        // Redireciona obrigatoriamente para a tela de cadastro/login
         navigate('/login');
         return;
       }
@@ -36,28 +39,68 @@ const Index: React.FC = () => {
       if (user.status === 'bloqueado') {
         setIsBanned(true);
       }
+
+      // Conexão WebSocket em tempo real para detectar banimento/desbanimento instantâneo
+      if (user.id) {
+        channel = supabase
+          .channel(`user-account-realtime-${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'user_accounts',
+              filter: `id=eq.${user.id}`,
+            },
+            (payload: any) => {
+              const newRecord = payload.new;
+              if (newRecord.status === 'bloqueado') {
+                setIsBanned(true);
+                setCurrentUser((prev) =>
+                  prev ? { ...prev, status: 'bloqueado', banReason: newRecord.ban_reason } : null
+                );
+                toast.error(
+                  `Seu acesso foi suspenso pela administração. Motivo: ${newRecord.ban_reason || 'Irregularidade cadastral'}`,
+                  { duration: 8000 }
+                );
+              } else if (newRecord.status === 'ativo') {
+                setIsBanned(false);
+                setCurrentUser((prev) =>
+                  prev ? { ...prev, status: 'ativo', banReason: undefined, planStatus: newRecord.plan_status } : null
+                );
+                toast.success('Seu acesso à plataforma CellHub foi restabelecido com sucesso!');
+              }
+            }
+          )
+          .subscribe();
+      }
     };
 
     initUser();
 
-    // Real-time ban status check against Supabase
+    // Verificação periódica de contingência em 2 segundos (garantia contra quedas de websocket)
     const interval = setInterval(async () => {
       const user = leadAuthService.getCurrentUser();
       if (user?.id) {
         const { status, banReason, planStatus } = await leadAuthService.checkUserStatus(user.id);
         if (status === 'bloqueado') {
           setIsBanned(true);
-          setCurrentUser((prev) => prev ? { ...prev, status: 'bloqueado', banReason } : null);
+          setCurrentUser((prev) => (prev ? { ...prev, status: 'bloqueado', banReason } : null));
         } else {
           setIsBanned(false);
           if (planStatus && currentUser?.planStatus !== planStatus) {
-            setCurrentUser((prev) => prev ? { ...prev, planStatus } : null);
+            setCurrentUser((prev) => (prev ? { ...prev, planStatus } : null));
           }
         }
       }
-    }, 4000);
+    }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [navigate]);
 
   const handleLogout = () => {

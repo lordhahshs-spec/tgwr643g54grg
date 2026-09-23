@@ -126,6 +126,50 @@ export const AdminPage: React.FC = () => {
     setAdminEditOwner(current.ownerName);
     setAdminEditCompany(current.companyName);
     loadAllData();
+
+    // Inscrição em tempo real para sincronizar status de banimento e alterações de contas instantaneamente
+    const realtimeChannel = supabase
+      .channel('admin-realtime-accounts')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_accounts',
+        },
+        (payload: any) => {
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            setAccounts((prev) =>
+              prev.map((acc) =>
+                acc.id === payload.new.id
+                  ? {
+                      ...acc,
+                      status: payload.new.status,
+                      banReason: payload.new.ban_reason,
+                      planStatus: payload.new.plan_status,
+                      role: payload.new.role,
+                      companyName: payload.new.company_name,
+                      ownerName: payload.new.owner_name,
+                      email: payload.new.email,
+                      tradeName: payload.new.trade_name,
+                      cnpj: payload.new.cnpj,
+                      whatsapp: payload.new.whatsapp,
+                    }
+                  : acc
+              )
+            );
+          } else if (payload.eventType === 'INSERT') {
+            loadAllData();
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setAccounts((prev) => prev.filter((acc) => acc.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(realtimeChannel);
+    };
   }, [navigate]);
 
   const loadAllData = async () => {
@@ -261,19 +305,52 @@ export const AdminPage: React.FC = () => {
       return;
     }
     setAccountToBan(account);
-    setBanReasonInput('Irregularidade cadastral ou descumprimento das diretrizes da CellHub.');
+    setBanReasonInput(account.banReason || 'Irregularidade cadastral ou descumprimento das diretrizes da CellHub.');
   };
 
   const handleConfirmBan = async () => {
     if (!accountToBan) return;
-    await leadAuthService.updateStatus(accountToBan.id, 'bloqueado', banReasonInput);
+    const target = accountToBan;
+    const reason = banReasonInput.trim() || 'Irregularidade cadastral ou descumprimento das diretrizes da CellHub.';
+
+    // 1. Atualização otimista imediata na tabela do admin (o botão troca para Desbanir na mesma hora)
+    setAccounts((prev) =>
+      prev.map((a) => (a.id === target.id ? { ...a, status: 'bloqueado', banReason: reason } : a))
+    );
+    if (selectedAccountForModal?.id === target.id) {
+      setSelectedAccountForModal((prev) => (prev ? { ...prev, status: 'bloqueado', banReason: reason } : null));
+    }
     setAccountToBan(null);
-    await loadAllData();
+
+    // 2. Feedback imediato em pop-up toast confirmando o banimento em tempo real
+    toast.error(`Usuário ${target.ownerName} (${target.companyName}) foi BANIDO em tempo real!`, {
+      description: `Motivo: "${reason}"`,
+      duration: 6000,
+    });
+
+    // 3. Atualiza no Supabase (o evento WebSocket dispara para a tela do usuário ser congelada instantaneamente)
+    await leadAuthService.updateStatus(target.id, 'bloqueado', reason);
   };
 
   const handleUnban = async (id: string) => {
+    const acc = accounts.find((a) => a.id === id);
+
+    // 1. Atualização otimista imediata na tabela do admin (o botão troca para Banir na mesma hora)
+    setAccounts((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status: 'ativo', banReason: undefined } : a))
+    );
+    if (selectedAccountForModal?.id === id) {
+      setSelectedAccountForModal((prev) => (prev ? { ...prev, status: 'ativo', banReason: undefined } : null));
+    }
+
+    // 2. Feedback imediato em pop-up toast
+    toast.success(`Usuário ${acc?.ownerName || ''} foi DESBANIDO com sucesso!`, {
+      description: 'O acesso à plataforma foi liberado imediatamente em tempo real.',
+      duration: 5000,
+    });
+
+    // 3. Atualiza no Supabase
     await leadAuthService.updateStatus(id, 'ativo');
-    await loadAllData();
   };
 
   const handleDelete = async (id: string) => {
@@ -888,9 +965,15 @@ export const AdminPage: React.FC = () => {
                                   </Badge>
                                 )}
                                 {account.status === 'bloqueado' && (
-                                  <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/40 text-[10px] font-bold">
-                                    Bloqueado
-                                  </Badge>
+                                  <div className="space-y-1">
+                                    <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/40 text-[10px] font-bold flex items-center gap-1 w-fit">
+                                      <Ban className="w-3 h-3 text-rose-400" />
+                                      Bloqueado
+                                    </Badge>
+                                    <div className="text-[10px] text-rose-300 font-medium max-w-[200px] truncate" title={account.banReason || 'Irregularidade cadastral'}>
+                                      Motivo: {account.banReason || 'Irregularidade cadastral'}
+                                    </div>
+                                  </div>
                                 )}
                                 {account.status === 'analise' && (
                                   <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-semibold">
@@ -921,24 +1004,24 @@ export const AdminPage: React.FC = () => {
                                     </button>
                                   )}
 
-                                  {/* Banir / Desbanir (Não permite banir a conta Master) */}
+                                  {/* Banir / Desbanir com troca dinâmica de botão em tempo real */}
                                   {!isAccountMaster && (
                                     account.status === 'bloqueado' ? (
                                       <button
                                         onClick={() => handleUnban(account.id)}
-                                        className="px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-[11px] font-bold transition-colors flex items-center gap-1"
-                                        title="Desbloquear e liberar acesso"
+                                        className="px-2.5 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900 hover:border-emerald-400 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm shadow-emerald-950/40"
+                                        title="Desbanir conta e liberar acesso em tempo real"
                                       >
-                                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                         Desbanir
                                       </button>
                                     ) : (
                                       <button
                                         onClick={() => handleOpenBanModal(account)}
-                                        className="px-2.5 py-1 rounded-lg bg-rose-950/80 border border-rose-800/60 text-rose-300 hover:bg-rose-900 text-[11px] font-bold transition-colors flex items-center gap-1"
-                                        title="Banir conta e travar tela do usuário"
+                                        className="px-2.5 py-1.5 rounded-lg bg-rose-950/90 border border-rose-800/60 text-rose-300 hover:bg-rose-900 hover:border-rose-500 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm shadow-rose-950/40"
+                                        title="Banir conta e definir motivo em tempo real"
                                       >
-                                        <Ban className="w-3 h-3 text-rose-400" />
+                                        <Ban className="w-3.5 h-3.5 text-rose-400" />
                                         Banir
                                       </button>
                                     )
@@ -1349,35 +1432,75 @@ export const AdminPage: React.FC = () => {
           {accountToBan && (
             <div>
               <DialogHeader>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] font-bold uppercase tracking-wider">
+                    Ação Imediata
+                  </Badge>
+                </div>
                 <DialogTitle className="text-base font-black text-rose-400 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-rose-400" />
-                  Confirmar Bloqueio / Banimento
+                  Banir Usuário em Tempo Real
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-300 pt-1 leading-relaxed">
-                  A tela do usuário <strong>{accountToBan.ownerName}</strong> ({accountToBan.companyName}) será <strong>imediatamente congelada e travada</strong> com a mensagem que você definir abaixo.
+                  A conta de <strong>{accountToBan.ownerName}</strong> ({accountToBan.companyName}) será bloqueada imediatamente. A tela do lojista será <strong>congelada na mesma hora</strong> com o motivo abaixo.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-3.5">
+                {/* Dados da conta a ser banida */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-white/5 text-[11px] space-y-1">
+                  <div className="flex justify-between text-slate-400">
+                    <span>E-mail:</span>
+                    <span className="text-slate-200 font-medium">{accountToBan.email}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>CNPJ:</span>
+                    <span className="text-slate-300 font-mono">{accountToBan.cnpj}</span>
+                  </div>
+                </div>
+
+                {/* Caixa de Texto para Motivo do Banimento */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Motivo exibido para o usuário na tela de bloqueio:
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Motivo do Banimento (Exibido na tela do usuário):
+                    </label>
+                  </div>
                   <textarea
                     value={banReasonInput}
                     onChange={(e) => setBanReasonInput(e.target.value)}
                     rows={3}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:border-rose-500 outline-none"
-                    placeholder="Digite o motivo do bloqueio..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 focus:border-rose-500 outline-none leading-relaxed transition-colors"
+                    placeholder="Digite o motivo do bloqueio do usuário..."
                   />
+
+                  {/* Atalhos de motivos frequentes */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[
+                      'Irregularidade cadastral',
+                      'Inadimplência financeira',
+                      'Violação dos termos da plataforma',
+                      'Suspeita de atividade fraudulenta'
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setBanReasonInput(preset)}
+                        className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/10 text-[10px] text-slate-300 hover:text-white transition-colors"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-2 flex gap-2">
                   <Button
                     onClick={handleConfirmBan}
-                    className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs h-10 rounded-xl"
+                    className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs h-10 rounded-xl shadow-lg shadow-rose-600/30 flex items-center justify-center gap-1.5"
                   >
-                    Confirmar e Travar Acesso
+                    <Ban className="w-4 h-4" />
+                    Banir e Travar na Hora
                   </Button>
                   <Button
                     variant="outline"
@@ -1454,14 +1577,39 @@ export const AdminPage: React.FC = () => {
                 </div>
 
                 {selectedAccountForModal.banReason && (
-                  <div>
-                    <span className="text-rose-400 block text-[10px] uppercase font-semibold">Motivo da Suspensão:</span>
-                    <span className="text-rose-200">{selectedAccountForModal.banReason}</span>
+                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40">
+                    <span className="text-rose-400 block text-[10px] uppercase font-semibold mb-0.5">Motivo do Bloqueio:</span>
+                    <span className="text-rose-200 font-medium">{selectedAccountForModal.banReason}</span>
                   </div>
                 )}
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
+                {/* Botão de Banir / Desbanir direto no modal de detalhes */}
+                {selectedAccountForModal.email?.toLowerCase().trim() !== MASTER_ADMIN_EMAIL && (
+                  selectedAccountForModal.status === 'bloqueado' ? (
+                    <Button
+                      onClick={() => handleUnban(selectedAccountForModal.id)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/25"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Desbanir Usuário
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        const target = selectedAccountForModal;
+                        setSelectedAccountForModal(null);
+                        handleOpenBanModal(target);
+                      }}
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/25"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                      Banir Usuário
+                    </Button>
+                  )
+                )}
+
                 {isMasterAdmin && (
                   <Button
                     onClick={() => {
@@ -1485,6 +1633,13 @@ export const AdminPage: React.FC = () => {
                   Entrar como Este Usuário
                 </Button>
                 <Button
+                  variant="outline"
+                  onClick={() => setSelectedAccountForModal(null)}
+                  className="bg-slate-900 border-slate-800 text-slate-300 text-xs h-9 rounded-xl"
+                >
+                  Fechar
+                </Button>
+              </div>
                   variant="outline"
                   onClick={() => setSelectedAccountForModal(null)}
                   className="bg-slate-900 border-slate-800 text-slate-300 text-xs h-9 rounded-xl"
