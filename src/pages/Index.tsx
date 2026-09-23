@@ -201,16 +201,16 @@ const Index: React.FC = () => {
 
         {/* Tab Content Display Area (Mantém abas em memória sem destruição de estado/scroll) */}
         <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col">
-          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col' : 'hidden'}>
+          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col' : 'hidden'}>
+          <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
           </div>
-          <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col' : 'hidden'}>
+          <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col' : 'hidden'}>
+          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
           </div>
         </main>
