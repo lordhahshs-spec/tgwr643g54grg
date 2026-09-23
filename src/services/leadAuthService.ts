@@ -368,6 +368,9 @@ export const leadAuthService = {
       localStorage.removeItem(CURRENT_USER_KEY);
       localStorage.removeItem('aurus_current_user');
     }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cellhub_user_updated', { detail: user }));
+    }
   },
 
   logout() {
@@ -558,6 +561,14 @@ export const leadAuthService = {
       planStatus?: 'demo' | 'ativo';
       role?: 'lead' | 'admin';
       banReason?: string;
+      shippingZipCode?: string;
+      shippingStreet?: string;
+      shippingNumber?: string;
+      shippingComplement?: string;
+      shippingNeighborhood?: string;
+      shippingCity?: string;
+      shippingState?: string;
+      shippingPhone?: string;
     }
   ): Promise<{ success: boolean; error?: string }> {
     const payload: any = {
@@ -576,6 +587,15 @@ export const leadAuthService = {
     if (updates.banReason !== undefined) payload.ban_reason = updates.banReason.trim() || null;
     if (updates.password && updates.password.trim()) payload.password = updates.password.trim();
 
+    if (updates.shippingZipCode !== undefined) payload.shipping_zip_code = updates.shippingZipCode.replace(/\D/g, '') || null;
+    if (updates.shippingStreet !== undefined) payload.shipping_street = updates.shippingStreet.trim() || null;
+    if (updates.shippingNumber !== undefined) payload.shipping_number = updates.shippingNumber.trim() || null;
+    if (updates.shippingComplement !== undefined) payload.shipping_complement = updates.shippingComplement.trim() || null;
+    if (updates.shippingNeighborhood !== undefined) payload.shipping_neighborhood = updates.shippingNeighborhood.trim() || null;
+    if (updates.shippingCity !== undefined) payload.shipping_city = updates.shippingCity.trim() || null;
+    if (updates.shippingState !== undefined) payload.shipping_state = updates.shippingState.trim().toUpperCase() || null;
+    if (updates.shippingPhone !== undefined) payload.shipping_phone = updates.shippingPhone.trim() || null;
+
     const { error } = await supabase
       .from('user_accounts')
       .update(payload)
@@ -587,7 +607,7 @@ export const leadAuthService = {
     }
 
     const current = this.getCurrentUser();
-    if (current && current.id === id) {
+    if (current && (current.id === id || current.email?.toLowerCase() === updates.email?.toLowerCase())) {
       if (updates.email) current.email = updates.email.trim().toLowerCase();
       if (updates.companyName) current.companyName = updates.companyName.trim();
       if (updates.tradeName) current.tradeName = updates.tradeName.trim();
@@ -595,6 +615,14 @@ export const leadAuthService = {
       if (updates.status) current.status = updates.status;
       if (updates.planStatus) current.planStatus = updates.planStatus;
       if (updates.role) current.role = updates.role;
+      if (updates.shippingZipCode !== undefined) current.shippingZipCode = payload.shipping_zip_code || undefined;
+      if (updates.shippingStreet !== undefined) current.shippingStreet = payload.shipping_street || undefined;
+      if (updates.shippingNumber !== undefined) current.shippingNumber = payload.shipping_number || undefined;
+      if (updates.shippingComplement !== undefined) current.shippingComplement = payload.shipping_complement || undefined;
+      if (updates.shippingNeighborhood !== undefined) current.shippingNeighborhood = payload.shipping_neighborhood || undefined;
+      if (updates.shippingCity !== undefined) current.shippingCity = payload.shipping_city || undefined;
+      if (updates.shippingState !== undefined) current.shippingState = payload.shipping_state || undefined;
+      if (updates.shippingPhone !== undefined) current.shippingPhone = payload.shipping_phone || undefined;
       this.setCurrentUser(current);
     }
 
@@ -612,11 +640,13 @@ export const leadAuthService = {
       city: string;
       state: string;
       phone?: string;
-    }
+    },
+    userEmail?: string
   ): Promise<boolean> {
-    if (!userId) return false;
-
+    const current = this.getCurrentUser();
+    const effectiveEmail = (userEmail || current?.email || '').trim().toLowerCase();
     const cleanZip = (address.zipCode || '').replace(/\D/g, '');
+
     const payload = {
       shipping_zip_code: cleanZip,
       shipping_street: (address.street || '').trim(),
@@ -629,18 +659,8 @@ export const leadAuthService = {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from('user_accounts')
-      .update(payload)
-      .eq('id', userId);
-
-    if (error) {
-      console.error('[leadAuthService] Erro ao salvar endereço de entrega no Supabase:', error);
-      return false;
-    }
-
-    const current = this.getCurrentUser();
-    if (current && current.id === userId) {
+    // Atualiza imediatamente a sessão local para responsividade instantânea
+    if (current) {
       current.shippingZipCode = payload.shipping_zip_code;
       current.shippingStreet = payload.shipping_street;
       current.shippingNumber = payload.shipping_number;
@@ -650,8 +670,45 @@ export const leadAuthService = {
       current.shippingState = payload.shipping_state;
       current.shippingPhone = payload.shipping_phone || undefined;
       this.setCurrentUser(current);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cellhub_user_updated', { detail: current }));
+      }
     }
 
-    return true;
+    // Persiste no Supabase garantindo correspondência por UUID e por e-mail
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || '');
+      let updatedSuccessfully = false;
+
+      if (isUuid) {
+        const { data, error } = await supabase
+          .from('user_accounts')
+          .update(payload)
+          .eq('id', userId)
+          .select('id');
+
+        if (!error && data && data.length > 0) {
+          updatedSuccessfully = true;
+        }
+      }
+
+      // Se não atualizou por UUID (ou id não é UUID), tenta por e-mail
+      if (!updatedSuccessfully && effectiveEmail) {
+        const { data, error } = await supabase
+          .from('user_accounts')
+          .update(payload)
+          .eq('email', effectiveEmail)
+          .select('id');
+
+        if (!error && data && data.length > 0) {
+          updatedSuccessfully = true;
+        }
+      }
+
+      return updatedSuccessfully;
+    } catch (err) {
+      console.error('[leadAuthService] Falha ao persistir endereço no Supabase:', err);
+      return false;
+    }
   }
 };

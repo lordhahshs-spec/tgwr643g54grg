@@ -112,6 +112,14 @@ export const AdminPage: React.FC = () => {
     planStatus: 'ativo' as 'demo' | 'ativo',
     role: 'lead' as 'lead' | 'admin',
     banReason: '',
+    shippingZipCode: '',
+    shippingStreet: '',
+    shippingNumber: '',
+    shippingComplement: '',
+    shippingNeighborhood: '',
+    shippingCity: '',
+    shippingState: '',
+    shippingPhone: '',
   });
   const [isSavingEditUser, setIsSavingEditUser] = useState<boolean>(false);
 
@@ -140,24 +148,46 @@ export const AdminPage: React.FC = () => {
         },
         (payload: any) => {
           if (payload.eventType === 'UPDATE' && payload.new) {
+            const updatedAccountData = {
+              status: payload.new.status,
+              banReason: payload.new.ban_reason,
+              planStatus: payload.new.plan_status,
+              role: payload.new.role,
+              companyName: payload.new.company_name,
+              ownerName: payload.new.owner_name,
+              email: payload.new.email,
+              tradeName: payload.new.trade_name,
+              cnpj: payload.new.cnpj,
+              whatsapp: payload.new.whatsapp,
+              shippingZipCode: payload.new.shipping_zip_code || undefined,
+              shippingStreet: payload.new.shipping_street || undefined,
+              shippingNumber: payload.new.shipping_number || undefined,
+              shippingComplement: payload.new.shipping_complement || undefined,
+              shippingNeighborhood: payload.new.shipping_neighborhood || undefined,
+              shippingCity: payload.new.shipping_city || undefined,
+              shippingState: payload.new.shipping_state || undefined,
+              shippingPhone: payload.new.shipping_phone || undefined,
+            };
+
             setAccounts((prev) =>
               prev.map((acc) =>
                 acc.id === payload.new.id
                   ? {
                       ...acc,
-                      status: payload.new.status,
-                      banReason: payload.new.ban_reason,
-                      planStatus: payload.new.plan_status,
-                      role: payload.new.role,
-                      companyName: payload.new.company_name,
-                      ownerName: payload.new.owner_name,
-                      email: payload.new.email,
-                      tradeName: payload.new.trade_name,
-                      cnpj: payload.new.cnpj,
-                      whatsapp: payload.new.whatsapp,
+                      ...updatedAccountData,
                     }
                   : acc
               )
+            );
+
+            // Mantém o modal de detalhes sincronizado instantaneamente
+            setSelectedAccountForModal((prev) =>
+              prev && prev.id === payload.new.id
+                ? {
+                    ...prev,
+                    ...updatedAccountData,
+                  }
+                : prev
             );
           } else if (payload.eventType === 'INSERT') {
             loadAllData();
@@ -228,6 +258,14 @@ export const AdminPage: React.FC = () => {
       planStatus: acc.planStatus || 'ativo',
       role: acc.role || 'lead',
       banReason: acc.banReason || '',
+      shippingZipCode: acc.shippingZipCode || '',
+      shippingStreet: acc.shippingStreet || '',
+      shippingNumber: acc.shippingNumber || '',
+      shippingComplement: acc.shippingComplement || '',
+      shippingNeighborhood: acc.shippingNeighborhood || '',
+      shippingCity: acc.shippingCity || '',
+      shippingState: acc.shippingState || '',
+      shippingPhone: acc.shippingPhone || '',
     });
   };
 
@@ -256,6 +294,14 @@ export const AdminPage: React.FC = () => {
       planStatus: editUserForm.planStatus,
       role: editUserForm.role,
       banReason: editUserForm.status === 'bloqueado' ? editUserForm.banReason : undefined,
+      shippingZipCode: editUserForm.shippingZipCode,
+      shippingStreet: editUserForm.shippingStreet,
+      shippingNumber: editUserForm.shippingNumber,
+      shippingComplement: editUserForm.shippingComplement,
+      shippingNeighborhood: editUserForm.shippingNeighborhood,
+      shippingCity: editUserForm.shippingCity,
+      shippingState: editUserForm.shippingState,
+      shippingPhone: editUserForm.shippingPhone,
     });
     setIsSavingEditUser(false);
 
@@ -2025,6 +2071,95 @@ export const AdminPage: React.FC = () => {
                   <span className="text-[10px] text-slate-500 block mt-1">
                     Preencha este campo apenas se desejar redefinir a senha desta conta.
                   </span>
+                </div>
+
+                {/* Endereço de Entrega / Logística */}
+                <div className="pt-3 border-t border-white/5 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#00D287]">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Endereço de Entrega Cadastrado (Padrão)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        CEP:
+                      </label>
+                      <Input
+                        value={editUserForm.shippingZipCode}
+                        onChange={(e) => setEditUserForm({ ...editUserForm, shippingZipCode: e.target.value })}
+                        placeholder="00000-000"
+                        className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl font-mono focus:border-purple-500"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Rua / Logradouro:
+                      </label>
+                      <Input
+                        value={editUserForm.shippingStreet}
+                        onChange={(e) => setEditUserForm({ ...editUserForm, shippingStreet: e.target.value })}
+                        placeholder="Ex: Av. Paulista"
+                        className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Número:
+                      </label>
+                      <Input
+                        value={editUserForm.shippingNumber}
+                        onChange={(e) => setEditUserForm({ ...editUserForm, shippingNumber: e.target.value })}
+                        placeholder="1000"
+                        className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Complemento:
+                      </label>
+                      <Input
+                        value={editUserForm.shippingComplement}
+                        onChange={(e) => setEditUserForm({ ...editUserForm, shippingComplement: e.target.value })}
+                        placeholder="Sala 12"
+                        className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Bairro:
+                      </label>
+                      <Input
+                        value={editUserForm.shippingNeighborhood}
+                        onChange={(e) => setEditUserForm({ ...editUserForm, shippingNeighborhood: e.target.value })}
+                        placeholder="Centro"
+                        className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Cidade / UF:
+                      </label>
+                      <div className="flex gap-1">
+                        <Input
+                          value={editUserForm.shippingCity}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, shippingCity: e.target.value })}
+                          placeholder="São Paulo"
+                          className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl focus:border-purple-500 w-2/3"
+                        />
+                        <Input
+                          maxLength={2}
+                          value={editUserForm.shippingState}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, shippingState: e.target.value.toUpperCase() })}
+                          placeholder="SP"
+                          className="bg-slate-950 border-slate-800 text-slate-100 text-xs rounded-xl focus:border-purple-500 w-1/3 text-center font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="pt-3 flex gap-2">

@@ -84,6 +84,17 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
       }
     });
     loadData();
+
+    // Sincroniza em tempo real sempre que o usuário salvar endereço ou atualizar o perfil
+    const handleUserUpdated = (e: any) => {
+      if (e.detail) {
+        setCurrentUser(e.detail);
+      }
+    };
+    window.addEventListener('cellhub_user_updated', handleUserUpdated);
+    return () => {
+      window.removeEventListener('cellhub_user_updated', handleUserUpdated);
+    };
   }, []);
 
   const loadFavorites = async (userId: string) => {
@@ -137,6 +148,10 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
     if (isDemo) {
       onUnlock?.('Para comprar produtos no atacado com garantia e proteção B2B, desbloqueie sua licença vitalícia.');
       return;
+    }
+    const freshUser = leadAuthService.getCurrentUser();
+    if (freshUser) {
+      setCurrentUser(freshUser);
     }
     setSelectedOfferForDetails(null);
     setSelectedOfferForCheckout(offer);

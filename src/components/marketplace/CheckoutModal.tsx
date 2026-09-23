@@ -40,10 +40,13 @@ interface CheckoutModalProps {
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   offer,
-  currentUser,
+  currentUser: initialUser,
   onClose,
   onSuccess,
 }) => {
+  // Garante acesso contínuo aos dados mais recentes do usuário / admin logado
+  const currentUser = leadAuthService.getCurrentUser() || initialUser;
+
   const [feeSettings, setFeeSettings] = useState<MarketplaceFeeSettings>({
     defaultFeePercent: 6.5,
     pixDiscountPercent: 0,
@@ -55,7 +58,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [orderCompletedId, setOrderCompletedId] = useState<string | null>(null);
 
   // Delivery Address Form
-  const [address, setAddress] = useState<ShippingAddress>({
+  const [address, setAddress] = useState<ShippingAddress>(() => ({
     zipCode: currentUser.shippingZipCode || '',
     street: currentUser.shippingStreet || '',
     number: currentUser.shippingNumber || '',
@@ -67,10 +70,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     name: currentUser.ownerName || currentUser.companyName,
     email: currentUser.email,
     cnpj: currentUser.cnpj,
-  });
+  }));
+
+  // Referência mutável em tempo real para nunca sofrer com closure stale no clique do X ou Comprar
+  const addressRef = useRef(address);
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
 
   // Endereço salvo & alternância
-  const hasSavedAddress = Boolean(currentUser.shippingZipCode && currentUser.shippingStreet);
+  const [savedAddress, setSavedAddress] = useState<ShippingAddress | null>(() => {
+    if (currentUser.shippingZipCode && currentUser.shippingStreet) {
+      return {
+        zipCode: currentUser.shippingZipCode,
+        street: currentUser.shippingStreet,
+        number: currentUser.shippingNumber || '',
+        complement: currentUser.shippingComplement || '',
+        neighborhood: currentUser.shippingNeighborhood || '',
+        city: currentUser.shippingCity || 'São Paulo',
+        state: currentUser.shippingState || 'SP',
+        phone: currentUser.whatsapp || currentUser.shippingPhone || '',
+        name: currentUser.ownerName || currentUser.companyName,
+        email: currentUser.email,
+        cnpj: currentUser.cnpj,
+      };
+    }
+    return null;
+  });
+
+  const hasSavedAddress = Boolean(savedAddress && savedAddress.zipCode && savedAddress.street);
   const [isEditingAddress, setIsEditingAddress] = useState<boolean>(!hasSavedAddress);
   const [cepError, setCepError] = useState<string | null>(null);
   const [isValidatingCep, setIsValidatingCep] = useState<boolean>(false);
@@ -117,16 +145,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const sellerShippingCost = isFreeShipping ? actualShippingCost : 0;
   const sellerNetAmount = productPrice - platformFeeAmount - sellerShippingCost;
 
-  // Salva o endereço no perfil do lead (Supabase) imediatamente
-  const handleSaveCurrentAddress = (addrToSave = address) => {
+  // Salva o endereço no perfil do lead (Supabase) imediatamente e atualiza estado local
+  const handleSaveCurrentAddress = async (addrToSave = addressRef.current, showToast = false) => {
+    if (!addrToSave.zipCode && !addrToSave.street) return;
+
     if (addrToSave.zipCode && addrToSave.street) {
-      leadAuthService.saveShippingAddress(currentUser.id, addrToSave);
+      setSavedAddress({ ...addrToSave });
     }
+
+    const success = await leadAuthService.saveShippingAddress(currentUser.id, addrToSave, currentUser.email);
+    if (showToast) {
+      toast.success('Endereço salvo com sucesso como seu padrão!');
+    }
+    return success;
   };
 
-  const handleCloseModal = () => {
-    if (address.zipCode && address.street) {
-      leadAuthService.saveShippingAddress(currentUser.id, address);
+  const handleCloseModal = async () => {
+    const currentAddr = addressRef.current;
+    if (currentAddr.zipCode || currentAddr.street) {
+      await leadAuthService.saveShippingAddress(currentUser.id, currentAddr, currentUser.email);
     }
     onClose();
   };
@@ -254,6 +291,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     setIsProcessing(true);
+
+    // Salva automaticamente o endereço de entrega no perfil do lead e define como padrão
+    leadAuthService.saveShippingAddress(currentUser.id, address, currentUser.email);
+    setSavedAddress({ ...address });
 
     // Save buyer delivery address snapshot
     const destinationSnapshot: ShippingAddress = {
@@ -506,7 +547,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsEditingAddress(true)}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                           title="Editar este endereço"
                         >
                           <Edit3 className="w-3.5 h-3.5 text-[#00D287]" />
@@ -529,7 +570,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             setSelectedQuote(null);
                             setIsEditingAddress(true);
                           }}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                           title="Inserir um novo endereço de entrega"
                         >
                           <Plus className="w-3.5 h-3.5 text-[#00D287]" />
@@ -547,21 +588,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setAddress({
-                              ...address,
-                              zipCode: currentUser.shippingZipCode || '',
-                              street: currentUser.shippingStreet || '',
-                              number: currentUser.shippingNumber || '',
-                              complement: currentUser.shippingComplement || '',
-                              neighborhood: currentUser.shippingNeighborhood || '',
-                              city: currentUser.shippingCity || '',
-                              state: currentUser.shippingState || '',
-                            });
+                            if (savedAddress) {
+                              setAddress({ ...savedAddress });
+                              if (savedAddress.zipCode) fetchQuotes(savedAddress.zipCode);
+                            }
                             setIsEditingAddress(false);
                             setCepError(null);
-                            if (currentUser.shippingZipCode) fetchQuotes(currentUser.shippingZipCode);
                           }}
-                          className="text-[11px] text-slate-400 hover:text-white underline"
+                          className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
                         >
                           Cancelar e manter salvo
                         </button>
@@ -684,22 +718,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </div>
                     </div>
 
-                    {hasSavedAddress && (
-                      <div className="pt-1 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleSaveCurrentAddress();
-                            setIsEditingAddress(false);
-                            toast.success('Endereço salvo no seu perfil com sucesso!');
-                          }}
-                          className="px-3 py-1.5 rounded-xl bg-[#00D287]/15 hover:bg-[#00D287]/25 border border-[#00D287]/30 text-[#00D287] text-xs font-bold transition-all flex items-center gap-1.5"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          Concluir e Salvar Endereço
-                        </button>
-                      </div>
-                    )}
+                    <div className="pt-2 flex items-center justify-between border-t border-white/5">
+                      <span className="text-[10px] text-slate-400">
+                        O endereço digitado será salvo automaticamente no seu perfil.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!address.street.trim() || !address.number.trim()) {
+                            toast.error('Preencha ao menos Rua e Número antes de salvar.');
+                            return;
+                          }
+                          await handleSaveCurrentAddress(address, true);
+                          setIsEditingAddress(false);
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#00D287]/20 hover:bg-[#00D287]/30 border border-[#00D287]/40 text-[#00D287] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-[#00D287]/10"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Salvar como Endereço Padrão
+                      </button>
+                    </div>
+                  </div>
+                )}
                   </div>
                 )}
               </div>
