@@ -97,7 +97,8 @@ export const melhorEnvioService = {
       .eq('id', 'config')
       .maybeSingle();
 
-    const isConnected = Boolean(data?.access_token);
+    const hasToken = Boolean(data?.access_token && data.access_token.trim().length > 10);
+    const isConnected = hasToken;
     const env = (data?.environment as 'production' | 'sandbox') || 'production';
     const clientId = data?.client_id || '30171';
     const redirectUri = data?.redirect_uri || 'https://cellhub.shop/api/melhor-envio/callback';
@@ -109,9 +110,9 @@ export const melhorEnvioService = {
       environment: env,
       client_id: clientId,
       redirect_uri: redirectUri,
-      account_name: data?.account_name || undefined,
+      account_name: data?.account_name || (isConnected ? 'Conta Vinculada' : undefined),
       account_email: data?.account_email || undefined,
-      balance: data?.account_balance || 0,
+      balance: Number(data?.account_balance || 0),
       token_expires_at: data?.token_expires_at || undefined,
       authorize_url: `${baseUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=shipping-calculate%20shipping-cancel%20shipping-checkout%20shipping-companies%20shipping-generate%20shipping-preview%20shipping-print%20shipping-share%20shipping-tracking%20cart-read%20cart-write%20companies-read%20companies-write%20orders-read%20transactions-read%20users-read`,
     };
@@ -141,14 +142,21 @@ export const melhorEnvioService = {
       console.warn('[melhor-envio] Edge function update failed, falling back to direct db update:', err);
     }
 
+    const cleanToken = payload.access_token !== undefined ? payload.access_token.trim() : undefined;
+    const dbPayload: any = { id: 'config', ...payload, updated_at: new Date().toISOString() };
+    if (cleanToken !== undefined) {
+      dbPayload.access_token = cleanToken || null;
+      dbPayload.is_connected = Boolean(cleanToken && cleanToken.length > 10);
+    }
+
     const { error } = await supabase
       .from('melhor_envio_integration')
-      .upsert({ id: 'config', ...payload, updated_at: new Date().toISOString() });
+      .upsert(dbPayload);
 
     if (error) {
       return { success: false, error: error.message };
     }
-    return { success: true, message: 'Configurações salvas no banco de dados.' };
+    return { success: true, message: 'Configurações salvas no banco de dados com sucesso!' };
   },
 
   /**

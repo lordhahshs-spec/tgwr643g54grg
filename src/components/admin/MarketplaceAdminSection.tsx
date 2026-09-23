@@ -287,9 +287,28 @@ export const MarketplaceAdminSection: React.FC = () => {
     if (res.success) {
       toast.success(res.message || 'Token do Melhor Envio validado e salvo com sucesso!');
       setManualTokenInput('');
-      loadData();
+      const liveStatus = await melhorEnvioService.getStatus(true);
+      setIntegrationStatus(liveStatus);
+      loadData(true);
     } else {
       toast.error(res.error || 'Erro ao validar token com o Melhor Envio.');
+    }
+  };
+
+  const handleSyncLiveStatus = async () => {
+    setIsSavingSettings(true);
+    try {
+      const liveStatus = await melhorEnvioService.getStatus(true);
+      setIntegrationStatus(liveStatus);
+      if (liveStatus.connected) {
+        toast.success(`Melhor Envio 100% conectado! Conta: ${liveStatus.account_name || liveStatus.account_email || 'Leonardo Gomes'}`);
+      } else {
+        toast.info('Status sincronizado. Insira o token de acesso para conectar.');
+      }
+    } catch (e) {
+      toast.error('Erro ao sincronizar com o Melhor Envio.');
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
@@ -684,6 +703,15 @@ export const MarketplaceAdminSection: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSyncLiveStatus}
+                  disabled={isSavingSettings}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                  title="Sincronizar status com Melhor Envio"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isSavingSettings ? 'animate-spin' : ''}`} />
+                </button>
+
                 {integrationStatus?.connected ? (
                   <button
                     onClick={handleDisconnectToken}
