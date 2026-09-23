@@ -50,11 +50,31 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
   onSelectOffer,
 }) => {
   const [subTab, setSubTab] = useState<'ofertas' | 'vendas' | 'compras' | 'favoritos'>('ofertas');
-  const [myOffers, setMyOffers] = useState<MarketplaceOffer[]>([]);
-  const [mySales, setMySales] = useState<MarketplaceOrder[]>([]);
-  const [myPurchases, setMyPurchases] = useState<MarketplaceOrder[]>([]);
+  
+  // Inicialização instantânea a partir de cache local (0ms)
+  const [myOffers, setMyOffers] = useState<MarketplaceOffer[]>(() => {
+    try {
+      const c = localStorage.getItem(`cache_offers_{"sellerId":"${currentUser.id}","status":"todas"}`);
+      if (c) return JSON.parse(c);
+    } catch (e) {}
+    return [];
+  });
+  const [mySales, setMySales] = useState<MarketplaceOrder[]>(() => {
+    try {
+      const c = localStorage.getItem(`cache_seller_orders_${currentUser.id}`);
+      if (c) return JSON.parse(c);
+    } catch (e) {}
+    return [];
+  });
+  const [myPurchases, setMyPurchases] = useState<MarketplaceOrder[]>(() => {
+    try {
+      const c = localStorage.getItem(`cache_buyer_orders_${currentUser.id}`);
+      if (c) return JSON.parse(c);
+    } catch (e) {}
+    return [];
+  });
   const [favoriteOffers, setFavoriteOffers] = useState<MarketplaceOffer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(myOffers.length === 0 && mySales.length === 0);
 
   // Tracking Code Input state per order
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});

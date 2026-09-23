@@ -199,20 +199,20 @@ const Index: React.FC = () => {
           </header>
         )}
 
-        {/* Tab Content Display Area */}
+        {/* Tab Content Display Area (Mantém abas em memória sem destruição de estado/scroll) */}
         <main className="flex-1 h-full overflow-hidden relative">
-          {activeTab === 'super-ofertas' && (
+          <div className={activeTab === 'super-ofertas' ? 'h-full flex flex-col' : 'hidden'}>
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
-          )}
-          {activeTab === 'venda-android' && (
+          </div>
+          <div className={activeTab === 'venda-android' ? 'h-full flex flex-col' : 'hidden'}>
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
-          )}
-          {activeTab === 'esquemas' && (
+          </div>
+          <div className={activeTab === 'esquemas' ? 'h-full flex flex-col' : 'hidden'}>
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
-          )}
-          {activeTab === 'trade-in' && (
+          </div>
+          <div className={activeTab === 'trade-in' ? 'h-full flex flex-col' : 'hidden'}>
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
-          )}
+          </div>
         </main>
       </div>
 

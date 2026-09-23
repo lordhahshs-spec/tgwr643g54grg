@@ -30,11 +30,26 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [activeView, setActiveView] = useState<'explorar' | 'painel'>('explorar');
 
-  // Real database states (STRICTLY real data, zero mocks)
-  const [hotOffers, setHotOffers] = useState<MarketplaceOffer[]>([]);
-  const [regularOffers, setRegularOffers] = useState<MarketplaceOffer[]>([]);
+  // Real database states com persistência instantânea em cache
+  const [regularOffers, setRegularOffers] = useState<MarketplaceOffer[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_offers_{"status":"publicada"}');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return [];
+  });
+  const [hotOffers, setHotOffers] = useState<MarketplaceOffer[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_offers_{"status":"publicada"}');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+      }
+    } catch (e) {}
+    return [];
+  });
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(regularOffers.length === 0);
 
   // Modals
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
@@ -310,17 +325,20 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 space-y-10">
-        {activeView === 'painel' && currentUser ? (
-          <MyMarketplacePanel
-            currentUser={currentUser}
-            onOpenCreateModal={() => setIsCreateModalOpen(true)}
-            onSelectOffer={(offer) => setSelectedOfferForDetails(offer)}
-          />
-        ) : (
-          <>
-            {/* ========================================================================= */}
-            {/* 1. SEÇÃO TOPO: OFERTAS QUENTES (Instagram Stories 9:16 Format) */}
-            {/* ========================================================================= */}
+        <div className={activeView === 'painel' ? 'block' : 'hidden'}>
+          {currentUser && (
+            <MyMarketplacePanel
+              currentUser={currentUser}
+              onOpenCreateModal={() => setIsCreateModalOpen(true)}
+              onSelectOffer={(offer) => setSelectedOfferForDetails(offer)}
+            />
+          )}
+        </div>
+
+        <div className={activeView === 'explorar' ? 'block space-y-10' : 'hidden'}>
+          {/* ========================================================================= */}
+          {/* 1. SEÇÃO TOPO: OFERTAS QUENTES (Instagram Stories 9:16 Format) */}
+          {/* ========================================================================= */}
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -495,8 +513,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
                 </div>
               )}
             </section>
-          </>
-        )}
+        </div>
       </div>
 
       {/* Modals */}

@@ -20,24 +20,49 @@ const isUuid = (val?: string): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val || '');
 };
 
-// Cache ultra-rápido em memória para resposta instantânea (0ms) e prevenção de requisições repetidas
+// Cache ultra-rápido em memória e localStorage para resposta instantânea (0ms)
 const memoryCache = new Map<string, { timestamp: number; data: any }>();
-const CACHE_TTL_MS = 2500; // 2.5 segundos
+const CACHE_TTL_MS = 3000; // 3 segundos
 
 const getCached = <T>(key: string): T | null => {
   const hit = memoryCache.get(key);
   if (hit && Date.now() - hit.timestamp < CACHE_TTL_MS) {
     return hit.data as T;
   }
+  // Fallback para localStorage persistente
+  try {
+    const raw = localStorage.getItem(`cache_${key}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+        memoryCache.set(key, { timestamp: Date.now(), data: parsed });
+        return parsed as T;
+      }
+    }
+  } catch (e) {
+    // ignora erro de parse
+  }
   return null;
 };
 
 const setCached = (key: string, data: any) => {
   memoryCache.set(key, { timestamp: Date.now(), data });
+  try {
+    if (data && (Array.isArray(data) ? data.length > 0 : true)) {
+      localStorage.setItem(`cache_${key}`, JSON.stringify(data));
+    }
+  } catch (e) {
+    // quota exceeded safety
+  }
 };
 
 export const clearMarketplaceCache = () => {
   memoryCache.clear();
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('cache_')) localStorage.removeItem(k);
+    });
+  } catch (e) {}
 };
 
 export const marketplaceService = {
@@ -935,5 +960,321 @@ export const marketplaceService = {
       createdAt: item.created_at,
       updatedAt: item.updated_at
     };
+  },
+
+  // --- GERAÇÃO DE EXEMPLOS (MOCK / DEMO DATA) ---
+  async generateSampleOffers(preferredSellerId?: string): Promise<boolean> {
+    try {
+      // 1. Resolve um ID de vendedor válido ou null
+      let targetSellerId: string | null = null;
+      let targetCompany = 'CellHub Distribuidora Oficial';
+      let targetOwner = 'Central de Atacado B2B';
+
+      if (preferredSellerId && isUuid(preferredSellerId)) {
+        const { data: user } = await supabase
+          .from('user_accounts')
+          .select('id, company_name, trade_name, owner_name')
+          .eq('id', preferredSellerId)
+          .maybeSingle();
+
+        if (user) {
+          targetSellerId = user.id;
+          targetCompany = user.trade_name || user.company_name || targetCompany;
+          targetOwner = user.owner_name || targetOwner;
+        }
+      }
+
+      if (!targetSellerId) {
+        const { data: firstUser } = await supabase
+          .from('user_accounts')
+          .select('id, company_name, trade_name, owner_name')
+          .limit(1)
+          .maybeSingle();
+
+        if (firstUser && isUuid(firstUser.id)) {
+          targetSellerId = firstUser.id;
+          targetCompany = firstUser.trade_name || firstUser.company_name || targetCompany;
+          targetOwner = firstUser.owner_name || targetOwner;
+        }
+      }
+
+      const sampleData = [
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'iPhone 15 Pro Max 256GB Titânio Natural - Lacrado',
+          category: 'Smartphones',
+          subcategory: 'Apple',
+          condition: 'Novo Lacrado',
+          description: 'Aparelho 100% novo lacrado de fábrica, homologado Anatel com 1 ano de garantia mundial Apple. Pronta entrega com envio imediato no mesmo dia útil.',
+          details: 'Cor: Titânio Natural\nArmazenamento: 256GB\nSaúde da Bateria: 100%\nGarantia: 12 meses Apple Brasil',
+          price: 6890,
+          free_shipping: true,
+          shipping_cost: 0,
+          shipping_policy: 'frete_gratis',
+          package_weight: 0.55,
+          package_height: 6,
+          package_width: 14,
+          package_length: 19,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1695048133036-11b4e8760207?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 34,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'Samsung Galaxy S24 Ultra 512GB Titanium Black',
+          category: 'Smartphones',
+          subcategory: 'Samsung',
+          condition: 'Novo Lacrado',
+          description: 'Lote fechado para lojistas parceiros. Acompanha S-Pen integrada, Galaxy AI nativo, tela antirreflexo Dynamic AMOLED 2X 120Hz.',
+          details: 'Cor: Titanium Black\nArmazenamento: 512GB\nRAM: 12GB\nProcessador: Snapdragon 8 Gen 3 for Galaxy',
+          price: 6199,
+          free_shipping: true,
+          shipping_cost: 0,
+          shipping_policy: 'frete_gratis',
+          package_weight: 0.6,
+          package_height: 7,
+          package_width: 15,
+          package_length: 20,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 28,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'iPhone 13 128GB Estelar - Grade A+ Impecável',
+          category: 'Smartphones',
+          subcategory: 'Apple',
+          condition: 'Excelente',
+          description: 'Aparelho seminovo em estado de novo. Sem nenhum risco ou marca. Bateria original em 94%. Testado 100% em 32 etapas de bancada técnica.',
+          details: 'Bateria: 94% Original\nCor: Estelar (Branco)\nArmazenamento: 128GB\nGarantia da loja: 90 dias com termo B2B',
+          price: 2650,
+          free_shipping: false,
+          shipping_cost: 32.5,
+          shipping_policy: 'comprador_paga',
+          package_weight: 0.5,
+          package_height: 5,
+          package_width: 12,
+          package_length: 18,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 45,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'Xiaomi 13 Pro 5G 256GB Ceramic Black (Leica)',
+          category: 'Smartphones',
+          subcategory: 'Xiaomi',
+          condition: 'Excelente',
+          description: 'Aparelho top de linha com conjunto de câmeras certificado Leica de 1 polegada. Carregador hiper-rápido de 120W incluso na caixa.',
+          details: 'Versão Global oficial\nCor: Ceramic Black\nCarregador: 120W original incluso\nBateria: 100%',
+          price: 3200,
+          free_shipping: true,
+          shipping_cost: 0,
+          shipping_policy: 'frete_gratis',
+          package_weight: 0.65,
+          package_height: 8,
+          package_width: 15,
+          package_length: 22,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 19,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'iPad Pro 11 M2 128GB Wi-Fi Space Gray Lacrado',
+          category: 'Tablets',
+          subcategory: 'Apple',
+          condition: 'Novo Lacrado',
+          description: 'Tablet de alta performance com chip Apple Silicon M2, suporte ao Apple Pencil de 2ª geração e tela Liquid Retina com ProMotion de 120Hz.',
+          details: 'Cor: Cinza-Espacial\nArmazenamento: 128GB\nConectividade: Wi-Fi 6E\nGarantia oficial: 12 meses Apple Brasil',
+          price: 4890,
+          free_shipping: true,
+          shipping_cost: 0,
+          shipping_policy: 'frete_gratis',
+          package_weight: 0.85,
+          package_height: 6,
+          package_width: 22,
+          package_length: 28,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 22,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'Apple Watch Ultra 2 Titânio 49mm Pulseira Ocean',
+          category: 'Smartwatches',
+          subcategory: 'Apple',
+          condition: 'Novo Lacrado',
+          description: 'Relógio inteligente de alta resistência em titânio aeroespacial. GPS de dupla frequência, tela de até 3000 nits e sirene de emergência de 86dB.',
+          details: 'Tamanho: 49mm\nCaixa: Titânio Natural\nPulseira: Ocean Azul-Marinho\nHomologado Anatel',
+          price: 4490,
+          free_shipping: true,
+          shipping_cost: 0,
+          shipping_policy: 'frete_gratis',
+          package_weight: 0.45,
+          package_height: 5,
+          package_width: 12,
+          package_length: 24,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 31,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'Lote 10x Telas OLED iPhone 11 ao 14 Pro Max (Qualidade Incell Premium)',
+          category: 'Peças e Telas',
+          subcategory: 'Apple',
+          condition: 'Novo Lacrado',
+          description: 'Kit de reposição para oficinas de assistência técnica com taxa de retorno zero. Touch 3D sensível, cores vívidas e CI transferível.',
+          details: 'Conteúdo do lote:\n- 2x Tela iPhone 11\n- 2x Tela iPhone 12\n- 3x Tela iPhone 13\n- 3x Tela iPhone 14 Pro Max',
+          price: 1980,
+          free_shipping: false,
+          shipping_cost: 38.0,
+          shipping_policy: 'comprador_paga',
+          package_weight: 0.9,
+          package_height: 12,
+          package_width: 18,
+          package_length: 26,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 52,
+        },
+        {
+          seller_id: targetSellerId,
+          seller_company: targetCompany,
+          seller_owner: targetOwner,
+          title: 'Estação de Retrabalho e Solda Yaxun 881D+ Digital Dupla',
+          category: 'Ferramentas',
+          subcategory: 'Bancada',
+          condition: 'Novo Lacrado',
+          description: 'Equipamento essencial para bancada de reparos avançados em placas SMD e BGA. Bivolt automática com visor digital LCD e fluxo de ar ajustável.',
+          details: 'Tensão: Bivolt (110V/220V)\nPotência: 750W\nItens: 3 Bocais + Suporte + Ponta fina de solda\nTemperatura: 100°C a 480°C',
+          price: 750,
+          free_shipping: false,
+          shipping_cost: 45.0,
+          shipping_policy: 'comprador_paga',
+          package_weight: 2.8,
+          package_height: 18,
+          package_width: 25,
+          package_length: 32,
+          origin_zip_code: '01001-000',
+          origin_street: 'Praça da Sé',
+          origin_number: '100',
+          origin_neighborhood: 'Sé',
+          origin_city: 'São Paulo',
+          origin_state: 'SP',
+          images: [
+            'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
+          ],
+          status: 'publicada',
+          views: 16,
+        },
+      ];
+
+      const { error } = await supabase.from('marketplace_offers').insert(sampleData);
+      if (error) {
+        console.error('[marketplaceService] Erro ao inserir ofertas de exemplo:', error);
+        return false;
+      }
+
+      clearMarketplaceCache();
+      return true;
+    } catch (e) {
+      console.error('[marketplaceService] Falha geral em generateSampleOffers:', e);
+      return false;
+    }
+  },
+
+  async clearAllOffers(): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('marketplace_offers')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (error) {
+        console.error('[marketplaceService] Erro ao limpar ofertas:', error);
+        return false;
+      }
+
+      clearMarketplaceCache();
+      return true;
+    } catch (e) {
+      console.error('[marketplaceService] Erro em clearAllOffers:', e);
+      return false;
+    }
   }
 };
