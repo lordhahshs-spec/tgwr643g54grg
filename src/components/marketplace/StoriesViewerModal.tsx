@@ -452,26 +452,32 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
         </div>
       </div>
 
-      {/* Botões Laterais Minimalistas Colados ao Story Central (Instagram Web) */}
-      {canGoPrev && (
-        <button
-          onClick={handlePrev}
-          className="hidden md:flex absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-40 w-8 h-8 rounded-full bg-[#262626]/90 hover:bg-[#333333] text-white border border-white/10 shadow-xl items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          title="Anterior"
-        >
-          <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-        </button>
-      )}
+      {/* Botões Laterais Flutuantes Próximos ao Story Central em Destaque (Instagram Web Style) */}
+      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] justify-between pointer-events-none z-50">
+        {canGoPrev ? (
+          <button
+            onClick={handlePrev}
+            className="pointer-events-auto -translate-x-12 w-8 h-8 rounded-full bg-[#262626]/90 hover:bg-[#383838] text-white border border-white/10 shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            title="Anterior"
+          >
+            <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+          </button>
+        ) : (
+          <div />
+        )}
 
-      {canGoNext && (
-        <button
-          onClick={handleNext}
-          className="hidden md:flex absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-40 w-8 h-8 rounded-full bg-[#262626]/90 hover:bg-[#333333] text-white border border-white/10 shadow-xl items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          title="Próximo"
-        >
-          <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-        </button>
-      )}
+        {canGoNext ? (
+          <button
+            onClick={handleNext}
+            className="pointer-events-auto translate-x-12 w-8 h-8 rounded-full bg-[#262626]/90 hover:bg-[#383838] text-white border border-white/10 shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            title="Próximo"
+          >
+            <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+          </button>
+        ) : (
+          <div />
+        )}
+      </div>
     </div>
   );
 };
