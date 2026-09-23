@@ -29,7 +29,8 @@ import {
   AlertCircle,
   Box,
   RotateCcw,
-  History
+  History,
+  Lock
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
