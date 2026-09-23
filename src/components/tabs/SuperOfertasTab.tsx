@@ -14,6 +14,7 @@ import { MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { StoryOfferCard } from '@/components/marketplace/StoryOfferCard';
+import { StoriesViewerModal } from '@/components/marketplace/StoriesViewerModal';
 import { HorizontalOfferCard } from '@/components/marketplace/HorizontalOfferCard';
 import { OfferDetailsModal } from '@/components/marketplace/OfferDetailsModal';
 import { CreateOfferModal } from '@/components/marketplace/CreateOfferModal';
@@ -56,6 +57,10 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
   const [selectedOfferForCheckout, setSelectedOfferForCheckout] = useState<MarketplaceOffer | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isGeneratingSamples, setIsGeneratingSamples] = useState(false);
+
+  // Instagram Stories Modal state
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  const [selectedStoryOfferId, setSelectedStoryOfferId] = useState<string | null>(null);
 
   // Carousel ref for smooth horizontal scrolling
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -399,7 +404,10 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
                           offer={offer}
                           isFavorite={favorites.includes(offer.id)}
                           onToggleFavorite={handleToggleFavorite}
-                          onSelect={(off) => setSelectedOfferForDetails(off)}
+                          onSelect={(off) => {
+                            setSelectedStoryOfferId(off.id);
+                            setIsStoryViewerOpen(true);
+                          }}
                         />
                       </div>
                     ))}
@@ -552,6 +560,23 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({ isDemo = false
           }}
         />
       )}
+
+      {/* Instagram Stories Modal para Ofertas Quentes */}
+      <StoriesViewerModal
+        isOpen={isStoryViewerOpen}
+        initialOfferId={selectedStoryOfferId}
+        offers={hotOffers}
+        onClose={() => {
+          setIsStoryViewerOpen(false);
+          setSelectedStoryOfferId(null);
+        }}
+        onOpenDetails={(offer) => {
+          setIsStoryViewerOpen(false);
+          setSelectedOfferForDetails(offer);
+        }}
+        favorites={favorites}
+        onToggleFavorite={handleToggleFavorite}
+      />
     </div>
   );
 };

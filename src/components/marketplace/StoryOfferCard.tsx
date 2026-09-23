@@ -46,15 +46,32 @@ export const StoryOfferCard: React.FC<StoryOfferCardProps> = ({
       {/* Subtle Ambient Vignette & Bottom Gradient for Clean Readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/95 pointer-events-none" />
 
-      {/* Top Floating Controls - Clean (NO condition/category tags) */}
-      <div className="absolute top-2.5 right-2.5 z-10">
+      {/* Top Floating Controls - Instagram Story Ring & Favorite Button */}
+      <div className="absolute top-2.5 inset-x-2.5 z-10 flex items-center justify-between pointer-events-none">
+        {/* Instagram Stories Badge with store ring & photos counter */}
+        <div className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 shadow-md">
+          <div className="p-0.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-[#00D287]">
+            <div className="w-5 h-5 rounded-full bg-slate-900 border border-black flex items-center justify-center text-[9px] font-black text-white uppercase">
+              {offer.sellerCompany.substring(0, 1)}
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-white flex items-center gap-1">
+            <span>Story</span>
+            {offer.images && offer.images.length > 1 && (
+              <span className="text-[9px] px-1 rounded-full bg-white/20 text-slate-200">
+                {offer.images.length}
+              </span>
+            )}
+          </span>
+        </div>
+
         <button
           type="button"
           onClick={(e) => onToggleFavorite(offer.id, e)}
-          className={`p-1.5 rounded-full backdrop-blur-md transition-colors ${
+          className={`pointer-events-auto p-1.5 rounded-full backdrop-blur-md transition-colors ${
             isFavorite
               ? 'bg-rose-500/30 text-rose-400 border border-rose-500/40'
-              : 'bg-black/40 text-slate-300 hover:text-white border border-white/10'
+              : 'bg-black/50 text-slate-300 hover:text-white border border-white/10'
           }`}
           title={isFavorite ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
         >
