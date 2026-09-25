@@ -208,21 +208,21 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
   });
 
   return (
-    <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-16">
-      {/* Top Header Bar */}
-      <header className="sticky top-0 z-30 bg-[#060a16]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+    <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-32 sm:pb-20">
+      {/* Top Header Bar com Safe Area para Notificações/Entalhe do Android e iOS */}
+      <header className="sticky top-0 z-30 bg-[#060a16]/95 backdrop-blur-2xl border-b border-white/10 px-3.5 sm:px-8 pt-[max(env(safe-area-inset-top),1.25rem)] pb-2.5 sm:pb-3 flex items-center justify-between gap-2.5 sm:gap-4 shadow-lg shadow-black/40">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-[#00D287] shadow-sm shadow-[#00D287]/50 animate-pulse" />
-            <span className="text-base font-black text-white tracking-tight">
+            <span className="text-sm sm:text-base font-black text-white tracking-tight">
               Super <span className="text-[#00D287]">Ofertas</span>
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider">
+            <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider">
               B2B
             </span>
           </div>
 
-          {/* Segmented View Switcher */}
+          {/* Segmented View Switcher (Desktop / Tablet) */}
           <div className="hidden sm:flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
             <button
               onClick={() => setActiveView('explorar')}
@@ -256,7 +256,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {currentUser?.role === 'admin' && (
             <>
               <button
@@ -272,7 +272,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
               {regularOffers.length > 0 && (
                 <button
                   onClick={handleClearAllOffers}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 sm:p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
                   title="Limpar todas as ofertas"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -289,9 +289,9 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
               }
               setIsCreateModalOpen(true);
             }}
-            className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1 sm:gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
             <span>Criar Oferta</span>
           </button>
 
@@ -304,7 +304,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
               }
               setActiveView(activeView === 'explorar' ? 'painel' : 'explorar');
             }}
-            className="sm:hidden p-2 rounded-xl bg-slate-900 text-slate-300 border border-white/10"
+            className="sm:hidden p-1.5 rounded-xl bg-slate-900 text-slate-300 border border-white/10 flex-shrink-0"
             title="Alternar Painel / Vitrine"
           >
             <Package className="w-4 h-4" />
