@@ -102,5 +102,4 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
       </button>
     </nav>
   );
-  );
 };
