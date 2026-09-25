@@ -208,9 +208,9 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
   });
 
   return (
-    <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-32 sm:pb-20">
-      {/* Top Header Bar com Safe Area para Notificações/Entalhe do Android e iOS */}
-      <header className="sticky top-0 z-30 bg-[#060a16]/95 backdrop-blur-2xl border-b border-white/10 px-3.5 sm:px-8 pt-[max(env(safe-area-inset-top),1.25rem)] pb-2.5 sm:pb-3 flex items-center justify-between gap-2.5 sm:gap-4 shadow-lg shadow-black/40">
+    <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-8 sm:pb-12">
+      {/* Top Header Bar */}
+      <header className="sticky top-0 z-30 bg-[#060a16]/95 backdrop-blur-2xl border-b border-white/10 px-3.5 sm:px-8 py-3 flex items-center justify-between gap-2.5 sm:gap-4 shadow-lg shadow-black/40">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-[#00D287] shadow-sm shadow-[#00D287]/50 animate-pulse" />

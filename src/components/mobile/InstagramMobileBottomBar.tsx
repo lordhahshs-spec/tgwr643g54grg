@@ -24,7 +24,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
   const avatarUrl = currentUser?.avatarUrl;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-[#060a16]/98 backdrop-blur-2xl border-t border-white/10 pb-[max(env(safe-area-inset-bottom),0px)] px-1 flex items-center justify-around shadow-[0_-8px_24px_rgba(0,0,0,0.8)] select-none touch-manipulation">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-[#060a16]/98 backdrop-blur-2xl border-t border-white/10 pb-[env(safe-area-inset-bottom,0px)] px-1 flex items-center justify-around shadow-[0_-8px_24px_rgba(0,0,0,0.8)] select-none touch-manipulation">
       {/* 1. Super Ofertas (Vitrine / Feed) */}
       <button
         type="button"
