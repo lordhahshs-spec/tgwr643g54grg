@@ -257,30 +257,6 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          {currentUser?.role === 'admin' && (
-            <>
-              <button
-                onClick={handleGenerateSamples}
-                disabled={isGeneratingSamples}
-                className="hidden md:flex px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 text-xs font-bold items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
-                title="Gerar ofertas de exemplo"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Exemplos'}</span>
-              </button>
-
-              {regularOffers.length > 0 && (
-                <button
-                  onClick={handleClearAllOffers}
-                  className="p-1.5 sm:p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/10 transition-colors cursor-pointer"
-                  title="Limpar todas as ofertas"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </>
-          )}
-
           <button
             onClick={() => {
               if (isDemo) {
@@ -328,7 +304,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
         {/* VIEW: VITRINE PÚBLICA */}
         <div className={activeView === 'explorar' ? 'block space-y-5' : 'hidden'}>
           {/* ========================================================================= */}
-          {/* 1. SEÇÃO STORIES 9:16 (OFERTAS EM ALTA)                                   */}
+          {/* 1. SEÇÃO STORIES (OFERTAS EM ALTA)                                        */}
           {/* ========================================================================= */}
           <section className="space-y-2.5">
             <div className="flex items-center justify-between">
@@ -337,11 +313,8 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
                   <Flame className="w-3.5 h-3.5 fill-orange-400" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-white tracking-tight leading-tight flex items-center gap-2">
+                  <h2 className="text-sm font-black text-white tracking-tight leading-tight">
                     Ofertas em Alta
-                    <span className="text-[9px] uppercase px-1.5 py-0.2 rounded-full font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                      Stories 9:16
-                    </span>
                   </h2>
                   <p className="text-[11px] text-slate-400">
                     Toque em qualquer card para assistir em tela cheia no formato Story
@@ -411,15 +384,6 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                  <button
-                    onClick={handleGenerateSamples}
-                    disabled={isGeneratingSamples}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4 text-[#00D287]" />
-                    <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
-                  </button>
-
                   <button
                     onClick={() => {
                       if (isDemo) {

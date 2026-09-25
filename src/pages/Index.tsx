@@ -203,7 +203,7 @@ const Index: React.FC = () => {
         )}
 
         {/* Tab Content Display Area com rolagem touch fluida (iOS & Android) */}
-        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col pb-[calc(50px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col pb-14 lg:pb-0">
           <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
