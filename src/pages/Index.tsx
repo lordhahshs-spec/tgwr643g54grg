@@ -137,7 +137,7 @@ const Index: React.FC = () => {
   const currentTabConfig = NAVIGATION_TABS.find((t) => t.id === activeTab) || NAVIGATION_TABS[0];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#050811] text-slate-100 antialiased">
+    <div className="flex h-[100dvh] max-h-[100dvh] w-screen overflow-hidden bg-[#050811] text-slate-100 antialiased touch-manipulation">
       {/* Lateral Navigation Sidebar */}
       <SidebarNavigation
         activeTab={activeTab}
@@ -151,20 +151,20 @@ const Index: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div 
-        className={`flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out
+      <div
+        className={`flex-1 flex flex-col h-full min-h-0 overflow-hidden transition-all duration-300 ease-in-out
           ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}
         `}
       >
         {/* Top Demo Mode Ribbon */}
         {isDemo && (
-          <div className="h-10 bg-gradient-to-r from-emerald-950/80 via-[#0a1424] to-slate-950 border-b border-[#00D287]/30 px-3 sm:px-6 flex items-center justify-between z-30 flex-shrink-0">
+          <div className="h-9 bg-gradient-to-r from-emerald-950/90 via-[#0a1424] to-slate-950 border-b border-[#00D287]/30 px-3 sm:px-6 flex items-center justify-between z-30 flex-shrink-0">
             <div className="flex items-center gap-2 text-xs">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D287] opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D287]" />
               </span>
-              <span className="font-extrabold text-[#00D287] uppercase tracking-wider text-[11px]">
+              <span className="font-extrabold text-[#00D287] uppercase tracking-wider text-[10px] sm:text-[11px]">
                 Modo Demonstração
               </span>
               <span className="hidden md:inline text-slate-400 text-xs">
@@ -174,42 +174,13 @@ const Index: React.FC = () => {
 
             <button
               onClick={() => handleOpenUnlockModal('Desbloqueie o acesso vitalício à plataforma CellHub')}
-              className="px-3 py-1 rounded-lg bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm shadow-[#00D287]/20 transition-all cursor-pointer transform active:scale-95"
+              className="px-2.5 py-1 rounded-lg bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-[11px] flex items-center gap-1.5 shadow-sm shadow-[#00D287]/20 transition-all cursor-pointer transform active:scale-95"
             >
-              <Sparkles className="w-3.5 h-3.5 fill-current" />
-              <span>Desbloquear Acesso Vitalício</span>
+              <Sparkles className="w-3 h-3 fill-current" />
+              <span>Desbloquear Acesso</span>
             </button>
           </div>
         )}
-
-        {/* Mobile Header */}
-        <div className="lg:hidden h-12 flex-shrink-0 bg-[#080c17] border-b border-white/5 px-4 flex items-center justify-between z-20">
-          <button
-            onClick={() => setIsMobileSidebarOpen(true)}
-            className="p-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white"
-            aria-label="Menu"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-
-          <span className="text-xs font-semibold text-white truncate max-w-[180px]">
-            {currentTabConfig.label}
-          </span>
-
-          <button
-            onClick={() => setIsProfileModalOpen(true)}
-            className="p-1 rounded-full bg-slate-900 border border-white/10 text-slate-300 hover:text-white"
-            title="Meu Perfil"
-          >
-            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-black text-white bg-[#00D287]/20 text-[#00D287]">
-              {currentUser?.avatarUrl ? (
-                <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                (currentUser?.tradeName || currentUser?.companyName || 'C').substring(0, 1)
-              )}
-            </div>
-          </button>
-        </div>
 
         {/* Desktop Header for secondary tabs */}
         {activeTab !== 'venda-android' && activeTab !== 'super-ofertas' && (
@@ -220,7 +191,7 @@ const Index: React.FC = () => {
             </h1>
 
             {currentUser && (
-              <div 
+              <div
                 onClick={() => setIsProfileModalOpen(true)}
                 className="text-[11px] text-slate-400 hover:text-white flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition-colors"
                 title="Ver/Editar perfil"
@@ -231,18 +202,18 @@ const Index: React.FC = () => {
           </header>
         )}
 
-        {/* Tab Content Display Area (Mantém abas em memória sem destruição de estado/scroll) */}
-        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col pb-14 lg:pb-0">
-          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
+        {/* Tab Content Display Area com rolagem touch fluida (iOS & Android) */}
+        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
+          <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
           </div>
-          <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
+          <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto' : 'hidden'}>
+          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
           </div>
         </main>

@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
 import {
   X,
-  ChevronLeft,
-  ChevronRight,
   ShoppingBag,
   Heart,
   Truck,
@@ -269,14 +267,14 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                       <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/85 pointer-events-none" />
                     </div>
 
-                    {/* ZONAS DE TOQUE/CLIQUE LATERAIS */}
+                    {/* ZONAS DE TOQUE/CLIQUE LATERAIS (Navegação Pura Estilo Instagram) */}
                     <div className="absolute inset-0 z-10 flex">
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePrev();
                         }}
-                        className="w-[30%] h-full cursor-pointer"
+                        className="w-[35%] h-full cursor-pointer"
                         title="Story Anterior"
                       />
                       <div
@@ -284,7 +282,7 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
                           e.stopPropagation();
                           handleNext();
                         }}
-                        className="w-[70%] h-full cursor-pointer"
+                        className="w-[65%] h-full cursor-pointer"
                         title="Próximo Story"
                       />
                     </div>
@@ -399,33 +397,6 @@ export const StoriesViewerModal: React.FC<StoriesViewerModalProps> = ({
             );
           })}
         </div>
-      </div>
-
-      {/* Botões Laterais Flutuantes Próximos ao Story Central em Destaque (Instagram Web Style) */}
-      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] justify-between pointer-events-none z-50">
-        {canGoPrev ? (
-          <button
-            onClick={handlePrev}
-            className="pointer-events-auto -translate-x-12 w-8 h-8 rounded-full bg-[#262626]/90 hover:bg-[#383838] text-white border border-white/10 shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
-            title="Anterior"
-          >
-            <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-          </button>
-        ) : (
-          <div />
-        )}
-
-        {canGoNext ? (
-          <button
-            onClick={handleNext}
-            className="pointer-events-auto translate-x-12 w-8 h-8 rounded-full bg-[#262626]/90 hover:bg-[#383838] text-white border border-white/10 shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
-            title="Próximo"
-          >
-            <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-          </button>
-        ) : (
-          <div />
-        )}
       </div>
     </div>
   );
