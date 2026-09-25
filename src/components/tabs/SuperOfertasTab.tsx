@@ -380,60 +380,19 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
           </section>
 
           {/* ========================================================================= */}
-          {/* 2. BARRA DE BUSCA E CHIPS DE CATEGORIAS                                   */}
+          {/* DIVISOR DINÂMICO MINIMALISTA (TRANSIÇÃO SUAVE ENTRE OFERTAS)              */}
           {/* ========================================================================= */}
-          <section className="space-y-3 pt-2">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-              {/* Campo de Busca */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por marca, modelo, categoria ou loja..."
-                  className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[#090e1c] border border-white/10 text-white placeholder:text-slate-500 text-xs focus:outline-none focus:border-[#00D287] transition-colors"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Contagem de Resultados */}
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Layers className="w-4 h-4 text-[#00D287]" />
-                <span>Exibindo <strong>{filteredRegularOffers.length}</strong> ofertas</span>
-              </div>
+          <div className="relative py-2 flex items-center justify-center my-1">
+            {/* Linha Verde com Gradiente Dinâmico e Brilho Fluido */}
+            <div className="w-full h-[1.5px] bg-gradient-to-r from-transparent via-[#00D287]/40 to-transparent relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00D287]/80 to-transparent blur-[1.5px] opacity-80 animate-pulse" />
             </div>
-
-            {/* Chips de Categorias */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {CATEGORIES.map((cat) => {
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20 scale-105'
-                        : 'bg-[#090e1c] text-slate-400 hover:text-white border border-white/5 hover:border-white/15'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+            {/* Ponto de Luz Central Minimalista */}
+            <div className="absolute w-2 h-2 rounded-full bg-[#00D287] shadow-[0_0_12px_#00D287] opacity-90 animate-pulse" />
+          </div>
 
           {/* ========================================================================= */}
-          {/* 3. GRADE DE PRODUTOS B2B (FEED PRINCIPAL)                                */}
+          {/* 2. GRADE DE PRODUTOS B2B (FEED PRINCIPAL)                                */}
           {/* ========================================================================= */}
           <section className="space-y-4">
             {loading ? (
@@ -448,48 +407,32 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
                 <div>
                   <h3 className="text-base font-bold text-white">Nenhuma oferta encontrada</h3>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                    {searchTerm || selectedCategory !== 'todos'
-                      ? 'Nenhum item corresponde aos filtros selecionados. Tente limpar a busca.'
-                      : 'Seja o primeiro lojista a publicar uma oferta no Marketplace B2B!'}
+                    Seja o primeiro lojista a publicar uma oferta no Marketplace B2B!
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                  {(searchTerm || selectedCategory !== 'todos') ? (
-                    <button
-                      onClick={() => {
-                        setSearchTerm('');
-                        setSelectedCategory('todos');
-                      }}
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Limpar Filtros
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleGenerateSamples}
-                        disabled={isGeneratingSamples}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                      >
-                        <Sparkles className="w-4 h-4 text-[#00D287]" />
-                        <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
-                      </button>
+                  <button
+                    onClick={handleGenerateSamples}
+                    disabled={isGeneratingSamples}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-[#00D287] border border-[#00D287]/40 text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#00D287]" />
+                    <span>{isGeneratingSamples ? 'Gerando...' : 'Gerar Ofertas de Exemplo'}</span>
+                  </button>
 
-                      <button
-                        onClick={() => {
-                          if (isDemo) {
-                            onUnlock?.('O anúncio e publicação de ofertas no Marketplace B2B é exclusivo para membros com licença vitalícia ativa.');
-                            return;
-                          }
-                          setIsCreateModalOpen(true);
-                        }}
-                        className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Publicar Primeira Oferta
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={() => {
+                      if (isDemo) {
+                        onUnlock?.('O anúncio e publicação de ofertas no Marketplace B2B é exclusivo para membros com licença vitalícia ativa.');
+                        return;
+                      }
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Publicar Primeira Oferta
+                  </button>
                 </div>
               </div>
             ) : (
