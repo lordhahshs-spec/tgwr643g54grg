@@ -8,9 +8,12 @@ import {
   Zap,
   PackageCheck,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Search,
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
-import { MarketplaceOffer } from '@/types/marketplace';
+import { MarketplaceOffer, OfferCategory } from '@/types/marketplace';
 import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { MercadoLivreOfferCard } from '@/components/marketplace/MercadoLivreOfferCard';
@@ -24,11 +27,29 @@ interface CellHubShopTabProps {
   onUnlock?: (reason?: string) => void;
 }
 
+const CATEGORIES: { id: string; label: string }[] = [
+  { id: 'todos', label: 'Todos os Produtos' },
+  { id: 'Celulares', label: 'Celulares' },
+  { id: 'Peças', label: 'Peças' },
+  { id: 'Telas', label: 'Telas' },
+  { id: 'Baterias', label: 'Baterias' },
+  { id: 'Conectores', label: 'Conectores' },
+  { id: 'Acessórios', label: 'Acessórios' },
+  { id: 'Ferramentas', label: 'Ferramentas' },
+  { id: 'Máquinas', label: 'Máquinas' },
+  { id: 'Eletrônicos', label: 'Eletrônicos' },
+  { id: 'Componentes', label: 'Componentes' },
+  { id: 'Lotes', label: 'Lotes' },
+  { id: 'Outros', label: 'Outros' },
+];
+
 export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, onUnlock }) => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => leadAuthService.getCurrentUser());
   const [offers, setOffers] = useState<MarketplaceOffer[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modals
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
@@ -97,7 +118,12 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
     setSelectedOfferForCheckout(offer);
   };
 
-  const filteredOffers = offers;
+  const filteredOffers = offers.filter((o) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q || o.title.toLowerCase().includes(q) || (o.description && o.description.toLowerCase().includes(q));
+    const matchesCategory = selectedCategory === 'todos' || o.category.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-16">
@@ -159,6 +185,58 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
           </div>
         </div>
 
+        {/* Search Bar & Category Navigation Pills */}
+        <div className="space-y-3">
+          {/* Search Input */}
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por modelo, marca ou produto oficial..."
+              className="w-full pl-10 pr-10 py-2.5 bg-[#080d1b] border border-white/10 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter Pills (12 Categorias Oficiais) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {CATEGORIES.map((cat) => {
+              const count = cat.id === 'todos' 
+                ? offers.length 
+                : offers.filter((o) => o.category.toLowerCase() === cat.id.toLowerCase()).length;
+              const isSelected = selectedCategory === cat.id;
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+                    isSelected
+                      ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
+                      : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
+                  }`}
+                >
+                  <span>{cat.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                    isSelected ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Divisor Dinâmico Minimalista com Brilho Verde */}
         <div className="relative py-2 flex items-center justify-center my-1 w-full">
           <div className="w-full h-[1.5px] bg-gradient-to-r from-transparent via-[#00D287]/40 to-transparent relative">
@@ -208,20 +286,22 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
                 </div>
               ) : (
                 <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-white/5 text-xs text-slate-400">
-                  <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
-                  <span>Aguardando publicação de novos lotes pela equipe CellHub</span>
+                  <ShieldCheck className="w-4 h-4 text-[#00D287]" />
+                  <span>Estoque sendo abastecido pelos fornecedores credenciados</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4.5">
+            /* Grade Estilo Mercado Livre Full Width */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 w-full">
               {filteredOffers.map((offer) => (
                 <MercadoLivreOfferCard
                   key={offer.id}
                   offer={offer}
                   isFavorite={favorites.includes(offer.id)}
-                  onToggleFavorite={handleToggleFavorite}
-                  onSelect={(off) => setSelectedOfferForDetails(off)}
+                  onToggleFavorite={(e) => handleToggleFavorite(offer.id, e)}
+                  onClick={() => setSelectedOfferForDetails(offer)}
+                  onBuyClick={() => handleOpenCheckout(offer)}
                 />
               ))}
             </div>
@@ -229,37 +309,38 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
         </section>
       </main>
 
-      {/* Modais de Detalhes e Checkout */}
+      {/* MODAL DETALHES DA OFERTA */}
       {selectedOfferForDetails && (
         <OfferDetailsModal
           offer={selectedOfferForDetails}
-          onClose={() => setSelectedOfferForDetails(null)}
-          isFavorite={favorites.includes(selectedOfferForDetails.id)}
-          onToggleFavorite={handleToggleFavorite}
-          onInitiateCheckout={handleOpenCheckout}
           currentUserId={currentUser?.id}
-          currentUserCompany={currentUser?.companyName}
+          currentUserCompany={currentUser?.tradeName || currentUser?.companyName}
+          isFavorite={favorites.includes(selectedOfferForDetails.id)}
+          onClose={() => setSelectedOfferForDetails(null)}
+          onToggleFavorite={(e) => handleToggleFavorite(selectedOfferForDetails.id, e)}
+          onBuyNow={() => handleOpenCheckout(selectedOfferForDetails)}
         />
       )}
 
+      {/* MODAL DE CHECKOUT OFICIAL CELLHUB */}
       {selectedOfferForCheckout && currentUser && (
         <CheckoutModal
-          isOpen={Boolean(selectedOfferForCheckout)}
-          onClose={() => setSelectedOfferForCheckout(null)}
           offer={selectedOfferForCheckout}
           currentUser={currentUser}
-          onOrderSuccess={() => {
+          onClose={() => setSelectedOfferForCheckout(null)}
+          onSuccess={() => {
+            setSelectedOfferForCheckout(null);
             loadData();
           }}
         />
       )}
 
-      {/* Modal de Criação de Produto Oficial (Exclusivo Admin) */}
+      {/* MODAL DE CRIAÇÃO EXCLUSIVA DE OFERTA OFICIAL (ADMIN) */}
       {isCreateOfficialModalOpen && currentUser && (
         <CreateOfficialOfferModal
           isOpen={isCreateOfficialModalOpen}
-          onClose={() => setIsCreateOfficialModalOpen(false)}
           currentUser={currentUser}
+          onClose={() => setIsCreateOfficialModalOpen(false)}
           onOfferCreated={() => {
             loadData();
           }}

@@ -21,6 +21,7 @@ const DEFAULT_MARGIN_RULES: MarginRule[] = [
   { id: 'ferram-novo', category: 'Ferramentas', condition: 'Novo', marginPercent: 25, description: 'Chaves, microscópios e estações' },
   { id: 'maquinas-novo', category: 'Máquinas', condition: 'Novo', marginPercent: 20, description: 'Separadoras, laminadoras e lasers' },
   { id: 'eletro-novo', category: 'Eletrônicos', condition: 'Novo', marginPercent: 25, description: 'Smartwatches, caixas de som e gadgets' },
+  { id: 'comp-novo', category: 'Componentes', condition: 'Novo', marginPercent: 35, description: 'ICs, resistores, capacitores e microcomponentes' },
   { id: 'lotes-geral', category: 'Lotes', marginPercent: 18, description: 'Lotes atacado fechados' },
   { id: 'outros-geral', category: 'Outros', marginPercent: 25, description: 'Produtos gerais diversos' },
 ];
