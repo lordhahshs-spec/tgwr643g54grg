@@ -61,20 +61,28 @@ const Index: React.FC = () => {
             (payload: any) => {
               const newRecord = payload.new;
               if (newRecord.status === 'bloqueado') {
-                setIsBanned(true);
+                setIsBanned((prevBanned) => {
+                  if (!prevBanned) {
+                    toast.error(
+                      `Seu acesso foi suspenso pela administração. Motivo: ${newRecord.ban_reason || 'Irregularidade cadastral'}`,
+                      { duration: 8000 }
+                    );
+                  }
+                  return true;
+                });
                 setCurrentUser((prev) =>
                   prev ? { ...prev, status: 'bloqueado', banReason: newRecord.ban_reason } : null
                 );
-                toast.error(
-                  `Seu acesso foi suspenso pela administração. Motivo: ${newRecord.ban_reason || 'Irregularidade cadastral'}`,
-                  { duration: 8000 }
-                );
               } else if (newRecord.status === 'ativo') {
-                setIsBanned(false);
+                setIsBanned((prevBanned) => {
+                  if (prevBanned) {
+                    toast.success('Seu acesso à plataforma CellHub foi restabelecido com sucesso!');
+                  }
+                  return false;
+                });
                 setCurrentUser((prev) =>
                   prev ? { ...prev, status: 'ativo', banReason: undefined, planStatus: newRecord.plan_status } : null
                 );
-                toast.success('Seu acesso à plataforma CellHub foi restabelecido com sucesso!');
               }
             }
           )
@@ -84,7 +92,7 @@ const Index: React.FC = () => {
 
     initUser();
 
-    // Sincronização de usuário
+    // Sincronização de usuário via eventos locais
     const handleUserUpdate = (e: any) => {
       if (e.detail) {
         setCurrentUser(e.detail);
@@ -92,25 +100,33 @@ const Index: React.FC = () => {
     };
     window.addEventListener('cellhub_user_updated', handleUserUpdate);
 
-    // Verificação periódica de contingência em 2 segundos
-    const interval = setInterval(async () => {
+    // Verificação periódica estável e ao focar a aba
+    const checkStatus = async () => {
       const user = leadAuthService.getCurrentUser();
       if (user?.id) {
         const { status, banReason, planStatus } = await leadAuthService.checkUserStatus(user.id);
         if (status === 'bloqueado') {
           setIsBanned(true);
           setCurrentUser((prev) => (prev ? { ...prev, status: 'bloqueado', banReason } : null));
-        } else {
+        } else if (status === 'ativo') {
           setIsBanned(false);
-          if (planStatus && currentUser?.planStatus !== planStatus) {
-            setCurrentUser((prev) => (prev ? { ...prev, planStatus } : null));
-          }
+          setCurrentUser((prev) => {
+            if (!prev) return null;
+            if (prev.status === 'bloqueado' || (planStatus && prev.planStatus !== planStatus)) {
+              return { ...prev, status: 'ativo', banReason: undefined, planStatus: planStatus || prev.planStatus };
+            }
+            return prev;
+          });
         }
       }
-    }, 2000);
+    };
+
+    const interval = setInterval(checkStatus, 20000);
+    window.addEventListener('focus', checkStatus);
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('focus', checkStatus);
       window.removeEventListener('cellhub_user_updated', handleUserUpdate);
       if (channel) {
         supabase.removeChannel(channel);
