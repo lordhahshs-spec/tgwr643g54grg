@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { Heart, Zap, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Heart, Zap, ArrowRight, CheckCircle2, ArrowDown } from 'lucide-react';
 
 interface MercadoLivreOfferCardProps {
   offer: MarketplaceOffer;
@@ -31,7 +31,8 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
 
   // Verificação de desconto promocional real
   const hasDiscount = Boolean(
-    offer.originalPrice && offer.originalPrice > offer.price
+    (offer.originalPrice && offer.originalPrice > offer.price) ||
+    (offer.discountPercent && offer.discountPercent > 0)
   );
 
   const discountPercent = offer.discountPercent || (
@@ -55,7 +56,7 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
       className="group relative bg-[#090e1c] hover:bg-[#0c1428] active:scale-[0.99] transition-all duration-200 border border-white/10 hover:border-white/20 rounded-2xl p-3 sm:p-3.5 cursor-pointer shadow-sm hover:shadow-xl flex flex-col justify-between select-none touch-manipulation"
     >
       <div>
-        {/* Imagem do Produto (Estilo Catálogo Mercado Livre) */}
+        {/* Imagem do Produto */}
         <div className="relative w-full aspect-square rounded-xl bg-[#040711] overflow-hidden flex items-center justify-center p-2 mb-2.5 border border-white/5 group-hover:border-white/10 transition-colors">
           {primaryImage ? (
             <img
@@ -66,6 +67,14 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
             />
           ) : (
             <div className="text-slate-600 text-xs">Sem foto</div>
+          )}
+
+          {/* Selo Promocional Vermelho no Canto Superior Esquerdo da Foto */}
+          {hasDiscount && discountPercent > 0 && (
+            <div className="absolute top-2 left-2 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-lg shadow-red-600/40 border border-red-400/40 flex items-center gap-1 z-10 animate-pulse">
+              <ArrowDown className="w-3 h-3 stroke-[3]" />
+              <span>{discountPercent}% OFF</span>
+            </div>
           )}
 
           {/* Botão de Favorito no Canto Superior Direito */}
@@ -96,13 +105,19 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
           {offer.title}
         </h3>
 
-        {/* Linha 3: Bloco de Preço Padrão Mercado Livre */}
+        {/* Linha 3: Bloco de Preço Padrão Mercado Livre com Destaque de Desconto */}
         <div className="mt-2 space-y-0.5">
-          {/* Preço Original Riscado */}
+          {/* Preço Original Riscado + Tag Vermelha */}
           {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price ? (
-            <span className="text-[11px] text-slate-500 line-through font-normal block leading-none">
-              {formatBRL(offer.originalPrice)}
-            </span>
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="text-[11px] text-slate-400 line-through font-normal">
+                {formatBRL(offer.originalPrice)}
+              </span>
+              <span className="text-[10px] font-black text-rose-300 bg-rose-500/20 px-1 py-0.2 rounded border border-rose-500/30 flex items-center gap-0.5">
+                <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
+                -{discountPercent}%
+              </span>
+            </div>
           ) : (
             <span className="text-[11px] text-transparent select-none block leading-none">
               -

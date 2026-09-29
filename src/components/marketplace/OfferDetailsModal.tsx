@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { MarketplaceOffer, MarketplaceReport } from '@/types/marketplace';
-import { 
-  X, 
-  Heart, 
-  ShieldCheck, 
-  Truck, 
-  AlertTriangle, 
-  Share2, 
-  ShoppingBag, 
-  Zap
+import {
+  X,
+  Heart,
+  ShieldCheck,
+  Truck,
+  AlertTriangle,
+  Share2,
+  ShoppingBag,
+  Zap,
+  ArrowDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -179,6 +180,14 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 <div className="text-slate-600 text-xs">Sem foto</div>
               )}
 
+              {/* Selo Promocional no Modal */}
+              {hasDiscount && discountPercent > 0 && (
+                <div className="absolute top-3 left-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs px-2.5 py-1 rounded-full shadow-lg shadow-red-600/40 border border-red-400/40 flex items-center gap-1 z-10 animate-pulse">
+                  <ArrowDown className="w-3 h-3 stroke-[3]" />
+                  <span>{discountPercent}% OFF</span>
+                </div>
+              )}
+
               {images.length > 1 && (
                 <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] text-slate-400 font-mono">
                   {activeImageIndex + 1} / {images.length}
@@ -238,11 +247,12 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
               <div className="pt-2 pb-3 border-y border-white/5 space-y-1">
                 {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 line-through font-normal">
+                    <span className="text-xs text-slate-400 line-through font-normal">
                       {formatBRL(offer.originalPrice)}
                     </span>
-                    <span className="text-xs font-bold text-emerald-400">
-                      {discountPercent}% OFF
+                    <span className="text-xs font-black text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30 flex items-center gap-1">
+                      <ArrowDown className="w-3 h-3 stroke-[3]" />
+                      -{discountPercent}% OFF
                     </span>
                   </div>
                 )}
