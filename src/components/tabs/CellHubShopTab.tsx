@@ -2,23 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
   Plus,
-  Search,
   Truck,
   ShieldCheck,
   RefreshCw,
   Zap,
   PackageCheck,
   CheckCircle2,
-  SlidersHorizontal,
-  Sparkles,
-  ArrowRight,
-  Boxes,
-  Smartphone,
-  Cpu,
-  Wrench,
-  Headphones
+  Sparkles
 } from 'lucide-react';
-import { MarketplaceOffer, OfferCategory } from '@/types/marketplace';
+import { MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { MercadoLivreOfferCard } from '@/components/marketplace/MercadoLivreOfferCard';
@@ -32,21 +24,11 @@ interface CellHubShopTabProps {
   onUnlock?: (reason?: string) => void;
 }
 
-const CATEGORIES: { id: string; label: string; icon: any }[] = [
-  { id: 'todos', label: 'Todos os Produtos', icon: Boxes },
-  { id: 'Celulares', label: 'iPhones & Celulares', icon: Smartphone },
-  { id: 'Peças', label: 'Telas & Peças', icon: Cpu },
-  { id: 'Ferramentas', label: 'Ferramentas de Bancada', icon: Wrench },
-  { id: 'Acessórios', label: 'Acessórios & Cabos', icon: Headphones },
-];
-
 export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, onUnlock }) => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => leadAuthService.getCurrentUser());
   const [offers, setOffers] = useState<MarketplaceOffer[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
 
   // Modals
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
@@ -115,21 +97,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
     setSelectedOfferForCheckout(offer);
   };
 
-  // Filtragem no catálogo
-  const filteredOffers = offers.filter((offer) => {
-    const term = searchTerm.trim().toLowerCase();
-    const matchesSearch = !term ||
-      offer.title.toLowerCase().includes(term) ||
-      offer.category.toLowerCase().includes(term) ||
-      (offer.subcategory && offer.subcategory.toLowerCase().includes(term));
-
-    const cat = selectedCategory.toLowerCase();
-    const matchesCategory = selectedCategory === 'todos' ||
-      offer.category.toLowerCase() === cat ||
-      (offer.subcategory && offer.subcategory.toLowerCase() === cat);
-
-    return matchesSearch && matchesCategory;
-  });
+  const filteredOffers = offers;
 
   return (
     <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-16">
@@ -191,40 +159,12 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
           </div>
         </div>
 
-        {/* Busca e Filtros de Categoria (Estilo Mercado Livre Full Width) */}
-        <div className="w-full space-y-3">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar no catálogo oficial CellHub (iPhones, telas, baterias, ferramentas)..."
-              className="w-full pl-11 pr-4 py-3 rounded-xl bg-[#080d1a] border border-white/10 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287] transition-all shadow-inner"
-            />
+        {/* Divisor Dinâmico Minimalista com Brilho Verde */}
+        <div className="relative py-2 flex items-center justify-center my-1 w-full">
+          <div className="w-full h-[1.5px] bg-gradient-to-r from-transparent via-[#00D287]/40 to-transparent relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00D287]/80 to-transparent blur-[1.5px] opacity-80 animate-pulse" />
           </div>
-
-          {/* Category Chips Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar w-full">
-            {CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              const isSelected = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex-shrink-0 flex items-center gap-2 ${
-                    isSelected
-                      ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/25'
-                      : 'bg-[#090e1c] text-slate-400 hover:text-white border border-white/5 hover:border-white/15'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'stroke-[2.5]' : 'opacity-70'}`} />
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <div className="absolute w-2 h-2 rounded-full bg-[#00D287] shadow-[0_0_12px_#00D287] opacity-90 animate-pulse" />
         </div>
 
         {/* Grade de Produtos ou Card Imersivo Completo */}
