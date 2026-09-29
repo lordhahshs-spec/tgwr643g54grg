@@ -9,9 +9,7 @@ import {
   PackageCheck,
   CheckCircle2,
   Sparkles,
-  Search,
-  SlidersHorizontal,
-  X
+  SlidersHorizontal
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory } from '@/types/marketplace';
 import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
@@ -34,7 +32,6 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoriesList, setCategoriesList] = useState<string[]>(() => pricingRulesService.getCategories());
 
   // Modals
@@ -106,10 +103,8 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
   };
 
   const filteredOffers = offers.filter((o) => {
-    const q = searchQuery.toLowerCase().trim();
-    const matchesSearch = !q || o.title.toLowerCase().includes(q) || (o.description && o.description.toLowerCase().includes(q));
     const matchesCategory = selectedCategory === 'todos' || o.category.toLowerCase() === selectedCategory.toLowerCase();
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   return (
@@ -172,55 +167,48 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
           </div>
         </div>
 
-        {/* Search Bar & Category Navigation Pills */}
-        <div className="space-y-3">
-          {/* Search Input */}
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por modelo, marca ou produto oficial..."
-              className="w-full pl-10 pr-10 py-2.5 bg-[#080d1b] border border-white/10 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-            />
-            {searchQuery && (
+        {/* Category Navigation Pills (Categorias Dinâmicas) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory('todos')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+              selectedCategory === 'todos'
+                ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
+                : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
+            }`}
+          >
+            <span>Todos os Produtos</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+              selectedCategory === 'todos' ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
+            }`}>
+              {offers.length}
+            </span>
+          </button>
+
+          {categoriesList.map((cat) => {
+            const count = offers.filter((o) => o.category.toLowerCase() === cat.toLowerCase()).length;
+            const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+
+            return (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+                  isSelected
+                    ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
+                    : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
+                }`}
               >
-                <X className="w-4 h-4" />
+                <span>{cat}</span>
+                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                  isSelected ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
+                }`}>
+                  {count}
+                </span>
               </button>
-            )}
-          </div>
-
-          {/* Category Filter Pills (Categorias Dinâmicas) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            <button
-              onClick={() => setSelectedCategory('todos')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
-                selectedCategory === 'todos'
-                  ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
-                  : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
-              }`}
-            >
-              <span>Todos os Produtos</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                selectedCategory === 'todos' ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
-              }`}>
-                {offers.length}
-              </span>
-            </button>
-
-            {categoriesList.map((cat) => {
-              const count = offers.filter((o) => o.category.toLowerCase() === cat.toLowerCase()).length;
-              const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
-
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+            );
+          })}
+        </div>
                     isSelected
                       ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
                       : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
