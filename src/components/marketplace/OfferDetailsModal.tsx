@@ -17,7 +17,8 @@ import {
   Layers,
   Info,
   ArrowDown,
-  Zap
+  Zap,
+  Star
 } from 'lucide-react';
 import { marketplaceService } from '@/services/marketplaceService';
 import { toast } from 'sonner';
@@ -44,14 +45,6 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
   currentUserCompany,
 }) => {
   if (!offer) return null;
-
-  const handleCheckoutClick = () => {
-    if (onInitiateCheckout) {
-      onInitiateCheckout(offer);
-    } else if (onBuyNow) {
-      onBuyNow(offer);
-    }
-  };
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showReportDialog, setShowReportDialog] = useState(false);
@@ -83,14 +76,21 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
 
   const images = offer.images && offer.images.length > 0
     ? offer.images
-    : ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=60'];
+    : [''];
 
-  const isOwner = currentUserId && offer.sellerId === currentUserId;
+  const isOwner = Boolean(currentUserId && offer.sellerId === currentUserId);
+  const installment12x = offer.price / 12;
 
   const handleShare = () => {
-    if (navigator.clipboard) {
+    if (navigator.share) {
+      navigator.share({
+        title: offer.title,
+        text: `Confira ${offer.title} por ${formatBRL(offer.price)} na CellHub Shop`,
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
       navigator.clipboard.writeText(window.location.href);
-      toast.success('Link da oferta copiado para a área de transferência!');
+      toast.success('Link do produto copiado para a área de transferência!');
     }
   };
 
@@ -112,60 +112,64 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
     setIsSubmittingReport(false);
 
     if (success) {
-      toast.success('Denúncia enviada com sucesso à equipe de moderação B2B.');
+      toast.success('Denúncia enviada com sucesso.');
       setShowReportDialog(false);
       setReportDetails('');
     } else {
-      toast.error('Erro ao enviar denúncia. Tente novamente.');
+      toast.error('Erro ao enviar denúncia.');
     }
   };
 
-  const handleWhatsAppContact = () => {
-    const text = encodeURIComponent(
-      `Olá ${offer.sellerOwner} (${offer.sellerCompany}), vi sua oferta no Marketplace B2B CellHub: "${offer.title}" no valor de ${formatBRL(offer.price)}. Gostaria de mais detalhes sobre a disponibilidade e envio!`
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+  const handleCheckoutClick = () => {
+    if (onInitiateCheckout) {
+      onInitiateCheckout(offer);
+    } else if (onBuyNow) {
+      onBuyNow(offer);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div 
-        className="relative w-full max-w-5xl max-h-[92vh] bg-[#070b16] border border-[#00D287]/25 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+        className="relative w-full max-w-4xl max-h-[90vh] bg-[#070b14] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#080c17]/90">
+        {/* Header Bar Minimalista */}
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-white/5 bg-[#060911]/80">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider">
-              B2B Super Oferta
+            <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider flex items-center gap-1">
+              <Zap className="w-3 h-3 fill-[#00D287]" /> {offer.isOfficial ? 'Oficial CellHub' : 'Oferta B2B'}
             </span>
-            <span className="text-xs text-slate-400">
-              Ref: {offer.id.slice(0, 8)}
+            <span className="text-[11px] text-slate-500 font-mono">
+              #{offer.id.slice(0, 8)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={handleShare}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors"
-              title="Compartilhar oferta"
+              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              title="Compartilhar"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={(e) => onToggleFavorite(offer.id, e)}
-              className={`p-2 rounded-xl border transition-colors ${
+              onClick={(e) => onToggleFavorite?.(offer.id, e)}
+              className={`w-8 h-8 rounded-full border transition-colors flex items-center justify-center cursor-pointer ${
                 isFavorite
-                  ? 'bg-rose-500/20 text-rose-500 border-rose-500/40'
-                  : 'bg-slate-900 text-slate-300 hover:text-white border-white/10'
+                  ? 'bg-rose-500/20 text-rose-500 border-rose-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
               }`}
               title="Favoritar"
             >
-              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500' : ''}`} />
+              <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-colors"
+              className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
               title="Fechar"
             >
               <X className="w-4 h-4" />
@@ -174,268 +178,193 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 custom-scrollbar">
-          {/* Left Column: Gallery (5 cols) */}
-          <div className="lg:col-span-6 flex flex-col gap-4">
-            {/* Main Featured Photo */}
-            <div className="relative w-full aspect-square bg-slate-950 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center group shadow-inner">
-              <img
-                src={images[activeImageIndex]}
-                alt={offer.title}
-                className="w-full h-full object-contain p-2"
-              />
-              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-semibold text-slate-300 border border-white/10">
-                Foto {activeImageIndex + 1} de {images.length}
-              </div>
+        <div className="flex-1 overflow-y-auto p-5 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 custom-scrollbar">
+          
+          {/* Coluna Esquerda: Foto Limpa & Galeria (5 cols) */}
+          <div className="md:col-span-5 flex flex-col gap-3">
+            {/* Foto Principal com Aspect Ratio Quadrado */}
+            <div className="relative w-full aspect-square bg-[#04060d] rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center p-3 group">
+              {images[activeImageIndex] ? (
+                <img
+                  src={images[activeImageIndex]}
+                  alt={offer.title}
+                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                />
+              ) : (
+                <div className="text-slate-600 text-xs">Sem foto</div>
+              )}
+
+              {/* Selo de Desconto no Canto Superior Direito da Imagem */}
+              {hasDiscount && discountPercent > 0 && (
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs px-2.5 py-1 rounded-full shadow-lg shadow-red-600/40 border border-red-400/40 flex items-center gap-1 animate-pulse">
+                  <ArrowDown className="w-3 h-3 stroke-[3]" />
+                  <span>{discountPercent}% OFF</span>
+                </div>
+              )}
+
+              {images.length > 1 && (
+                <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] text-slate-400 font-mono">
+                  {activeImageIndex + 1} / {images.length}
+                </div>
+              )}
             </div>
 
-            {/* Thumbnails Row */}
+            {/* Miniaturas em Linha */}
             {images.length > 1 && (
-              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
+                    className={`relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all p-1 bg-[#04060d] cursor-pointer ${
                       activeImageIndex === idx
-                        ? 'border-[#00D287] scale-105 shadow-md shadow-[#00D287]/20'
+                        ? 'border-[#00D287] scale-105 shadow-sm'
                         : 'border-white/10 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt="" className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>
             )}
 
-            {/* B2B Safety Notice Box */}
-            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wide">
-                <ShieldCheck className="w-4 h-4 text-[#00D287]" />
-                Transação 100% Protegida CellHub
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                O valor pago pelo lojista comprador fica retido em custódia na plataforma até a confirmação do código de rastreio e entrega do produto em perfeito estado.
-              </p>
+            {/* Garantia & Segurança Limpa (1 linha minimalista) */}
+            <div className="flex items-center gap-2 text-slate-400 text-xs py-1 px-2 rounded-xl bg-white/[0.02] border border-white/5">
+              <ShieldCheck className="w-4 h-4 text-[#00D287] flex-shrink-0" />
+              <span className="truncate">Garantia técnica de <strong>{offer.warrantyDays || 90} dias</strong> CellHub</span>
             </div>
           </div>
 
-          {/* Right Column: Details & Pricing (7 cols) */}
-          <div className="lg:col-span-6 flex flex-col justify-between gap-6">
-            <div className="space-y-4">
-              {/* Category & Condition tags */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500/20 text-[#00D287] border border-emerald-500/30">
-                  {offer.condition}
-                </span>
-                <span className="px-2.5 py-1 text-xs text-slate-300 font-medium">
-                  {offer.salesCount && offer.salesCount > 0 ? `+${offer.salesCount} vendidos` : 'Nenhum vendido ainda'}
-                </span>
-                <span className="text-slate-600">•</span>
-                <span className="px-2.5 py-1 text-xs text-slate-400">
-                  {offer.rating && offer.reviewsCount && offer.reviewsCount > 0 ? `★ ${offer.rating} (${offer.reviewsCount} avaliações)` : 'Sem avaliações ainda'}
-                </span>
+          {/* Coluna Direita: Informações & Compra (7 cols) */}
+          <div className="md:col-span-7 flex flex-col justify-between space-y-4">
+            <div className="space-y-3.5">
+              
+              {/* Categoria & Condição Breadcrumb */}
+              <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                <span className="text-[#00D287] font-semibold">{offer.category}</span>
+                <span>•</span>
+                <span>{offer.condition}</span>
+                {offer.salesCount && offer.salesCount > 0 ? (
+                  <>
+                    <span>•</span>
+                    <span className="text-slate-300">+{offer.salesCount} vendidos</span>
+                  </>
+                ) : null}
               </div>
 
-              {/* Title */}
-              <h1 className="text-xl sm:text-2xl font-black text-white leading-tight">
+              {/* Título Principal */}
+              <h1 className="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight">
                 {offer.title}
               </h1>
 
-              {/* Seller Box Card */}
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-[#00D287]/25 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-black text-lg border border-[#00D287]/30 shadow-md shadow-[#00D287]/15">
-                    {offer.isOfficial ? <ShieldCheck className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
+              {/* Preço & Parcelamento Minimalista */}
+              <div className="pt-2 pb-3 border-y border-white/5 space-y-1">
+                {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 line-through font-medium">
+                      De: {formatBRL(offer.originalPrice)}
+                    </span>
+                    <span className="text-[10px] font-black text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20 flex items-center gap-0.5">
+                      <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
+                      -{discountPercent}% OFF
+                    </span>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="text-sm font-bold text-white">
-                        {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
-                      </h4>
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#00D287]/20 text-[#00D287]">
-                        {offer.isOfficial ? 'Oficial CellHub' : 'Lojista Verificado'}
-                      </span>
-                    </div>
-                    {offer.isOfficial ? (
-                      <>
-                        <p className="text-xs text-slate-400">Garantia Técnica: {offer.warrantyDays || 90} dias</p>
-                        <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5 font-semibold">
-                          <CheckCircle2 className="w-3 h-3" /> Envio & Procedência Garantidos por CellHub
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-slate-400">Origem: {offer.originCity || 'Brasil'}/{offer.originState || 'BR'}</p>
-                        <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5 font-semibold">
-                          <CheckCircle2 className="w-3 h-3" /> Intermediação e Pagamento Seguro CellHub
-                        </p>
-                      </>
-                    )}
+                )}
+
+                <div className="flex items-baseline gap-2">
+                  <div className="text-2xl sm:text-3xl font-black text-[#00D287] tracking-tight">
+                    {formatBRL(offer.price)}
                   </div>
+                  <span className="text-xs text-slate-400 font-medium">à vista no PIX</span>
                 </div>
 
-                <div className="hidden sm:flex flex-col items-end text-right text-xs text-slate-400">
-                  <span className="text-slate-300 font-bold">Entrega Segura</span>
-                  <span className="text-[11px] text-[#00D287]">Rastreamento em Tempo Real</span>
+                <div className="text-xs text-slate-300 font-medium">
+                  ou <strong className="text-white">12x de {formatBRL(installment12x)}</strong> sem juros
+                </div>
+
+                {/* Frete */}
+                <div className="pt-2 flex items-center gap-2 text-xs text-slate-400">
+                  <Truck className="w-3.5 h-3.5 text-[#00D287]" />
+                  {offer.freeShipping || offer.shippingPolicy === 'frete_gratis' ? (
+                    <span className="text-emerald-400 font-bold">Frete Grátis incluso</span>
+                  ) : (
+                    <span>Envio expresso rastreado com seguro</span>
+                  )}
                 </div>
               </div>
 
-              {/* Discount Opportunity Alert Banner */}
-              {hasDiscount && discountPercent > 0 && (
-                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-red-500/15 via-rose-500/10 to-red-500/15 border border-red-500/30 flex items-center justify-between gap-3 animate-pulse">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black shadow-md shadow-red-600/40 flex-shrink-0">
-                      <ArrowDown className="w-4 h-4 stroke-[3.5]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-white uppercase tracking-wide">
-                          OPORTUNIDADE: PREÇO REDUZIDO!
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-600 text-white">
-                          -{discountPercent}% OFF
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-rose-300">
-                        Aproveite esta condição especial por tempo limitado no atacado CellHub.
-                        {savingsAmount > 0 && ` Economia de ${formatBRL(savingsAmount)}.`}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="hidden sm:inline-block text-[11px] font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded-lg border border-red-500/30 whitespace-nowrap">
-                    Gatilho de Urgência 🔥
+              {/* Descrição do Produto */}
+              {offer.description && (
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                    Detalhes do Produto
                   </span>
+                  <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-white/[0.02] p-3.5 rounded-2xl border border-white/5 max-h-36 overflow-y-auto">
+                    {offer.description}
+                  </div>
                 </div>
               )}
 
-              {/* Price Block */}
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-[#0a0f1f] to-[#070b16] border border-[#00D287]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">
-                    Preço Especial Lojista (B2B)
-                  </span>
-                  
-                  {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
-                    <div className="flex items-center gap-2 mt-1 mb-0.5">
-                      <span className="text-sm text-slate-400 line-through font-semibold">
-                        De: {formatBRL(offer.originalPrice)}
-                      </span>
-                      <span className="text-xs font-black text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30 flex items-center gap-0.5">
-                        <ArrowDown className="w-3 h-3 stroke-[3] text-rose-400" />
-                        -{discountPercent}% OFF
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="text-3xl font-black text-white tracking-tight flex items-baseline gap-2">
-                    {formatBRL(offer.price)}
-                    <span className="text-xs font-semibold text-[#00D287]">PIX ou Cartão</span>
-                  </div>
-                </div>
-
-                <div>
-                  {offer.freeShipping || offer.shippingPolicy === 'frete_gratis' ? (
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm bg-emerald-500/15 border border-emerald-500/30 px-3 py-2 rounded-xl">
-                      <Truck className="w-5 h-5 text-[#00D287]" />
-                      <div>
-                        <span>Frete Grátis</span>
-                        <span className="block text-[10px] font-normal text-slate-400">Vendedor assume o envio</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-right">
-                      <span className="text-xs text-slate-400 block">Frete Melhor Envio</span>
-                      <span className="text-xs font-bold text-[#00D287]">
-                        Calculado no checkout
-                      </span>
-                      {offer.originCity && (
-                        <span className="block text-[10px] text-slate-500">
-                          Enviado de: {offer.originCity}/{offer.originState}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Info className="w-4 h-4 text-[#00D287]" /> Descrição do Produto
-                </h4>
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 text-sm text-slate-300 leading-relaxed whitespace-pre-line">
-                  {offer.description}
-                </div>
-              </div>
-
-              {/* Technical Details if available */}
+              {/* Especificações Técnicas (se houver) */}
               {offer.details && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-[#00D287]" /> Especificações Técnicas / Lote
-                  </h4>
-                  <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 text-xs text-slate-300 leading-relaxed whitespace-pre-line font-mono">
+                <div className="space-y-1 pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                    Especificações
+                  </span>
+                  <div className="text-xs text-slate-300 font-mono bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
                     {offer.details}
                   </div>
                 </div>
               )}
-
-              {/* Meta stats */}
-              <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-white/5">
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5 text-slate-400" />
-                  {offer.views} visualizações
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  Publicado em {new Date(offer.createdAt).toLocaleDateString('pt-BR')}
-                </span>
-              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row gap-3">
+            {/* Ações de Compra */}
+            <div className="pt-3 border-t border-white/5 space-y-2">
               {isOwner ? (
-                <div className="w-full p-3 text-center rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold">
-                  Esta é a sua própria oferta cadastrada. Você pode gerenciá-la na aba "Minhas Ofertas".
+                <div className="w-full p-3 text-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
+                  Você é o administrador responsável por este produto no catálogo oficial.
                 </div>
               ) : offer.status !== 'publicada' ? (
-                <div className="w-full p-3 text-center rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-bold">
-                  Esta oferta não está mais disponível para compra ({offer.status}).
+                <div className="w-full p-3 text-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-medium">
+                  Este produto está temporariamente pausado.
                 </div>
               ) : (
-                <>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={handleCheckoutClick}
-                    className="flex-1 py-4 px-6 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-extrabold text-base shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all transform active:scale-95 cursor-pointer"
+                    className="flex-1 py-3 px-5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-md shadow-[#00D287]/20 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
                   >
-                    <ShoppingBag className="w-5 h-5 text-slate-950" />
-                    Comprar Agora (Checkout B2B)
+                    <ShoppingBag className="w-4 h-4 text-slate-950" />
+                    <span>Comprar Agora • {formatBRL(offer.price)}</span>
                   </button>
 
                   <button
                     onClick={() => setShowReportDialog(true)}
-                    className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-white/5 hover:border-red-500/20 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                    className="p-3 rounded-xl bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 border border-white/5 transition-colors cursor-pointer"
+                    title="Denunciar"
                   >
                     <AlertTriangle className="w-4 h-4" />
-                    Denunciar
                   </button>
-                </>
+                </div>
               )}
+
+              <div className="flex items-center justify-between text-[10px] text-slate-500 px-1">
+                <span>⚡ Envio imediato em até 24h</span>
+                <span>🔒 Pagamento 100% protegido</span>
+              </div>
             </div>
+
           </div>
         </div>
 
-        {/* Report Submodal */}
+        {/* Submodal de Denúncia */}
         {showReportDialog && (
           <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0c1222] border border-red-500/30 rounded-2xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
-                  <AlertTriangle className="w-5 h-5" />
-                  Denunciar Oferta B2B
-                </div>
+            <div className="w-full max-w-md bg-[#0c1222] border border-red-500/30 rounded-2xl p-5 shadow-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-red-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4" /> Reportar Produto
+                </span>
                 <button
                   onClick={() => setShowReportDialog(false)}
                   className="text-slate-400 hover:text-white"
@@ -444,52 +373,50 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 </button>
               </div>
 
-              <form onSubmit={handleReportSubmit} className="space-y-4">
+              <form onSubmit={handleReportSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Motivo da Denúncia
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Motivo
                   </label>
                   <select
                     value={reportReason}
-                    onChange={(e: any) => setReportReason(e.target.value)}
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2 text-sm text-slate-200 focus:border-red-500 focus:outline-none"
+                    onChange={(e) => setReportReason(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-white outline-none"
                   >
-                    <option value="informacao_falsa">Informações falsas ou enganosas</option>
-                    <option value="produto_proibido">Produto proibido / Ilegal</option>
-                    <option value="fraude">Suspeita de golpe ou fraude</option>
-                    <option value="preco_enganoso">Preço abusivo ou incorreto</option>
-                    <option value="conteudo_inadequado">Fotos ou termos inadequados</option>
+                    <option value="informacao_falsa">Informação falsa / divergente</option>
+                    <option value="produto_proibido">Produto não permitido</option>
+                    <option value="preco_abusivo">Preço incorreto</option>
                     <option value="outro">Outro motivo</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Detalhes adicionais (opcional)
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Detalhes (opcional)
                   </label>
                   <textarea
+                    rows={2}
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
-                    rows={3}
-                    placeholder="Descreva o problema encontrado..."
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-slate-200 placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                    placeholder="Descreva o problema..."
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-white outline-none resize-none"
                   />
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setShowReportDialog(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-slate-900 text-slate-300 hover:text-white text-xs font-semibold"
+                    className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingReport}
-                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
                   >
-                    {isSubmittingReport ? 'Enviando...' : 'Confirmar Denúncia'}
+                    {isSubmittingReport ? 'Enviando...' : 'Enviar'}
                   </button>
                 </div>
               </form>
