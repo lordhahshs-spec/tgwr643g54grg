@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  UploadCloud, 
-  Plus, 
-  Trash2, 
-  ShieldCheck, 
-  CheckCircle2, 
-  Truck, 
-  Tag, 
+import {
+  X,
+  UploadCloud,
+  Plus,
+  Trash2,
+  ShieldCheck,
+  CheckCircle2,
+  Truck,
+  Tag,
   ArrowRight,
   ArrowLeft,
   Box,
@@ -18,7 +18,9 @@ import {
   Clock,
   Percent,
   Sliders,
-  ArrowDown
+  ArrowDown,
+  Image as ImageIcon,
+  Star
 } from 'lucide-react';
 import { 
   OfferCategory, 
@@ -92,6 +94,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [images, setImages] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [categoriesList, setCategoriesList] = useState<string[]>(() => pricingRulesService.getCategories());
 
@@ -164,19 +167,105 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     }
   };
 
-  const handleAddImage = () => {
-    if (!imageUrlInput.trim()) return;
-    try {
-      new URL(imageUrlInput.trim());
-      if (images.includes(imageUrlInput.trim())) {
-        toast.info('Essa imagem já foi adicionada.');
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`O arquivo ${file.name} não é uma imagem suportada.`);
         return;
       }
-      setImages([...images, imageUrlInput.trim()]);
-      setImageUrlInput('');
-    } catch {
-      toast.error('Insira uma URL válida de imagem.');
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`A foto ${file.name} excede o limite de 10MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImages((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+    toast.success('Foto(s) adicionada(s) com sucesso!');
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`O arquivo ${file.name} não é uma imagem suportada.`);
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`A foto ${file.name} excede o limite de 10MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImages((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    toast.success('Foto(s) adicionada(s) com sucesso!');
+  };
+
+  const handleAddImage = () => {
+    let clean = imageUrlInput.trim();
+    if (!clean) return;
+
+    if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
+      clean = `https://${clean}`;
     }
+
+    if (images.includes(clean)) {
+      toast.info('Essa imagem já foi adicionada.');
+      return;
+    }
+
+    setImages([...images, clean]);
+    setImageUrlInput('');
+    toast.success('Link de imagem adicionado!');
+  };
+
+  const handleSelectPreset = (url: string) => {
+    if (images.includes(url)) {
+      toast.info('Essa foto já está na lista.');
+      return;
+    }
+    setImages((prev) => [...prev, url]);
+    toast.success('Foto modelo adicionada!');
+  };
+
+  const handleSetCoverImage = (index: number) => {
+    if (index === 0) return;
+    setImages((prev) => {
+      const copy = [...prev];
+      const [chosen] = copy.splice(index, 1);
+      return [chosen, ...copy];
+    });
+    toast.success('Definida como foto principal!');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -566,44 +655,112 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                 </div>
               </div>
 
-              {/* Imagens do Produto */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Fotos do Produto <span className="text-rose-400">*</span>
+              {/* Imagens do Produto (Upload de Arquivos do Computador + URL + Drag & Drop) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Fotos do Produto <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {images.length} foto{images.length !== 1 ? 's' : ''} adicionada{images.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {/* 1. Área de Upload / Arrastar e Soltar Fotos do Computador */}
+                <label
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                    isDragging
+                      ? 'border-[#00D287] bg-[#00D287]/15 scale-[1.01]'
+                      : 'border-white/15 bg-slate-950/80 hover:border-[#00D287]/50 hover:bg-slate-900/60'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg, image/webp"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <div className="w-10 h-10 rounded-2xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center mb-2 shadow-md shadow-[#00D287]/10">
+                    <UploadCloud className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-white text-center">
+                    Clique para selecionar fotos do seu dispositivo
+                  </span>
+                  <span className="text-[11px] text-slate-400 text-center mt-0.5">
+                    ou arraste e solte arquivos aqui (PNG, JPG, WEBP até 10MB)
+                  </span>
                 </label>
 
+                {/* 2. Campo Alternativo: Inserir Link/URL Direto */}
                 <div className="flex gap-2">
                   <input
-                    type="url"
+                    type="text"
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddImage())}
-                    placeholder="Cole o link da imagem (URL) e clique em Adicionar"
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
+                    placeholder="Ou cole o link direto da foto na web (URL) aqui..."
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
                   />
                   <button
                     type="button"
                     onClick={handleAddImage}
-                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Adicionar
+                    <Plus className="w-3.5 h-3.5" /> Adicionar Link
                   </button>
                 </div>
 
+                {/* 3. Galeria de Fotos Adicionadas com Capa Principal */}
                 {images.length > 0 && (
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3">
-                    {images.map((img, idx) => (
-                      <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10 bg-slate-950">
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(idx)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10.5px] text-slate-400 font-semibold block">
+                      Fotos selecionadas (clique na estrela para definir a capa):
+                    </span>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
+                      {images.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className={`relative group aspect-square rounded-xl overflow-hidden border bg-slate-950 transition-all ${
+                            idx === 0 ? 'border-[#00D287] ring-2 ring-[#00D287]/30 shadow-lg' : 'border-white/10'
+                          }`}
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                          <img src={img} alt="" className="w-full h-full object-contain p-1" />
+                          
+                          {/* Badge de Capa Principal */}
+                          {idx === 0 && (
+                            <div className="absolute top-1 left-1 bg-[#00D287] text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded shadow flex items-center gap-0.5 z-10">
+                              <Star className="w-2.5 h-2.5 fill-slate-950" /> CAPA
+                            </div>
+                          )}
+
+                          {/* Ações ao passar o mouse */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
+                            {idx !== 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetCoverImage(idx)}
+                                className="p-1.5 rounded-lg bg-[#00D287] text-slate-950 hover:scale-105 transition-transform"
+                                title="Definir como foto principal"
+                              >
+                                <Star className="w-3 h-3 fill-slate-950" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="p-1.5 rounded-lg bg-rose-600 text-white hover:scale-105 transition-transform"
+                              title="Remover foto"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

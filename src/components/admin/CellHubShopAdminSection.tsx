@@ -27,7 +27,9 @@ import {
   Smartphone,
   Tag,
   ArrowDown,
-  Zap
+  Zap,
+  UploadCloud,
+  Star
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory, OfferCondition, ShippingPolicy } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
@@ -383,10 +385,59 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     }
   };
 
+  const handleEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`O arquivo ${file.name} não é uma imagem válida.`);
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`A foto ${file.name} excede o limite de 10MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setEditImages((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+    toast.success('Foto(s) adicionada(s) ao produto!');
+  };
+
   const handleAddEditImage = () => {
-    if (!editImageUrlInput.trim()) return;
-    setEditImages([...editImages, editImageUrlInput.trim()]);
+    let clean = editImageUrlInput.trim();
+    if (!clean) return;
+
+    if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
+      clean = `https://${clean}`;
+    }
+
+    if (editImages.includes(clean)) {
+      toast.info('Essa foto já foi adicionada.');
+      return;
+    }
+
+    setEditImages((prev) => [...prev, clean]);
     setEditImageUrlInput('');
+    toast.success('Link de foto adicionado!');
+  };
+
+  const handleSetEditCoverImage = (index: number) => {
+    if (index === 0) return;
+    setEditImages((prev) => {
+      const copy = [...prev];
+      const [chosen] = copy.splice(index, 1);
+      return [chosen, ...copy];
+    });
+    toast.success('Foto definida como principal/capa!');
   };
 
   const handleRemoveEditImage = (idx: number) => {
@@ -1162,40 +1213,98 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 />
               </div>
 
-              {/* Imagens */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Fotos</label>
-                <div className="flex gap-2 mb-2">
+              {/* Imagens do Produto no Modal de Edição */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Fotos do Produto <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {editImages.length} foto{editImages.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {/* 1. Upload Direto de Fotos do Dispositivo */}
+                <label className="border-2 border-dashed border-white/15 bg-slate-950/80 hover:border-[#00D287]/50 hover:bg-slate-900/60 rounded-2xl p-3.5 flex flex-col items-center justify-center cursor-pointer transition-all">
                   <input
-                    type="url"
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg, image/webp"
+                    multiple
+                    onChange={handleEditFileUpload}
+                    className="hidden"
+                  />
+                  <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center mb-1.5 shadow">
+                    <UploadCloud className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold text-white text-center">
+                    Clique para selecionar novas fotos do seu dispositivo
+                  </span>
+                  <span className="text-[10.5px] text-slate-400 text-center">
+                    PNG, JPG, WEBP (até 10MB)
+                  </span>
+                </label>
+
+                {/* 2. Campo Alternativo: Link URL */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
                     value={editImageUrlInput}
                     onChange={(e) => setEditImageUrlInput(e.target.value)}
-                    placeholder="Link da imagem..."
-                    className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddEditImage())}
+                    placeholder="Ou cole a URL da imagem aqui..."
+                    className="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
                   />
                   <button
                     type="button"
                     onClick={handleAddEditImage}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-[#00D287] border border-[#00D287]/30 text-xs font-bold cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   >
-                    Adicionar
+                    <Plus className="w-3.5 h-3.5" /> Adicionar
                   </button>
                 </div>
 
-                <div className="grid grid-cols-5 gap-2">
-                  {editImages.map((img, idx) => (
-                    <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10 bg-slate-950">
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveEditImage(idx)}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-rose-500 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                {/* 3. Galeria de Fotos com Capa e Exclusão */}
+                {editImages.length > 0 && (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-1">
+                    {editImages.map((img, idx) => (
+                      <div
+                        key={idx}
+                        className={`relative group aspect-square rounded-xl overflow-hidden border bg-slate-950 ${
+                          idx === 0 ? 'border-[#00D287] ring-2 ring-[#00D287]/30' : 'border-white/10'
+                        }`}
                       >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
+                        
+                        {idx === 0 && (
+                          <div className="absolute top-1 left-1 bg-[#00D287] text-slate-950 text-[8px] font-black px-1.5 py-0.2 rounded shadow z-10 flex items-center gap-0.5">
+                            <Star className="w-2 h-2 fill-slate-950" /> CAPA
+                          </div>
+                        )}
+
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 p-1">
+                          {idx !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetEditCoverImage(idx)}
+                              className="p-1 rounded-lg bg-[#00D287] text-slate-950 hover:scale-105 transition-transform"
+                              title="Definir como foto principal"
+                            >
+                              <Star className="w-2.5 h-2.5 fill-slate-950" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditImage(idx)}
+                            className="p-1 rounded-lg bg-rose-600 text-white hover:scale-105 transition-transform"
+                            title="Remover foto"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
