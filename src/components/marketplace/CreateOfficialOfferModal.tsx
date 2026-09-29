@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Clock,
   Percent,
-  Sliders
+  Sliders,
+  ArrowDown
 } from 'lucide-react';
 import { 
   OfferCategory, 
@@ -75,6 +76,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [pricingMode, setPricingMode] = useState<'margin' | 'manual'>('margin');
   const [marginPercent, setMarginPercent] = useState<number>(15);
   const [price, setPrice] = useState('');
+  const [originalPrice, setOriginalPrice] = useState('');
   const [supplierCost, setSupplierCost] = useState('');
   const [warrantyDays, setWarrantyDays] = useState<number>(90);
   const [badgeText, setBadgeText] = useState('Garantia Oficial CellHub');
@@ -206,6 +208,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     if (!handleValidateForm()) return;
 
     setIsSubmitting(true);
+    const parsedOrig = parseFloat(originalPrice.replace(/\./g, '').replace(',', '.')) || 0;
+    const isDiscount = parsedOrig > parsedPrice;
+    const discountPct = isDiscount ? Math.round(((parsedOrig - parsedPrice) / parsedOrig) * 100) : undefined;
+
     try {
       const res = await marketplaceService.createOffer({
         sellerId: currentUser.id,
@@ -220,6 +226,8 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         description: description.trim() || 'Produto verificado com garantia técnica CellHub Shop.',
         details: details.trim() || undefined,
         price: parsedPrice,
+        originalPrice: isDiscount ? parsedOrig : undefined,
+        discountPercent: discountPct,
         supplierCost: parsedCost > 0 ? parsedCost : undefined,
         shippingPolicy,
         freeShipping: shippingPolicy === 'frete_gratis',
@@ -482,6 +490,53 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     )}
                   </div>
                 )}
+
+                {/* Preço Original / Promoção com Desconto */}
+                {(() => {
+                  const origPriceNum = parseFloat(originalPrice.replace(/\./g, '').replace(',', '.')) || 0;
+                  const isDiscountActive = origPriceNum > parsedPrice && parsedPrice > 0;
+                  const discountPct = isDiscountActive ? Math.round(((origPriceNum - parsedPrice) / origPriceNum) * 100) : 0;
+
+                  return (
+                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                          <Tag className="w-3.5 h-3.5 text-rose-400" />
+                          Preço Original "De: R$" (Opcional - Ativa Selo de Desconto)
+                        </label>
+                        {isDiscountActive && (
+                          <span className="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                            <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
+                            -{discountPct}% OFF
+                          </span>
+                        )}
+                      </div>
+
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={originalPrice}
+                        onChange={(e) => setOriginalPrice(e.target.value)}
+                        placeholder="Ex: 5990.00 (Valor antes do desconto)"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-[#00D287]"
+                      />
+
+                      {isDiscountActive && (
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-red-600/20 via-rose-600/15 to-transparent border border-red-500/30 text-xs text-rose-200 flex items-center gap-2">
+                          <ArrowDown className="w-4 h-4 text-red-400 stroke-[3] flex-shrink-0 animate-bounce" />
+                          <div>
+                            <span className="font-black text-white block">
+                              Gatilho de Urgência Ativo: Redução de -{discountPct}%!
+                            </span>
+                            <span className="text-[10.5px] text-rose-300">
+                              O anúncio exibirá o selo vermelho de <strong>{discountPct}% OFF</strong> no canto superior direito da vitrine.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Garantia e Política de Frete */}

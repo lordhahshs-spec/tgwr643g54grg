@@ -125,6 +125,8 @@ export interface MarketplaceOffer {
   description: string;
   details?: string;
   price: number;
+  originalPrice?: number;
+  discountPercent?: number;
   freeShipping: boolean;
   shippingCost?: number;
   shippingPolicy?: ShippingPolicy;

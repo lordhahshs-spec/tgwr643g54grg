@@ -15,7 +15,9 @@ import {
   MessageCircle,
   Package,
   Layers,
-  Info
+  Info,
+  ArrowDown,
+  Zap
 } from 'lucide-react';
 import { marketplaceService } from '@/services/marketplaceService';
 import { toast } from 'sonner';
@@ -53,6 +55,21 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
       currency: 'BRL',
     }).format(val);
   };
+
+  const hasDiscount = Boolean(
+    (offer.originalPrice && offer.originalPrice > offer.price) ||
+    (offer.discountPercent && offer.discountPercent > 0)
+  );
+
+  const discountPercent = offer.discountPercent || (
+    offer.originalPrice && offer.originalPrice > offer.price
+      ? Math.round(((offer.originalPrice - offer.price) / offer.originalPrice) * 100)
+      : 0
+  );
+
+  const savingsAmount = offer.originalPrice && offer.originalPrice > offer.price
+    ? offer.originalPrice - offer.price
+    : 0;
 
   const images = offer.images && offer.images.length > 0
     ? offer.images
@@ -254,12 +271,53 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 </div>
               </div>
 
+              {/* Discount Opportunity Alert Banner */}
+              {hasDiscount && discountPercent > 0 && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-red-500/15 via-rose-500/10 to-red-500/15 border border-red-500/30 flex items-center justify-between gap-3 animate-pulse">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black shadow-md shadow-red-600/40 flex-shrink-0">
+                      <ArrowDown className="w-4 h-4 stroke-[3.5]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-white uppercase tracking-wide">
+                          OPORTUNIDADE: PREÇO REDUZIDO!
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-600 text-white">
+                          -{discountPercent}% OFF
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-rose-300">
+                        Aproveite esta condição especial por tempo limitado no atacado CellHub.
+                        {savingsAmount > 0 && ` Economia de ${formatBRL(savingsAmount)}.`}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="hidden sm:inline-block text-[11px] font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded-lg border border-red-500/30 whitespace-nowrap">
+                    Gatilho de Urgência 🔥
+                  </span>
+                </div>
+              )}
+
               {/* Price Block */}
               <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-[#0a0f1f] to-[#070b16] border border-[#00D287]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">
                     Preço Especial Lojista (B2B)
                   </span>
+                  
+                  {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
+                    <div className="flex items-center gap-2 mt-1 mb-0.5">
+                      <span className="text-sm text-slate-400 line-through font-semibold">
+                        De: {formatBRL(offer.originalPrice)}
+                      </span>
+                      <span className="text-xs font-black text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30 flex items-center gap-0.5">
+                        <ArrowDown className="w-3 h-3 stroke-[3] text-rose-400" />
+                        -{discountPercent}% OFF
+                      </span>
+                    </div>
+                  )}
+
                   <div className="text-3xl font-black text-white tracking-tight flex items-baseline gap-2">
                     {formatBRL(offer.price)}
                     <span className="text-xs font-semibold text-[#00D287]">PIX ou Cartão</span>

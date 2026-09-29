@@ -25,7 +25,9 @@ import {
   ChevronUp,
   X,
   Smartphone,
-  Tag
+  Tag,
+  ArrowDown,
+  Zap
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory, OfferCondition, ShippingPolicy } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
@@ -40,20 +42,21 @@ interface CellHubShopAdminSectionProps {
 
 const CONDITIONS: OfferCondition[] = [
   'Novo',
-  'Seminovo',
-  'Usado',
-  'Recondicionado',
-  'Com avaria',
-  'Para retirada de peças',
-  'Outro'
+  'Excelente',
+  'Muito Bom',
+  'Bom',
+  'Com Detalhe',
+  'Para Peças/Sucata',
 ];
 
 const PRESET_MARGINS = [10, 15, 20, 25, 30, 35, 40, 50];
 
-export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = ({ currentUser }) => {
+export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = ({
+  currentUser,
+}) => {
   const [products, setProducts] = useState<MarketplaceOffer[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
 
@@ -75,6 +78,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [editPricingMode, setEditPricingMode] = useState<'margin' | 'manual'>('margin');
   const [editMarginPercent, setEditMarginPercent] = useState<number>(20);
   const [editPrice, setEditPrice] = useState('');
+  const [editOriginalPrice, setEditOriginalPrice] = useState('');
   const [editSupplierCost, setEditSupplierCost] = useState('');
   const [editWarrantyDays, setEditWarrantyDays] = useState<number>(90);
   const [editDescription, setEditDescription] = useState('');
@@ -119,13 +123,16 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const totalProducts = products.length;
   const activeProducts = products.filter((p) => p.status === 'publicada').length;
   const pausedProducts = products.filter((p) => p.status === 'pausada').length;
-  
+  const discountedProductsCount = products.filter((p) => 
+    (p.originalPrice && p.originalPrice > p.price) || (p.discountPercent && p.discountPercent > 0)
+  ).length;
+
   const totalCatalogValue = products.reduce((acc, p) => acc + (p.price || 0), 0);
   const totalSupplierCost = products.reduce((acc, p) => acc + (p.supplierCost || 0), 0);
   const totalEstimatedProfit = totalCatalogValue - totalSupplierCost;
   const averageMarginPercent = totalSupplierCost > 0 ? Math.round((totalEstimatedProfit / totalSupplierCost) * 100) : 0;
 
-  // Active Category List
+  // Active Category names for dropdowns
   const activeCategories = marginRules.map((r) => r.category);
 
   // Margin Rules handlers
@@ -135,6 +142,46 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
       setMarginRules(pricingRulesService.getRules());
       toast.success(`Margem de ${category} atualizada para ${margin}%!`);
     }
+  };
+
+  const handleApplyMarginToCategoryProducts = async (category: string, newMargin: number) => {
+    const categoryProducts = products.filter(
+      (p) => p.category.toLowerCase() === category.toLowerCase() && p.supplierCost && p.supplierCost > 0
+    );
+
+    if (categoryProducts.length === 0) {
+      toast.info(`Nenhum produto cadastrado com custo na categoria "${category}".`);
+      return;
+    }
+
+    if (!window.confirm(`Deseja recalcular e aplicar a margem de ${newMargin}% em todos os ${categoryProducts.length} produtos de "${category}"? Produtos com redução de preço receberão o selo promocional e gatilho de desconto.`)) {
+      return;
+    }
+
+    let updatedCount = 0;
+    for (const prod of categoryProducts) {
+      const cost = prod.supplierCost!;
+      const calculatedPrice = pricingRulesService.calculatePriceFromCost(cost, newMargin);
+      const isPriceDrop = calculatedPrice < prod.price;
+      
+      const originalPrice = isPriceDrop 
+        ? (prod.originalPrice || prod.price) 
+        : (calculatedPrice < (prod.originalPrice || 0) ? prod.originalPrice : undefined);
+
+      const discountPercent = originalPrice && originalPrice > calculatedPrice
+        ? Math.round(((originalPrice - calculatedPrice) / originalPrice) * 100)
+        : undefined;
+
+      await marketplaceService.updateOffer(prod.id, {
+        price: calculatedPrice,
+        originalPrice: originalPrice || undefined,
+        discountPercent: discountPercent || undefined,
+      });
+      updatedCount++;
+    }
+
+    toast.success(`${updatedCount} produtos de "${category}" atualizados com a nova margem de ${newMargin}%!`);
+    loadData(true);
   };
 
   const handleDeleteCategory = (category: string) => {
@@ -212,6 +259,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     setEditCategory(product.category);
     setEditCondition(product.condition);
     setEditPrice(String(product.price));
+    setEditOriginalPrice(product.originalPrice ? String(product.originalPrice) : '');
     setEditSupplierCost(String(product.supplierCost || ''));
     setEditWarrantyDays(product.warrantyDays || 90);
     setEditDescription(product.description || '');
@@ -275,10 +323,28 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     }
     const parsedPrice = parseFloat(editPrice.replace(/\./g, '').replace(',', '.')) || 0;
     const parsedCost = parseFloat(editSupplierCost.replace(/\./g, '').replace(',', '.')) || 0;
+    const manualOriginal = parseFloat(editOriginalPrice.replace(/\./g, '').replace(',', '.')) || 0;
 
     if (parsedPrice <= 0) {
       toast.error('Informe um preço de venda válido.');
       return;
+    }
+
+    // Regra de redução de preço e indicador de desconto:
+    // Se o preço foi reduzido abaixo do preço anterior ou se tem preço original definido
+    let finalOriginalPrice: number | null = null;
+    let finalDiscountPercent: number | null = null;
+
+    if (manualOriginal > parsedPrice) {
+      finalOriginalPrice = manualOriginal;
+      finalDiscountPercent = Math.round(((manualOriginal - parsedPrice) / manualOriginal) * 100);
+    } else if (parsedPrice < editingProduct.price) {
+      // Redução de preço detectada (ex: margem baixada de 20% para 15%)
+      finalOriginalPrice = editingProduct.originalPrice || editingProduct.price;
+      finalDiscountPercent = Math.round(((finalOriginalPrice - parsedPrice) / finalOriginalPrice) * 100);
+    } else if (editingProduct.originalPrice && parsedPrice < editingProduct.originalPrice) {
+      finalOriginalPrice = editingProduct.originalPrice;
+      finalDiscountPercent = Math.round(((editingProduct.originalPrice - parsedPrice) / editingProduct.originalPrice) * 100);
     }
 
     setIsSavingEdit(true);
@@ -288,6 +354,8 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         category: editCategory as OfferCategory,
         condition: editCondition,
         price: parsedPrice,
+        originalPrice: finalOriginalPrice || undefined,
+        discountPercent: finalDiscountPercent || undefined,
         supplierCost: parsedCost,
         warrantyDays: editWarrantyDays,
         description: editDescription.trim(),
@@ -297,7 +365,11 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
       });
 
       if (success) {
-        toast.success('Produto oficial atualizado com sucesso!');
+        if (finalDiscountPercent && finalDiscountPercent > 0) {
+          toast.success(`Produto atualizado! Selo de desconto de -${finalDiscountPercent}% com setinha vermelha ativado na vitrine 🔥`);
+        } else {
+          toast.success('Produto oficial atualizado com sucesso!');
+        }
         setEditingProduct(null);
         loadData(true);
       } else {
@@ -345,7 +417,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Controle total de categorias, estoque próprio, custos de fornecedores e regras de margem (%).
+            Controle total de categorias, estoque próprio, custos de fornecedores, descontos e regras de margem (%).
           </p>
         </div>
 
@@ -358,45 +430,33 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-white/10'
             }`}
           >
-            <Percent className="w-3.5 h-3.5 text-[#00D287]" />
-            <span>Gerenciar Categorias & Margens ({marginRules.length})</span>
-            {isRulesPanelOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-
-          <button
-            onClick={() => loadData()}
-            className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer"
-            title="Atualizar dados"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#00D287]' : ''}`} />
+            <Settings className="w-4 h-4 text-[#00D287]" />
+            <span>Gerenciar Categorias ({marginRules.length})</span>
+            {isRulesPanelOpen ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
           </button>
 
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-[#00D287]/25 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+            className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Cadastrar Produto Oficial</span>
+            <span>Adicionar Produto Oficial</span>
           </button>
         </div>
       </div>
 
-      {/* 2. PAINEL DE GESTÃO DE CATEGORIAS (CRIAR, EDITAR MARGEM E APAGAR) */}
+      {/* 2. DRAWER DE CATEGORIAS E REGRAS DE MARGEM DINÂMICAS */}
       {isRulesPanelOpen && (
-        <div className="p-5 rounded-3xl bg-[#080c17] border border-[#00D287]/30 space-y-4 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center flex-shrink-0">
-                <Percent className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  Gerenciamento de Categorias & Margem Automática
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Edite as porcentagens de lucro padrão, apague categorias indesejadas ou adicione novas.
-                </p>
-              </div>
+        <div className="p-5 rounded-3xl bg-[#080c17] border border-[#00D287]/30 space-y-4 animate-in fade-in slide-in-from-top-4 duration-200 shadow-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#00D287]" />
+                Categorias & Margens de Lucro Dinâmicas (1 para 1)
+              </h3>
+              <p className="text-xs text-slate-400">
+                Altere a porcentagem de lucro padrão por categoria ou crie/remova categorias personalizadas.
+              </p>
             </div>
 
             <button
@@ -407,48 +467,62 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
             </button>
           </div>
 
-          {/* Grid de Categorias com Botão Apagar */}
+          {/* Grid de Categorias com Botão Apagar e Aplicar em Lote */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {marginRules.map((rule) => (
-              <div
-                key={rule.category}
-                className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 hover:border-[#00D287]/30 space-y-2 relative transition-all group"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-white text-xs block truncate">
-                      {rule.category}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block truncate">
-                      {rule.description || `Produtos da categoria ${rule.category}`}
-                    </span>
+            {marginRules.map((rule) => {
+              const countInCat = products.filter(p => p.category.toLowerCase() === rule.category.toLowerCase()).length;
+
+              return (
+                <div
+                  key={rule.category}
+                  className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 hover:border-[#00D287]/30 space-y-2 relative transition-all group"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-white text-xs block truncate">
+                        {rule.category}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block truncate">
+                        {countInCat} produto{countInCat !== 1 ? 's' : ''} cadastrado{countInCat !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {/* Botão de Apagar Categoria */}
+                    <button
+                      onClick={() => handleDeleteCategory(rule.category)}
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all opacity-80 group-hover:opacity-100 cursor-pointer"
+                      title={`Apagar categoria "${rule.category}"`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
-                  {/* Botão de Apagar Categoria */}
-                  <button
-                    onClick={() => handleDeleteCategory(rule.category)}
-                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all opacity-80 group-hover:opacity-100 cursor-pointer"
-                    title={`Apagar categoria "${rule.category}"`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
-                  <span className="text-[11px] text-slate-400 font-medium">Margem:</span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      step="1"
-                      value={rule.marginPercent}
-                      onChange={(e) => handleUpdateMarginRule(rule.category, parseFloat(e.target.value) || 0)}
-                      className="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-[#00D287] font-black text-center outline-none focus:border-[#00D287]"
-                    />
-                    <span className="text-xs font-bold text-slate-400">%</span>
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                    <span className="text-[11px] text-slate-400 font-medium">Margem:</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        step="1"
+                        value={rule.marginPercent}
+                        onChange={(e) => handleUpdateMarginRule(rule.category, parseFloat(e.target.value) || 0)}
+                        className="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-[#00D287] font-black text-center outline-none focus:border-[#00D287]"
+                      />
+                      <span className="text-xs font-bold text-slate-400">%</span>
+                    </div>
                   </div>
+
+                  {countInCat > 0 && (
+                    <button
+                      onClick={() => handleApplyMarginToCategoryProducts(rule.category, rule.marginPercent)}
+                      className="w-full mt-1.5 py-1 px-2 rounded-lg bg-[#00D287]/10 hover:bg-[#00D287]/20 text-[#00D287] text-[10px] font-bold transition-all border border-[#00D287]/20 flex items-center justify-center gap-1 cursor-pointer"
+                      title={`Recalcular todos os ${countInCat} produtos de ${rule.category} com margem de ${rule.marginPercent}%`}
+                    >
+                      <Zap className="w-3 h-3" /> Aplicar {rule.marginPercent}% em {countInCat} item(s)
+                    </button>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Formulário para Adicionar Nova Categoria */}
@@ -538,19 +612,24 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
           </p>
         </div>
 
-        {/* Card 4: Total de Produtos Ativos */}
+        {/* Card 4: Total de Produtos & Descontos Ativos */}
         <div className="p-5 rounded-2xl bg-[#080c17] border border-white/10 space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-semibold">Produtos no Catálogo</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center">
-              <Package className="w-4 h-4" />
+            <span className="text-xs text-slate-400 font-semibold">Produtos & Promoções</span>
+            <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
+              <ArrowDown className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white">
-            {activeProducts} <span className="text-xs text-slate-400 font-normal">/ {totalProducts}</span>
+          <div className="text-2xl font-black text-white flex items-baseline gap-2">
+            {activeProducts}
+            {discountedProductsCount > 0 && (
+              <span className="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded-full border border-rose-500/30">
+                {discountedProductsCount} com desconto 🔥
+              </span>
+            )}
           </div>
           <p className="text-[11px] text-slate-500">
-            {pausedProducts} produtos em pausa
+            {pausedProducts} pausados • {totalProducts} total
           </p>
         </div>
       </div>
@@ -620,7 +699,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 <tr>
                   <th className="px-4 py-3">Produto</th>
                   <th className="px-4 py-3">Categoria / Condição</th>
-                  <th className="px-4 py-3">Preço Venda</th>
+                  <th className="px-4 py-3">Preço Venda & Desconto</th>
                   <th className="px-4 py-3">Custo Fornecedor</th>
                   <th className="px-4 py-3">Margem / Lucro</th>
                   <th className="px-4 py-3">Garantia</th>
@@ -634,17 +713,32 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   const profit = product.price - cost;
                   const marginPct = cost > 0 ? Math.round((profit / cost) * 100) : 0;
                   const isPublished = product.status === 'publicada';
+                  
+                  const hasDiscount = Boolean(
+                    (product.originalPrice && product.originalPrice > product.price) ||
+                    (product.discountPercent && product.discountPercent > 0)
+                  );
+                  const discountPct = product.discountPercent || (
+                    product.originalPrice && product.originalPrice > product.price
+                      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+                      : 0
+                  );
 
                   return (
                     <tr key={product.id} className="hover:bg-white/[0.02] transition-colors">
                       {/* Foto e Título */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-[#040711] border border-white/10 p-1 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                          <div className="relative w-12 h-12 rounded-xl bg-[#040711] border border-white/10 p-1 flex-shrink-0 overflow-hidden flex items-center justify-center">
                             {product.images?.[0] ? (
                               <img src={product.images[0]} alt="" className="w-full h-full object-contain" />
                             ) : (
                               <Box className="w-5 h-5 text-slate-600" />
+                            )}
+                            {hasDiscount && (
+                              <div className="absolute top-0 right-0 bg-red-600 text-white p-0.5 rounded-bl-md">
+                                <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
+                              </div>
                             )}
                           </div>
                           <div className="min-w-0 max-w-xs">
@@ -664,12 +758,31 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                         <span className="text-[10px] text-slate-400">{product.condition}</span>
                       </td>
 
-                      {/* Preço de Venda */}
+                      {/* Preço de Venda com Indicador de Desconto */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="text-white font-black text-sm block">
-                          {formatBRL(product.price)}
-                        </span>
-                        <span className="text-[10px] text-slate-400">12x de {formatBRL(product.price / 12)}</span>
+                        {hasDiscount && product.originalPrice && product.originalPrice > product.price ? (
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[10px] text-slate-500 line-through">
+                                {formatBRL(product.originalPrice)}
+                              </span>
+                              <span className="text-[9px] font-black text-rose-400 bg-rose-500/15 px-1 py-0.2 rounded border border-rose-500/30 flex items-center gap-0.5">
+                                <ArrowDown className="w-2.5 h-2.5 stroke-[3] text-rose-400" />
+                                -{discountPct}% OFF
+                              </span>
+                            </div>
+                            <span className="text-[#00D287] font-black text-sm block">
+                              {formatBRL(product.price)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-white font-black text-sm block">
+                              {formatBRL(product.price)}
+                            </span>
+                            <span className="text-[10px] text-slate-400">12x de {formatBRL(product.price / 12)}</span>
+                          </div>
+                        )}
                       </td>
 
                       {/* Custo do Fornecedor */}
@@ -769,7 +882,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         />
       )}
 
-      {/* 7. MODAL DE EDIÇÃO DE PRODUTO COM VARIANTE DE PORCENTAGEM */}
+      {/* 7. MODAL DE EDIÇÃO DE PRODUTO COM DETECÇÃO DE DESCONTO */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="relative w-full max-w-xl bg-[#090e1c] border border-blue-500/30 rounded-3xl shadow-2xl overflow-hidden my-6">
@@ -780,7 +893,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">Editar Produto Oficial</h3>
-                  <p className="text-xs text-slate-400">Ajuste preços, regras de margem e detalhes do produto</p>
+                  <p className="text-xs text-slate-400">Ajuste preços, regras de margem e descontos promocionais</p>
                 </div>
               </div>
 
@@ -963,6 +1076,54 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                     </div>
                   </div>
                 )}
+
+                {/* Bloco de Desconto e Preço "De / Por" Promocional */}
+                {(() => {
+                  const currentParsedPrice = parseFloat(editPrice.replace(/\./g, '').replace(',', '.')) || 0;
+                  const origPriceNum = parseFloat(editOriginalPrice.replace(/\./g, '').replace(',', '.')) || editingProduct.originalPrice || (currentParsedPrice < editingProduct.price ? editingProduct.price : 0);
+                  const isDiscountActive = origPriceNum > currentParsedPrice && currentParsedPrice > 0;
+                  const discountPct = isDiscountActive ? Math.round(((origPriceNum - currentParsedPrice) / origPriceNum) * 100) : 0;
+
+                  return (
+                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                          <Tag className="w-3.5 h-3.5 text-rose-400" />
+                          Preço Original "De: R$" (Opcional p/ Promoção)
+                        </label>
+                        {isDiscountActive && (
+                          <span className="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                            <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
+                            -{discountPct}% OFF
+                          </span>
+                        )}
+                      </div>
+
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editOriginalPrice}
+                        onChange={(e) => setEditOriginalPrice(e.target.value)}
+                        placeholder={`Preço anterior: R$ ${editingProduct.price.toFixed(2)}`}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-[#00D287]"
+                      />
+
+                      {isDiscountActive && (
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-red-600/20 via-rose-600/15 to-transparent border border-red-500/30 text-xs text-rose-200 flex items-center gap-2">
+                          <ArrowDown className="w-4 h-4 text-red-400 stroke-[3] flex-shrink-0 animate-bounce" />
+                          <div>
+                            <span className="font-black text-white block">
+                              Gatilho de Urgência Ativo: Redução de -{discountPct}%!
+                            </span>
+                            <span className="text-[10.5px] text-rose-300">
+                              O produto exibirá o selo vermelho de <strong>{discountPct}% OFF</strong> no canto superior direito da vitrine.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Garantia & Frete */}
@@ -1051,9 +1212,19 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={isSavingEdit}
-                className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 disabled:opacity-50 cursor-pointer"
               >
-                {isSavingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                {isSavingEdit ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Salvar Alterações</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

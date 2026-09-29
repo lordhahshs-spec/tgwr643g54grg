@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { Heart, Truck, Building2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Heart, Truck, ShieldCheck, ArrowRight, ArrowDown } from 'lucide-react';
 
 interface HorizontalOfferCardProps {
   offer: MarketplaceOffer;
@@ -25,6 +25,17 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
   const primaryImage = offer.images?.[0] || '';
   const installment12x = offer.price / 12;
   const salesCount = offer.salesCount || 0;
+
+  const hasDiscount = Boolean(
+    (offer.originalPrice && offer.originalPrice > offer.price) ||
+    (offer.discountPercent && offer.discountPercent > 0)
+  );
+
+  const discountPercent = offer.discountPercent || (
+    offer.originalPrice && offer.originalPrice > offer.price
+      ? Math.round(((offer.originalPrice - offer.price) / offer.originalPrice) * 100)
+      : 0
+  );
 
   return (
     <div
@@ -62,19 +73,32 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
             )}
           </div>
 
-          {/* Botão de Favorito */}
-          <button
-            type="button"
-            onClick={(e) => onToggleFavorite(offer.id, e)}
-            className={`absolute top-1.5 right-1.5 p-1.5 rounded-xl backdrop-blur-md transition-all active:scale-90 z-10 ${
-              isFavorite
-                ? 'text-rose-500 bg-rose-500/20 border border-rose-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-white bg-black/60 hover:bg-black/80 border border-white/10'
-            }`}
-            title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
-          >
-            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
-          </button>
+          {/* Canto Superior Direito: Indicador de Desconto com Setinha Vermelha & Favorito */}
+          <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1">
+            {hasDiscount && discountPercent > 0 && (
+              <div 
+                className="flex items-center gap-0.5 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full shadow-lg shadow-red-600/40 border border-red-400/40 animate-pulse tracking-tight"
+                title={`Desconto de ${discountPercent}% aplicado!`}
+              >
+                <ArrowDown className="w-2.5 h-2.5 text-white stroke-[3.5]" />
+                <span>{discountPercent}% OFF</span>
+              </div>
+            )}
+
+            {/* Botão de Favorito */}
+            <button
+              type="button"
+              onClick={(e) => onToggleFavorite(offer.id, e)}
+              className={`p-1.5 rounded-xl backdrop-blur-md transition-all active:scale-90 ${
+                isFavorite
+                  ? 'text-rose-500 bg-rose-500/20 border border-rose-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white bg-black/60 hover:bg-black/80 border border-white/10'
+              }`}
+              title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+          </div>
 
           {/* Badge de indisponibilidade se não estiver publicada */}
           {offer.status !== 'publicada' && (
@@ -101,8 +125,20 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
           {offer.title}
         </h3>
 
-        {/* Linha 3: Preço Principal B2B */}
+        {/* Linha 3: Preço Principal B2B com De/Por */}
         <div className="mt-2">
+          {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10.5px] sm:text-[11px] text-slate-400 line-through font-medium">
+                {formatBRL(offer.originalPrice)}
+              </span>
+              <span className="text-[9px] font-black text-rose-400 bg-rose-500/15 px-1 py-0.2 rounded border border-rose-500/20 flex items-center gap-0.5">
+                <ArrowDown className="w-2 h-2 stroke-[3] text-rose-400" />
+                -{discountPercent}%
+              </span>
+            </div>
+          )}
+
           <div className="text-sm sm:text-lg font-black text-[#00D287] tracking-tight leading-none">
             {formatBRL(offer.price)}
           </div>
@@ -118,36 +154,25 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
               <Truck className="w-3 h-3 flex-shrink-0" />
               Frete grátis
             </span>
-          ) : offer.shippingCost ? (
-            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-slate-400 font-medium truncate">
-              <Truck className="w-3 h-3 text-[#00D287] flex-shrink-0" />
-              {formatBRL(offer.shippingCost)}
-            </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-slate-400 font-medium truncate">
-              <Truck className="w-3 h-3 text-[#00D287] flex-shrink-0" />
-              Envio Rastreado
+            <span className="text-[10px] text-slate-400 truncate">
+              Envio Rápido
             </span>
           )}
 
-          {offer.warrantyDays ? (
-            <span className="text-[9px] font-semibold text-slate-400 bg-slate-800/80 px-1 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0">
-              <ShieldCheck className="w-2.5 h-2.5 text-[#00D287]" />
-              {offer.warrantyDays}d
-            </span>
-          ) : null}
+          <span className="text-[9.5px] sm:text-[10px] text-slate-400 flex items-center gap-0.5 truncate">
+            <ShieldCheck className="w-2.5 h-2.5 text-[#00D287]" />
+            Garantia {offer.warrantyDays || 90}d
+          </span>
         </div>
       </div>
 
-      {/* Linha 5: Vendedor Oficial / Lojista Parceiro */}
-      <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-        <div className="flex items-center gap-1 min-w-0">
-          <Building2 className="w-3 h-3 text-[#00D287] flex-shrink-0" />
-          <span className="truncate text-slate-300 font-medium">
-            {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
-          </span>
+      {/* Linha 5: Botão Comprar */}
+      <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-end">
+        <div className="w-full text-center py-1.5 rounded-xl bg-[#00D287]/15 hover:bg-[#00D287] text-[#00D287] hover:text-slate-950 text-xs font-bold transition-all flex items-center justify-center gap-1 border border-[#00D287]/20">
+          <span>Ver Detalhes</span>
+          <ArrowRight className="w-3 h-3" />
         </div>
-        <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-[#00D287] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { Heart, Truck, ShieldCheck, Zap, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Heart, Truck, ShieldCheck, Zap, ArrowRight, CheckCircle2, ArrowDown } from 'lucide-react';
 
 interface MercadoLivreOfferCardProps {
   offer: MarketplaceOffer;
@@ -26,6 +26,18 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
   const installment12x = offer.price / 12;
   const salesCount = offer.salesCount || 0;
 
+  // Cálculo e verificação de desconto ativo
+  const hasDiscount = Boolean(
+    (offer.originalPrice && offer.originalPrice > offer.price) ||
+    (offer.discountPercent && offer.discountPercent > 0)
+  );
+
+  const discountPercent = offer.discountPercent || (
+    offer.originalPrice && offer.originalPrice > offer.price
+      ? Math.round(((offer.originalPrice - offer.price) / offer.originalPrice) * 100)
+      : 0
+  );
+
   return (
     <div
       onClick={() => onSelect(offer)}
@@ -45,26 +57,41 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
             <div className="text-slate-600 text-xs">Sem foto</div>
           )}
 
-          {/* Selo FULL / Oficial CellHub */}
+          {/* Selo FULL / Oficial CellHub (Superior Esquerdo) */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start">
             <span className="text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/30 tracking-tight flex items-center gap-1 uppercase">
               <Zap className="w-2.5 h-2.5 fill-slate-950" /> FULL OFICIAL
             </span>
           </div>
 
-          {/* Botão de Favorito */}
-          <button
-            type="button"
-            onClick={(e) => onToggleFavorite(offer.id, e)}
-            className={`absolute top-2 right-2 p-1.5 rounded-xl backdrop-blur-md transition-all active:scale-90 z-10 ${
-              isFavorite
-                ? 'text-rose-500 bg-rose-500/20 border border-rose-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-white bg-black/60 hover:bg-black/80 border border-white/10'
-            }`}
-            title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
-          >
-            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
-          </button>
+          {/* Canto Superior Direito: Indicador de Desconto com Setinha Vermelha & Urgência */}
+          <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+            {hasDiscount && discountPercent > 0 && (
+              <div 
+                className="flex items-center gap-1 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white font-black text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full shadow-lg shadow-red-600/50 border border-red-400/50 animate-pulse tracking-tight"
+                title={`Desconto de ${discountPercent}% aplicado nesta oferta!`}
+              >
+                <div className="bg-white/20 p-0.5 rounded-full">
+                  <ArrowDown className="w-2.5 h-2.5 text-white stroke-[3.5]" />
+                </div>
+                <span>{discountPercent}% OFF</span>
+              </div>
+            )}
+
+            {/* Botão de Favorito */}
+            <button
+              type="button"
+              onClick={(e) => onToggleFavorite(offer.id, e)}
+              className={`p-1.5 rounded-xl backdrop-blur-md transition-all active:scale-90 ${
+                isFavorite
+                  ? 'text-rose-500 bg-rose-500/20 border border-rose-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white bg-black/60 hover:bg-black/80 border border-white/10'
+              }`}
+              title={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Linha 1: Condição + Vendas */}
@@ -82,8 +109,20 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
           {offer.title}
         </h3>
 
-        {/* Linha 3: Preço Principal Mercado Livre Style */}
+        {/* Linha 3: Preço Principal com De / Por e Desconto */}
         <div className="mt-2.5">
+          {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[11px] sm:text-xs text-slate-400 line-through font-semibold">
+                {formatBRL(offer.originalPrice)}
+              </span>
+              <span className="text-[9.5px] sm:text-[10px] font-black text-rose-400 bg-rose-500/15 px-1.5 py-0.2 rounded border border-rose-500/30 flex items-center gap-0.5">
+                <ArrowDown className="w-2.5 h-2.5 stroke-[3] text-rose-400" />
+                -{discountPercent}%
+              </span>
+            </div>
+          )}
+
           <div className="text-base sm:text-xl font-black text-[#00D287] tracking-tight leading-none">
             {formatBRL(offer.price)}
           </div>

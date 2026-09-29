@@ -192,6 +192,8 @@ export const marketplaceService = {
         description: item.description,
         details: item.details,
         price: Number(item.price),
+        originalPrice: item.original_price ? Number(item.original_price) : undefined,
+        discountPercent: item.discount_percent ? Number(item.discount_percent) : (item.original_price && Number(item.original_price) > Number(item.price) ? Math.round(((Number(item.original_price) - Number(item.price)) / Number(item.original_price)) * 100) : undefined),
         freeShipping: Boolean(item.free_shipping),
         shippingCost: Number(item.shipping_cost || 0),
         shippingPolicy: (item.shipping_policy as ShippingPolicy) || (item.free_shipping ? 'frete_gratis' : 'comprador_paga'),
@@ -296,6 +298,8 @@ export const marketplaceService = {
       description: data.description,
       details: data.details,
       price: Number(data.price),
+      originalPrice: data.original_price ? Number(data.original_price) : undefined,
+      discountPercent: data.discount_percent ? Number(data.discount_percent) : (data.original_price && Number(data.original_price) > Number(data.price) ? Math.round(((Number(data.original_price) - Number(data.price)) / Number(data.original_price)) * 100) : undefined),
       freeShipping: Boolean(data.free_shipping),
       shippingCost: Number(data.shipping_cost || 0),
       shippingPolicy: (data.shipping_policy as ShippingPolicy) || (data.free_shipping ? 'frete_gratis' : 'comprador_paga'),
@@ -336,6 +340,8 @@ export const marketplaceService = {
       description: item.description,
       details: item.details,
       price: Number(item.price),
+      originalPrice: item.original_price ? Number(item.original_price) : undefined,
+      discountPercent: item.discount_percent ? Number(item.discount_percent) : (item.original_price && Number(item.original_price) > Number(item.price) ? Math.round(((Number(item.original_price) - Number(item.price)) / Number(item.original_price)) * 100) : undefined),
       freeShipping: Boolean(item.free_shipping),
       shippingCost: Number(item.shipping_cost || 0),
       shippingPolicy: (item.shipping_policy as ShippingPolicy) || (item.free_shipping ? 'frete_gratis' : 'comprador_paga'),
@@ -411,6 +417,8 @@ export const marketplaceService = {
         description: offerData.description,
         details: offerData.details,
         price: offerData.price,
+        original_price: offerData.originalPrice || null,
+        discount_percent: offerData.discountPercent || null,
         free_shipping: offerData.freeShipping,
         shipping_cost: offerData.shippingCost || 0,
         shipping_policy: offerData.shippingPolicy || (offerData.freeShipping ? 'frete_gratis' : 'comprador_paga'),
@@ -454,6 +462,8 @@ export const marketplaceService = {
     if (updates.description !== undefined) payload.description = updates.description;
     if (updates.details !== undefined) payload.details = updates.details;
     if (updates.price !== undefined) payload.price = updates.price;
+    if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice;
+    if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
     if (updates.freeShipping !== undefined) payload.free_shipping = updates.freeShipping;
     if (updates.shippingCost !== undefined) payload.shipping_cost = updates.shippingCost;
     if (updates.shippingPolicy !== undefined) payload.shipping_policy = updates.shippingPolicy;
