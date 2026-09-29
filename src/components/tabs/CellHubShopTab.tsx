@@ -172,7 +172,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
           <div className="flex items-center justify-between">
             <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00D287] shadow-sm shadow-[#00D287]" />
-              Catálogo Oficial ({filteredOffers.length} {filteredOffers.length === 1 ? 'produto' : 'produtos'})
+              Catálogo Atacado ({filteredOffers.length} {filteredOffers.length === 1 ? 'produto' : 'produtos'})
             </h3>
           </div>
 
@@ -190,7 +190,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
               </div>
 
               <h3 className="text-lg sm:text-xl font-black text-white">
-                Catálogo Oficial CellHub Pronto para Vendas
+                Catálogo Atacado CellHub Pronto para Vendas
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-2 leading-relaxed">
                 Nenhum produto cadastrado no momento. Cadastre aparelhos, telas, baterias e ferramentas com cálculo de margem e fotos para preencher toda a vitrine.
@@ -203,7 +203,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
                     className="px-6 py-3 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg shadow-[#00D287]/25 transition-all cursor-pointer transform active:scale-95"
                   >
                     <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>Adicionar Primeiro Produto Oficial</span>
+                    <span>Adicionar Primeiro Produto no Atacado</span>
                   </button>
                 </div>
               ) : (
