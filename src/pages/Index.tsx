@@ -201,18 +201,18 @@ const Index: React.FC = () => {
           </header>
         )}
 
-        {/* Tab Content Display Area com rolagem touch fluida (iOS & Android) */}
-        <main className="flex-1 h-full min-h-0 overflow-hidden relative flex flex-col pb-14 lg:pb-0">
-          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
+        {/* Tab Content Display Area com rolagem touch nativa e sem corte inferior */}
+        <main className="flex-1 h-full min-h-0 relative flex flex-col overflow-hidden pb-16 lg:pb-0">
+          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
+          <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
           </div>
-          <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
+          <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area' : 'hidden'}>
+          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
           </div>
         </main>
