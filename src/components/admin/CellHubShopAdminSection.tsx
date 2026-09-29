@@ -139,86 +139,12 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const activeCategories = marginRules.map((r) => r.category);
 
   // Margin Rules handlers
-  const handleUpdateMarginRule = async (category: string, newMargin: number) => {
-    const currentRule = marginRules.find(r => r.category.toLowerCase() === category.toLowerCase());
-    const previousMargin = currentRule ? currentRule.marginPercent : pricingRulesService.getSuggestedMargin(category);
-
-    const success = pricingRulesService.updateRule(category, newMargin);
+  const handleUpdateMarginRule = (category: string, margin: number) => {
+    const success = pricingRulesService.updateRule(category, margin);
     if (success) {
       setMarginRules(pricingRulesService.getRules());
-
-      // Se a margem foi reduzida (ex: de 20% para 15%), aplica o desconto de 5% aos produtos da categoria
-      if (newMargin < previousMargin && previousMargin > 0) {
-        const marginDiff = previousMargin - newMargin; // Ex: 20 - 15 = 5%
-        const categoryProducts = products.filter(
-          p => p.category.toLowerCase() === category.toLowerCase()
-        );
-
-        if (categoryProducts.length > 0) {
-          let updatedCount = 0;
-          for (const prod of categoryProducts) {
-            const cost = prod.supplierCost && prod.supplierCost > 0
-              ? prod.supplierCost
-              : pricingRulesService.calculateCostFromPrice(prod.price, previousMargin);
-            
-            const newCalculatedPrice = pricingRulesService.calculatePriceFromCost(cost, newMargin);
-            const originalPrice = prod.originalPrice || prod.price;
-
-            await marketplaceService.updateOffer(prod.id, {
-              price: newCalculatedPrice,
-              originalPrice: originalPrice,
-              discountPercent: marginDiff,
-            });
-            updatedCount++;
-          }
-          toast.success(`Margem de ${category} reduzida de ${previousMargin}% para ${newMargin}%. Desconto de -${marginDiff}% com setinha vermelha aplicado a ${updatedCount} produto(s) na vitrine! 🔥`);
-          loadData(true);
-          return;
-        }
-      }
-
-      toast.success(`Margem de ${category} atualizada para ${newMargin}%!`);
+      toast.success(`Margem padrão de ${category} atualizada para ${margin}%!`);
     }
-  };
-
-  const handleApplyMarginToCategoryProducts = async (category: string, newMargin: number) => {
-    const categoryProducts = products.filter(
-      (p) => p.category.toLowerCase() === category.toLowerCase() && p.supplierCost && p.supplierCost > 0
-    );
-
-    if (categoryProducts.length === 0) {
-      toast.info(`Nenhum produto cadastrado com custo na categoria "${category}".`);
-      return;
-    }
-
-    if (!window.confirm(`Deseja recalcular e aplicar a margem de ${newMargin}% em todos os ${categoryProducts.length} produtos de "${category}"? Produtos com redução de preço receberão o selo promocional e gatilho de desconto.`)) {
-      return;
-    }
-
-    let updatedCount = 0;
-    for (const prod of categoryProducts) {
-      const cost = prod.supplierCost!;
-      const calculatedPrice = pricingRulesService.calculatePriceFromCost(cost, newMargin);
-      const isPriceDrop = calculatedPrice < prod.price;
-      
-      const originalPrice = isPriceDrop 
-        ? (prod.originalPrice || prod.price) 
-        : (calculatedPrice < (prod.originalPrice || 0) ? prod.originalPrice : undefined);
-
-      const discountPercent = originalPrice && originalPrice > calculatedPrice
-        ? Math.round(((originalPrice - calculatedPrice) / originalPrice) * 100)
-        : undefined;
-
-      await marketplaceService.updateOffer(prod.id, {
-        price: calculatedPrice,
-        originalPrice: originalPrice || undefined,
-        discountPercent: discountPercent || undefined,
-      });
-      updatedCount++;
-    }
-
-    toast.success(`${updatedCount} produtos de "${category}" atualizados com a nova margem de ${newMargin}%!`);
-    loadData(true);
   };
 
   const handleDeleteCategory = (category: string) => {
@@ -369,26 +295,13 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
       return;
     }
 
-    // Regra de redução de preço e indicador de desconto:
-    // Se o preço ou margem foi reduzida abaixo do valor anterior ou se tem preço original definido
+    // Regra de Desconto: Estritamente vinculado ao campo "Preço Original (De: R$)"
     let finalOriginalPrice: number | null = null;
     let finalDiscountPercent: number | null = null;
 
     if (manualOriginal > parsedPrice) {
       finalOriginalPrice = manualOriginal;
       finalDiscountPercent = Math.round(((manualOriginal - parsedPrice) / manualOriginal) * 100);
-    } else if (editPricingMode === 'margin' && editMarginPercent < editInitialMarginPercent && editInitialMarginPercent > 0) {
-      // Margem reduzida (ex: 20% para 15% -> Desconto de 5%)
-      const marginDiff = editInitialMarginPercent - editMarginPercent;
-      finalOriginalPrice = editingProduct.originalPrice || editingProduct.price;
-      finalDiscountPercent = marginDiff;
-    } else if (parsedPrice < editingProduct.price) {
-      // Redução de preço detectada
-      finalOriginalPrice = editingProduct.originalPrice || editingProduct.price;
-      finalDiscountPercent = Math.round(((finalOriginalPrice - parsedPrice) / finalOriginalPrice) * 100);
-    } else if (editingProduct.originalPrice && parsedPrice < editingProduct.originalPrice) {
-      finalOriginalPrice = editingProduct.originalPrice;
-      finalDiscountPercent = Math.round(((editingProduct.originalPrice - parsedPrice) / editingProduct.originalPrice) * 100);
     }
 
     setIsSavingEdit(true);
@@ -1173,7 +1086,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 {/* Bloco de Desconto e Preço "De / Por" Promocional */}
                 {(() => {
                   const currentParsedPrice = parseFloat(editPrice.replace(/\./g, '').replace(',', '.')) || 0;
-                  const origPriceNum = parseFloat(editOriginalPrice.replace(/\./g, '').replace(',', '.')) || editingProduct.originalPrice || (currentParsedPrice < editingProduct.price ? editingProduct.price : 0);
+                  const origPriceNum = parseFloat(editOriginalPrice.replace(/\./g, '').replace(',', '.')) || 0;
                   const isDiscountActive = origPriceNum > currentParsedPrice && currentParsedPrice > 0;
                   const discountPct = isDiscountActive ? Math.round(((origPriceNum - currentParsedPrice) / origPriceNum) * 100) : 0;
 

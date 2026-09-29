@@ -462,8 +462,8 @@ export const marketplaceService = {
     if (updates.description !== undefined) payload.description = updates.description;
     if (updates.details !== undefined) payload.details = updates.details;
     if (updates.price !== undefined) payload.price = updates.price;
-    if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice;
-    if (updates.discountPercent !== undefined) payload.discount_percent = updates.discountPercent;
+    if ('originalPrice' in updates) payload.original_price = updates.originalPrice || null;
+    if ('discountPercent' in updates) payload.discount_percent = updates.discountPercent || null;
     if (updates.freeShipping !== undefined) payload.free_shipping = updates.freeShipping;
     if (updates.shippingCost !== undefined) payload.shipping_cost = updates.shippingCost;
     if (updates.shippingPolicy !== undefined) payload.shipping_policy = updates.shippingPolicy;
