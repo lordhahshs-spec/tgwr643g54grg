@@ -153,6 +153,9 @@ export interface MarketplaceOffer {
   supplierCost?: number;
   warrantyDays?: number;
   badgeText?: string;
+  supplierId?: string;
+  supplierName?: string;
+  supplierTag?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -270,4 +273,25 @@ export interface MarketplaceFeeSettings {
   salesPercentFee?: number;
   salesFixedFee?: number;
 }
+
+export interface MarketplaceSupplier {
+  id: string;
+  name: string;
+  tag: string;
+  phone?: string;
+  email?: string;
+  contactPerson?: string;
+  postalCode: string;
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  notes?: string;
+  status: 'ativo' | 'inativo';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 

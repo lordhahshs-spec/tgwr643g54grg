@@ -1,10 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  MarketplaceOffer, 
-  MarketplaceOrder, 
-  MarketplaceFavorite, 
-  MarketplaceReport, 
+import {
+  MarketplaceOffer,
+  MarketplaceOrder,
+  MarketplaceFavorite,
+  MarketplaceReport,
   MarketplaceFeeSettings,
+  MarketplaceSupplier,
   OfferCategory,
   OfferCondition,
   OfferStatus,
@@ -218,6 +219,9 @@ export const marketplaceService = {
         supplierCost: Number(item.supplier_cost || 0),
         warrantyDays: Number(item.warranty_days || 90),
         badgeText: item.badge_text || 'Oficial CellHub',
+        supplierId: item.supplier_id || undefined,
+        supplierName: item.supplier_name || undefined,
+        supplierTag: item.supplier_tag || undefined,
         createdAt: item.created_at,
         updatedAt: item.updated_at
       };
@@ -320,6 +324,9 @@ export const marketplaceService = {
       salesCount: ordersCount || 0,
       rating: avgRating,
       reviewsCount: revCount,
+      supplierId: data.supplier_id || undefined,
+      supplierName: data.supplier_name || undefined,
+      supplierTag: data.supplier_tag || undefined,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -366,6 +373,9 @@ export const marketplaceService = {
       supplierCost: Number(item.supplier_cost || 0),
       warrantyDays: Number(item.warranty_days || 90),
       badgeText: item.badge_text || 'Oficial CellHub',
+      supplierId: item.supplier_id || undefined,
+      supplierName: item.supplier_name || undefined,
+      supplierTag: item.supplier_tag || undefined,
       createdAt: item.created_at,
       updatedAt: item.updated_at,
     };
@@ -439,6 +449,9 @@ export const marketplaceService = {
         supplier_cost: offerData.supplierCost || 0,
         warranty_days: offerData.warrantyDays || 90,
         badge_text: offerData.badgeText || 'Oficial CellHub',
+        supplier_id: offerData.supplierId || null,
+        supplier_name: offerData.supplierName || null,
+        supplier_tag: offerData.supplierTag || null,
         views: 0
       })
       .select('id')
@@ -478,6 +491,12 @@ export const marketplaceService = {
     if (updates.originNeighborhood !== undefined) payload.origin_neighborhood = updates.originNeighborhood;
     if (updates.originCity !== undefined) payload.origin_city = updates.originCity;
     if (updates.originState !== undefined) payload.origin_state = updates.originState;
+    if (updates.supplierCost !== undefined) payload.supplier_cost = updates.supplierCost;
+    if (updates.warrantyDays !== undefined) payload.warranty_days = updates.warrantyDays;
+    if (updates.badgeText !== undefined) payload.badge_text = updates.badgeText;
+    if ('supplierId' in updates) payload.supplier_id = updates.supplierId || null;
+    if ('supplierName' in updates) payload.supplier_name = updates.supplierName || null;
+    if ('supplierTag' in updates) payload.supplier_tag = updates.supplierTag || null;
     if (updates.images !== undefined) payload.images = updates.images;
     if (updates.status !== undefined) payload.status = updates.status;
 
@@ -1690,5 +1709,116 @@ export const marketplaceService = {
       console.error('[marketplaceService] Erro ao resetar marketplace:', e);
       return { success: false, error: e?.message || 'Erro desconhecido' };
     }
+  },
+
+  // --- FORNECEDORES CELLHUB SHOP (DROPSHIPPING / LOGÍSTICA DE ORIGEM) ---
+  mapSupplierRaw(row: any): MarketplaceSupplier {
+    return {
+      id: row.id,
+      name: row.name,
+      tag: row.tag,
+      phone: row.phone || undefined,
+      email: row.email || undefined,
+      contactPerson: row.contact_person || undefined,
+      postalCode: row.postal_code,
+      street: row.street,
+      number: row.number,
+      complement: row.complement || undefined,
+      neighborhood: row.neighborhood,
+      city: row.city,
+      state: row.state,
+      notes: row.notes || undefined,
+      status: row.status || 'ativo',
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  },
+
+  async getSuppliers(): Promise<MarketplaceSupplier[]> {
+    const { data, error } = await supabase
+      .from('marketplace_suppliers')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('[marketplaceService] Erro ao buscar fornecedores:', error);
+      return [];
+    }
+
+    return (data || []).map(this.mapSupplierRaw);
+  },
+
+  async createSupplier(supplier: Omit<MarketplaceSupplier, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; data?: MarketplaceSupplier; error?: string }> {
+    const { data, error } = await supabase
+      .from('marketplace_suppliers')
+      .insert({
+        name: supplier.name.trim(),
+        tag: supplier.tag.trim().toUpperCase(),
+        phone: supplier.phone?.trim() || null,
+        email: supplier.email?.trim() || null,
+        contact_person: supplier.contactPerson?.trim() || null,
+        postal_code: supplier.postalCode.trim(),
+        street: supplier.street.trim(),
+        number: supplier.number.trim(),
+        complement: supplier.complement?.trim() || null,
+        neighborhood: supplier.neighborhood.trim(),
+        city: supplier.city.trim(),
+        state: supplier.state.trim().toUpperCase(),
+        notes: supplier.notes?.trim() || null,
+        status: supplier.status || 'ativo',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[marketplaceService] Erro ao criar fornecedor:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: this.mapSupplierRaw(data) };
+  },
+
+  async updateSupplier(id: string, updates: Partial<MarketplaceSupplier>): Promise<{ success: boolean; error?: string }> {
+    const payload: any = { updated_at: new Date().toISOString() };
+    if (updates.name !== undefined) payload.name = updates.name.trim();
+    if (updates.tag !== undefined) payload.tag = updates.tag.trim().toUpperCase();
+    if (updates.phone !== undefined) payload.phone = updates.phone?.trim() || null;
+    if (updates.email !== undefined) payload.email = updates.email?.trim() || null;
+    if (updates.contactPerson !== undefined) payload.contact_person = updates.contactPerson?.trim() || null;
+    if (updates.postalCode !== undefined) payload.postal_code = updates.postalCode.trim();
+    if (updates.street !== undefined) payload.street = updates.street.trim();
+    if (updates.number !== undefined) payload.number = updates.number.trim();
+    if (updates.complement !== undefined) payload.complement = updates.complement?.trim() || null;
+    if (updates.neighborhood !== undefined) payload.neighborhood = updates.neighborhood.trim();
+    if (updates.city !== undefined) payload.city = updates.city.trim();
+    if (updates.state !== undefined) payload.state = updates.state.trim().toUpperCase();
+    if (updates.notes !== undefined) payload.notes = updates.notes?.trim() || null;
+    if (updates.status !== undefined) payload.status = updates.status;
+
+    const { error } = await supabase
+      .from('marketplace_suppliers')
+      .update(payload)
+      .eq('id', id);
+
+    if (error) {
+      console.error('[marketplaceService] Erro ao atualizar fornecedor:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  },
+
+  async deleteSupplier(id: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase
+      .from('marketplace_suppliers')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('[marketplaceService] Erro ao remover fornecedor:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
   }
 };

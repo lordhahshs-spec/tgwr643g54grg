@@ -22,11 +22,12 @@ import {
   Image as ImageIcon,
   Star
 } from 'lucide-react';
-import { 
-  OfferCategory, 
-  OfferCondition, 
+import {
+  OfferCategory,
+  OfferCondition,
   ShippingPolicy,
-  CategoryPackageDefault
+  CategoryPackageDefault,
+  MarketplaceSupplier
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
@@ -97,6 +98,19 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [isDragging, setIsDragging] = useState(false);
 
   const [categoriesList, setCategoriesList] = useState<string[]>(() => pricingRulesService.getCategories());
+
+  // Suppliers (Dropshipping / Melhor Envio origin)
+  const [suppliers, setSuppliers] = useState<MarketplaceSupplier[]>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+
+  useEffect(() => {
+    marketplaceService.getSuppliers().then((data) => {
+      setSuppliers(data);
+      if (data.length > 0 && !selectedSupplierId) {
+        setSelectedSupplierId(data[0].id);
+      }
+    });
+  }, []);
 
   // Auto-update default suggested margin when Category, Condition or Title changes
   useEffect(() => {
@@ -301,6 +315,8 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     const isDiscount = parsedOrig > parsedPrice;
     const discountPct = isDiscount ? Math.round(((parsedOrig - parsedPrice) / parsedOrig) * 100) : undefined;
 
+    const matchedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
+
     try {
       const res = await marketplaceService.createOffer({
         sellerId: currentUser.id,
@@ -318,6 +334,16 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         originalPrice: isDiscount ? parsedOrig : undefined,
         discountPercent: discountPct,
         supplierCost: parsedCost > 0 ? parsedCost : undefined,
+        supplierId: matchedSupplier?.id,
+        supplierName: matchedSupplier?.name,
+        supplierTag: matchedSupplier?.tag,
+        originZipCode: matchedSupplier?.postalCode,
+        originStreet: matchedSupplier?.street,
+        originNumber: matchedSupplier?.number,
+        originComplement: matchedSupplier?.complement,
+        originNeighborhood: matchedSupplier?.neighborhood,
+        originCity: matchedSupplier?.city,
+        originState: matchedSupplier?.state,
         shippingPolicy,
         freeShipping: shippingPolicy === 'frete_gratis',
         images,
@@ -653,6 +679,58 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     <option value="comprador_paga">Frete Calculado no Checkout (Cliente Paga)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Vínculo de Fornecedor & Origem do Frete (Melhor Envio) */}
+              <div className="p-4 rounded-2xl bg-[#090e1c] border border-cyan-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-cyan-400" />
+                    Fornecedor de Origem (Dropshipping / Frete Automático)
+                  </label>
+                  <span className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded font-mono font-bold border border-cyan-500/20">
+                    Origem Melhor Envio
+                  </span>
+                </div>
+
+                <select
+                  value={selectedSupplierId}
+                  onChange={(e) => setSelectedSupplierId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="">Selecione o fornecedor deste produto...</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
+                    </option>
+                  ))}
+                </select>
+
+                {(() => {
+                  const sup = suppliers.find((s) => s.id === selectedSupplierId);
+                  if (!sup) {
+                    return (
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Selecione o fornecedor responsável por despachar este produto. O endereço e CEP dele serão usados para calcular o frete exato de origem até o comprador.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-cyan-300 font-bold flex items-center gap-1">
+                          <Tag className="w-3 h-3" /> Tag Vinculada: <span className="font-mono text-white">{sup.tag}</span>
+                        </span>
+                        <span className="text-[11px] text-slate-300 font-mono font-bold">
+                          CEP Origem: {sup.postalCode}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-[11px]">
+                        Endereço de envio: {sup.street}, {sup.number} • {sup.neighborhood} • <strong>{sup.city} - {sup.state}</strong>
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Imagens do Produto (Upload de Arquivos do Computador + URL + Drag & Drop) */}
