@@ -257,7 +257,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
           </div>
 
           {/* Segmented View Switcher (Explorar vs Minhas Vendas) */}
-          <div className="hidden sm:flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
+          <div className="flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
             <button
               onClick={() => setActiveView('explorar')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -281,23 +281,6 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
               <span>Meu Painel & Vendas</span>
             </button>
           </div>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          <button
-            onClick={() => {
-              if (isDemo) {
-                onUnlock?.('O anúncio e publicação de ofertas no Marketplace B2B é exclusivo para membros com licença vitalícia ativa.');
-                return;
-              }
-              setIsCreateModalOpen(true);
-            }}
-            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
-          >
-            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
-            <span>+ Anunciar Produto</span>
-          </button>
         </div>
       </header>
 
