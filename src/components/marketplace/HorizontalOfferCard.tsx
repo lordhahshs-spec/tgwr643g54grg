@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { Heart, Truck, Star, Building2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Heart, Truck, Building2, ShieldCheck, ArrowRight } from 'lucide-react';
 
 interface HorizontalOfferCardProps {
   offer: MarketplaceOffer;
@@ -25,7 +25,6 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
   const primaryImage = offer.images?.[0] || '';
   const installment12x = offer.price / 12;
   const salesCount = offer.salesCount || 0;
-  const hasReviews = Boolean(offer.rating && offer.reviewsCount && offer.reviewsCount > 0);
 
   return (
     <div
@@ -145,27 +144,6 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
           </span>
         </div>
         <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-[#00D287] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-      </div>
-    </div>
-  );
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Linha Inferior: Loja Vendedora & Ação */}
-      <div className="mt-3.5 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-1.5 min-w-0 truncate text-slate-400">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#00D287] flex-shrink-0" />
-          <span className="truncate text-emerald-300 font-bold text-[11px]">
-            {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
-          </span>
-        </div>
-
-        <span className="text-[10px] text-[#00D287] font-extrabold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform flex-shrink-0 bg-[#00D287]/15 px-2 py-0.5 rounded-lg border border-[#00D287]/30">
-          <span>Comprar</span>
-          <ArrowRight className="w-3 h-3" />
-        </span>
       </div>
     </div>
   );
