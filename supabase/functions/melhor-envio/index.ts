@@ -166,7 +166,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          connected: hasToken && Boolean(config.is_connected),
+          connected: hasToken,
           environment: config.environment || "production",
           client_id: config.client_id,
           redirect_uri: config.redirect_uri,
