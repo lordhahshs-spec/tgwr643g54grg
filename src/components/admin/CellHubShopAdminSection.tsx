@@ -79,6 +79,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [editCondition, setEditCondition] = useState<OfferCondition>('Novo');
   const [editPricingMode, setEditPricingMode] = useState<'margin' | 'manual'>('margin');
   const [editMarginPercent, setEditMarginPercent] = useState<number>(20);
+  const [editInitialMarginPercent, setEditInitialMarginPercent] = useState<number>(20);
   const [editPrice, setEditPrice] = useState('');
   const [editOriginalPrice, setEditOriginalPrice] = useState('');
   const [editSupplierCost, setEditSupplierCost] = useState('');
@@ -138,11 +139,45 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const activeCategories = marginRules.map((r) => r.category);
 
   // Margin Rules handlers
-  const handleUpdateMarginRule = (category: string, margin: number) => {
-    const success = pricingRulesService.updateRule(category, margin);
+  const handleUpdateMarginRule = async (category: string, newMargin: number) => {
+    const currentRule = marginRules.find(r => r.category.toLowerCase() === category.toLowerCase());
+    const previousMargin = currentRule ? currentRule.marginPercent : pricingRulesService.getSuggestedMargin(category);
+
+    const success = pricingRulesService.updateRule(category, newMargin);
     if (success) {
       setMarginRules(pricingRulesService.getRules());
-      toast.success(`Margem de ${category} atualizada para ${margin}%!`);
+
+      // Se a margem foi reduzida (ex: de 20% para 15%), aplica o desconto de 5% aos produtos da categoria
+      if (newMargin < previousMargin && previousMargin > 0) {
+        const marginDiff = previousMargin - newMargin; // Ex: 20 - 15 = 5%
+        const categoryProducts = products.filter(
+          p => p.category.toLowerCase() === category.toLowerCase()
+        );
+
+        if (categoryProducts.length > 0) {
+          let updatedCount = 0;
+          for (const prod of categoryProducts) {
+            const cost = prod.supplierCost && prod.supplierCost > 0
+              ? prod.supplierCost
+              : pricingRulesService.calculateCostFromPrice(prod.price, previousMargin);
+            
+            const newCalculatedPrice = pricingRulesService.calculatePriceFromCost(cost, newMargin);
+            const originalPrice = prod.originalPrice || prod.price;
+
+            await marketplaceService.updateOffer(prod.id, {
+              price: newCalculatedPrice,
+              originalPrice: originalPrice,
+              discountPercent: marginDiff,
+            });
+            updatedCount++;
+          }
+          toast.success(`Margem de ${category} reduzida de ${previousMargin}% para ${newMargin}%. Desconto de -${marginDiff}% com setinha vermelha aplicado a ${updatedCount} produto(s) na vitrine! 🔥`);
+          loadData(true);
+          return;
+        }
+      }
+
+      toast.success(`Margem de ${category} atualizada para ${newMargin}%!`);
     }
   };
 
@@ -274,10 +309,12 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     if (costNum > 0 && product.price > costNum) {
       const margin = Math.round(((product.price - costNum) / costNum) * 100);
       setEditMarginPercent(margin);
+      setEditInitialMarginPercent(margin);
       setEditPricingMode('margin');
     } else {
       const suggested = pricingRulesService.getSuggestedMargin(product.category);
       setEditMarginPercent(suggested);
+      setEditInitialMarginPercent(suggested);
       setEditPricingMode('manual');
     }
   };
@@ -333,15 +370,20 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     }
 
     // Regra de redução de preço e indicador de desconto:
-    // Se o preço foi reduzido abaixo do preço anterior ou se tem preço original definido
+    // Se o preço ou margem foi reduzida abaixo do valor anterior ou se tem preço original definido
     let finalOriginalPrice: number | null = null;
     let finalDiscountPercent: number | null = null;
 
     if (manualOriginal > parsedPrice) {
       finalOriginalPrice = manualOriginal;
       finalDiscountPercent = Math.round(((manualOriginal - parsedPrice) / manualOriginal) * 100);
+    } else if (editPricingMode === 'margin' && editMarginPercent < editInitialMarginPercent && editInitialMarginPercent > 0) {
+      // Margem reduzida (ex: 20% para 15% -> Desconto de 5%)
+      const marginDiff = editInitialMarginPercent - editMarginPercent;
+      finalOriginalPrice = editingProduct.originalPrice || editingProduct.price;
+      finalDiscountPercent = marginDiff;
     } else if (parsedPrice < editingProduct.price) {
-      // Redução de preço detectada (ex: margem baixada de 20% para 15%)
+      // Redução de preço detectada
       finalOriginalPrice = editingProduct.originalPrice || editingProduct.price;
       finalDiscountPercent = Math.round(((finalOriginalPrice - parsedPrice) / finalOriginalPrice) * 100);
     } else if (editingProduct.originalPrice && parsedPrice < editingProduct.originalPrice) {

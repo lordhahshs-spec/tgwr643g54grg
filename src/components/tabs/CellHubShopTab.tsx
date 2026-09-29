@@ -272,7 +272,8 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
                   key={offer.id}
                   offer={offer}
                   isFavorite={favorites.includes(offer.id)}
-                  onToggleFavorite={(e) => handleToggleFavorite(offer.id, e)}
+                  onToggleFavorite={(offerId, e) => handleToggleFavorite(offerId, e)}
+                  onSelect={(selected) => setSelectedOfferForDetails(selected)}
                   onClick={() => setSelectedOfferForDetails(offer)}
                   onBuyClick={() => handleOpenCheckout(offer)}
                 />

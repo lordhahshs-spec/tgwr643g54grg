@@ -26,8 +26,9 @@ interface OfferDetailsModalProps {
   offer: MarketplaceOffer | null;
   onClose: () => void;
   isFavorite: boolean;
-  onToggleFavorite: (offerId: string, e: React.MouseEvent) => void;
-  onInitiateCheckout: (offer: MarketplaceOffer) => void;
+  onToggleFavorite?: (offerId: string, e: React.MouseEvent) => void;
+  onInitiateCheckout?: (offer: MarketplaceOffer) => void;
+  onBuyNow?: (offer: MarketplaceOffer) => void;
   currentUserId?: string;
   currentUserCompany?: string;
 }
@@ -38,10 +39,19 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
   isFavorite,
   onToggleFavorite,
   onInitiateCheckout,
+  onBuyNow,
   currentUserId,
   currentUserCompany,
 }) => {
   if (!offer) return null;
+
+  const handleCheckoutClick = () => {
+    if (onInitiateCheckout) {
+      onInitiateCheckout(offer);
+    } else if (onBuyNow) {
+      onBuyNow(offer);
+    }
+  };
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showReportDialog, setShowReportDialog] = useState(false);
@@ -397,8 +407,8 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
               ) : (
                 <>
                   <button
-                    onClick={() => onInitiateCheckout(offer)}
-                    className="flex-1 py-4 px-6 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-extrabold text-base shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all transform active:scale-95"
+                    onClick={handleCheckoutClick}
+                    className="flex-1 py-4 px-6 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-extrabold text-base shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all transform active:scale-95 cursor-pointer"
                   >
                     <ShoppingBag className="w-5 h-5 text-slate-950" />
                     Comprar Agora (Checkout B2B)

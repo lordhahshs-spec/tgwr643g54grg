@@ -5,8 +5,10 @@ import { Heart, Truck, ShieldCheck, Zap, ArrowRight, CheckCircle2, ArrowDown } f
 interface MercadoLivreOfferCardProps {
   offer: MarketplaceOffer;
   isFavorite: boolean;
-  onToggleFavorite: (offerId: string, e: React.MouseEvent) => void;
-  onSelect: (offer: MarketplaceOffer) => void;
+  onToggleFavorite?: (offerId: string, e: React.MouseEvent) => void;
+  onSelect?: (offer: MarketplaceOffer) => void;
+  onClick?: () => void;
+  onBuyClick?: () => void;
 }
 
 export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
@@ -14,6 +16,8 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
   isFavorite,
   onToggleFavorite,
   onSelect,
+  onClick,
+  onBuyClick,
 }) => {
   const formatBRL = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -38,9 +42,18 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
       : 0
   );
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onSelect) {
+      onSelect(offer);
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
-      onClick={() => onSelect(offer)}
+      onClick={handleCardClick}
       className="group relative bg-[#090e1c] hover:bg-[#0d152a] active:scale-[0.98] transition-all duration-200 border border-white/10 hover:border-[#00D287]/50 rounded-2xl p-3 sm:p-3.5 cursor-pointer shadow-sm hover:shadow-xl hover:shadow-[#00D287]/10 flex flex-col justify-between select-none touch-manipulation"
     >
       <div>
@@ -81,7 +94,10 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
             {/* Botão de Favorito */}
             <button
               type="button"
-              onClick={(e) => onToggleFavorite(offer.id, e)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite?.(offer.id, e);
+              }}
               className={`p-1.5 rounded-xl backdrop-blur-md transition-all active:scale-90 ${
                 isFavorite
                   ? 'text-rose-500 bg-rose-500/20 border border-rose-500/40 shadow-sm'
@@ -159,10 +175,23 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
           <CheckCircle2 className="w-3 h-3 text-[#00D287]" />
           Estoque Oficial
         </span>
-        <div className="px-2.5 py-1 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287] text-[#00D287] hover:text-slate-950 text-[10.5px] font-black flex items-center gap-1 transition-all border border-[#00D287]/30">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onBuyClick) {
+              onBuyClick();
+            } else if (onSelect) {
+              onSelect(offer);
+            } else if (onClick) {
+              onClick();
+            }
+          }}
+          className="px-2.5 py-1 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287] text-[#00D287] hover:text-slate-950 text-[10.5px] font-black flex items-center gap-1 transition-all border border-[#00D287]/30 cursor-pointer"
+        >
           <span>Ver Produto</span>
           <ArrowRight className="w-3 h-3" />
-        </div>
+        </button>
       </div>
     </div>
   );
