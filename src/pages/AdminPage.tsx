@@ -36,6 +36,7 @@ import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { catalogService, CatalogDevice } from '@/services/catalogService';
 import { schematicService, ElectricSchematic } from '@/services/schematicService';
 import { MarketplaceAdminSection } from '@/components/admin/MarketplaceAdminSection';
+import { CellHubShopAdminSection } from '@/components/admin/CellHubShopAdminSection';
 import { WebhooksAdminSection } from '@/components/admin/WebhooksAdminSection';
 import { CellHubLogo } from '@/components/CellHubLogo';
 import { supabase } from '@/integrations/supabase/client';
@@ -690,7 +691,7 @@ export const AdminPage: React.FC = () => {
               )}
             </button>
 
-            {/* 4. Tabela de Trade-In */}
+            {/* 4. CellHub Shop Dashboard & Produtos */}
             <button
               onClick={() => {
                 setAdminTab('catalog');
@@ -707,12 +708,12 @@ export const AdminPage: React.FC = () => {
               {adminTab === 'catalog' && (
                 <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
               )}
-              <Zap className="w-4 h-4 flex-shrink-0" />
+              <ShoppingBag className="w-4 h-4 flex-shrink-0 text-[#00D287]" />
               {(!isSidebarCollapsed || isMobileSidebarOpen) && (
                 <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="truncate">Tabela Trade-In</span>
-                  <span className="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-900 text-slate-300 border border-white/10">
-                    {devices.length}
+                  <span className="truncate">Dashboard CellHub Shop</span>
+                  <span className="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 font-bold">
+                    OFICIAL
                   </span>
                 </div>
               )}
@@ -807,8 +808,8 @@ export const AdminPage: React.FC = () => {
               )}
               {adminTab === 'catalog' && (
                 <>
-                  <Zap className="w-4 h-4 text-[#00D287]" />
-                  <span>Tabela de Referência Trade-In</span>
+                  <ShoppingBag className="w-4 h-4 text-[#00D287]" />
+                  <span>Dashboard CellHub Shop (Estoque & Vendas Oficiais)</span>
                 </>
               )}
               {adminTab === 'webhooks' && (
@@ -1280,41 +1281,9 @@ export const AdminPage: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 3: CATALOG DEVICES */}
+          {/* TAB 3: DASHBOARD CELLHUB SHOP (PRODUTOS & VENDAS OFICIAIS) */}
           {adminTab === 'catalog' && (
-            <div className="space-y-4">
-              <div className="bg-[#080c17] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-white">Estoque Cadastrado no Supabase</h3>
-                  <p className="text-xs text-slate-400">Total de {devices.length} aparelhos reais disponíveis para venda.</p>
-                </div>
-                <Button
-                  onClick={() => navigate('/app')}
-                  className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-9 px-4 rounded-xl"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Cadastrar Mais Aparelhos
-                </Button>
-              </div>
-
-              {devices.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs bg-[#080c17] rounded-2xl border border-white/5">
-                  Nenhum aparelho cadastrado no estoque ainda.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {devices.map((d) => (
-                    <div key={d.id} className="bg-[#080c17] border border-white/5 rounded-xl p-3 flex justify-between items-center text-xs">
-                      <div>
-                        <div className="font-bold text-white">{d.name}</div>
-                        <div className="text-slate-400">{d.brand} • {d.storage}</div>
-                        <div className="text-[#00D287] font-bold mt-1">R$ {d.price.toFixed(2)}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <CellHubShopAdminSection currentUser={currentUser} />
           )}
 
           {/* TAB 4: MARKETPLACE B2B (SUPER OFERTAS) */}
