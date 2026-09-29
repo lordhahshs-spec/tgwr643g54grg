@@ -25,19 +25,11 @@ import {
   ChevronUp,
   X,
   Smartphone,
-  Cpu,
-  Monitor,
-  Battery,
-  Wrench,
-  Cog,
-  Tv,
-  Layers,
-  HelpCircle,
-  FolderArchive
+  Tag
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory, OfferCondition, ShippingPolicy } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
-import { pricingRulesService, MarginRule, OFFICIAL_CATEGORIES } from '@/services/pricingRulesService';
+import { pricingRulesService, MarginRule } from '@/services/pricingRulesService';
 import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
@@ -65,9 +57,12 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
 
-  // Margin Rules State (12 Official Categories)
+  // Margin Rules State (Dynamic list of categories)
   const [marginRules, setMarginRules] = useState<MarginRule[]>([]);
   const [isRulesPanelOpen, setIsRulesPanelOpen] = useState<boolean>(false);
+  const [newCatName, setNewCatName] = useState<string>('');
+  const [newCatMargin, setNewCatMargin] = useState<string>('30');
+  const [newCatDesc, setNewCatDesc] = useState<string>('');
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -75,7 +70,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
   // Edit Form Fields & Dynamic Pricing
   const [editTitle, setEditTitle] = useState('');
-  const [editCategory, setEditCategory] = useState<OfferCategory>('Celulares');
+  const [editCategory, setEditCategory] = useState<string>('Celulares');
   const [editCondition, setEditCondition] = useState<OfferCondition>('Novo');
   const [editPricingMode, setEditPricingMode] = useState<'margin' | 'manual'>('margin');
   const [editMarginPercent, setEditMarginPercent] = useState<number>(20);
@@ -130,20 +125,55 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const totalEstimatedProfit = totalCatalogValue - totalSupplierCost;
   const averageMarginPercent = totalSupplierCost > 0 ? Math.round((totalEstimatedProfit / totalSupplierCost) * 100) : 0;
 
-  // Margin Rules handler
-  const handleUpdateMarginRule = (category: OfferCategory, margin: number) => {
+  // Active Category List
+  const activeCategories = marginRules.map((r) => r.category);
+
+  // Margin Rules handlers
+  const handleUpdateMarginRule = (category: string, margin: number) => {
     const success = pricingRulesService.updateRule(category, margin);
     if (success) {
       setMarginRules(pricingRulesService.getRules());
-      toast.success(`Margem padrão de ${category} atualizada para ${margin}%!`);
+      toast.success(`Margem de ${category} atualizada para ${margin}%!`);
+    }
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    if (window.confirm(`Tem certeza que deseja APAGAR a categoria "${category}" do sistema?`)) {
+      const success = pricingRulesService.deleteRule(category);
+      if (success) {
+        setMarginRules(pricingRulesService.getRules());
+        toast.success(`Categoria "${category}" foi apagada com sucesso!`);
+      }
+    }
+  };
+
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newCatName.trim();
+    if (!cleanName) {
+      toast.error('Informe o nome da categoria.');
+      return;
+    }
+    const marginNum = parseFloat(newCatMargin);
+    if (isNaN(marginNum) || marginNum <= 0) {
+      toast.error('Informe uma margem percentual válida.');
+      return;
+    }
+
+    const success = pricingRulesService.addRule(cleanName, marginNum, newCatDesc.trim() || undefined);
+    if (success) {
+      setMarginRules(pricingRulesService.getRules());
+      setNewCatName('');
+      setNewCatDesc('');
+      toast.success(`Categoria "${cleanName}" adicionada com sucesso!`);
     }
   };
 
   const handleResetMarginRules = () => {
-    if (window.confirm('Deseja restaurar as regras de margem padrão das 12 categorias?')) {
+    if (window.confirm('Deseja restaurar as 12 categorias e regras de margem padrão de fábrica?')) {
       const defs = pricingRulesService.resetToDefaults();
       setMarginRules(defs);
-      toast.success('Regras de margem restauradas para os valores padrão.');
+      toast.success('Categorias e regras restauradas para os valores padrão.');
     }
   };
 
@@ -202,7 +232,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     }
   };
 
-  const handleEditCategoryChange = (newCat: OfferCategory) => {
+  const handleEditCategoryChange = (newCat: string) => {
     setEditCategory(newCat);
     const suggested = pricingRulesService.getSuggestedMargin(newCat);
     setEditMarginPercent(suggested);
@@ -255,7 +285,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     try {
       const success = await marketplaceService.updateOffer(editingProduct.id, {
         title: editTitle.trim(),
-        category: editCategory,
+        category: editCategory as OfferCategory,
         condition: editCondition,
         price: parsedPrice,
         supplierCost: parsedCost,
@@ -315,7 +345,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Controle total de estoque próprio, custos de fornecedores, regras de margem (%) e produtos cadastrados.
+            Controle total de categorias, estoque próprio, custos de fornecedores e regras de margem (%).
           </p>
         </div>
 
@@ -329,7 +359,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
             }`}
           >
             <Percent className="w-3.5 h-3.5 text-[#00D287]" />
-            <span>Regras de Margem (%)</span>
+            <span>Gerenciar Categorias & Margens ({marginRules.length})</span>
             {isRulesPanelOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
 
@@ -351,7 +381,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         </div>
       </div>
 
-      {/* 2. REGRAS DE MARGEM & PRECIFICAÇÃO AUTOMÁTICA DAS 12 CATEGORIAS OFICIAIS */}
+      {/* 2. PAINEL DE GESTÃO DE CATEGORIAS (CRIAR, EDITAR MARGEM E APAGAR) */}
       {isRulesPanelOpen && (
         <div className="p-5 rounded-3xl bg-[#080c17] border border-[#00D287]/30 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
@@ -361,10 +391,10 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  Regras de Porcentagem & Margem Automática por Categoria
+                  Gerenciamento de Categorias & Margem Automática
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Configure a porcentagem de lucro padrão para cada uma das 12 categorias oficiais cadastradas.
+                  Edite as porcentagens de lucro padrão, apague categorias indesejadas ou adicione novas.
                 </p>
               </div>
             </div>
@@ -373,27 +403,38 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               onClick={handleResetMarginRules}
               className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 text-[11px] font-semibold transition-colors cursor-pointer"
             >
-              Restaurar Padrões
+              Restaurar 12 Categorias Padrão
             </button>
           </div>
 
-          {/* 12 Official Categories Grid (1-to-1 Match with Dropdown) */}
+          {/* Grid de Categorias com Botão Apagar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {marginRules.map((rule) => (
               <div
                 key={rule.category}
-                className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 hover:border-[#00D287]/30 space-y-2 relative transition-all"
+                className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 hover:border-[#00D287]/30 space-y-2 relative transition-all group"
               >
-                <div>
-                  <span className="font-bold text-white text-xs block">
-                    {rule.category}
-                  </span>
-                  <span className="text-[10px] text-slate-400 block truncate">
-                    {rule.description || `Produtos da categoria ${rule.category}`}
-                  </span>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-white text-xs block truncate">
+                      {rule.category}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block truncate">
+                      {rule.description || `Produtos da categoria ${rule.category}`}
+                    </span>
+                  </div>
+
+                  {/* Botão de Apagar Categoria */}
+                  <button
+                    onClick={() => handleDeleteCategory(rule.category)}
+                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all opacity-80 group-hover:opacity-100 cursor-pointer"
+                    title={`Apagar categoria "${rule.category}"`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
                   <span className="text-[11px] text-slate-400 font-medium">Margem:</span>
                   <div className="flex items-center gap-1">
                     <input
@@ -409,6 +450,41 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               </div>
             ))}
           </div>
+
+          {/* Formulário para Adicionar Nova Categoria */}
+          <form onSubmit={handleAddCategory} className="p-3.5 rounded-2xl bg-black/50 border border-white/10 flex flex-wrap items-center gap-2.5 text-xs">
+            <span className="font-bold text-white flex items-center gap-1.5 whitespace-nowrap">
+              <Plus className="w-3.5 h-3.5 text-[#00D287]" /> Adicionar Nova Categoria:
+            </span>
+
+            <input
+              type="text"
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="Nome da Categoria (Ex: Tablets, Periféricos...)"
+              className="flex-1 min-w-[180px] bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-white placeholder:text-slate-600 outline-none focus:border-[#00D287]"
+            />
+
+            <div className="flex items-center gap-1">
+              <span className="text-slate-400 font-medium">Margem:</span>
+              <input
+                type="number"
+                value={newCatMargin}
+                onChange={(e) => setNewCatMargin(e.target.value)}
+                placeholder="30"
+                className="w-16 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white font-bold text-center outline-none focus:border-[#00D287]"
+              />
+              <span className="text-slate-400 font-bold">%</span>
+            </div>
+
+            <button
+              type="submit"
+              className="px-4 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Criar Categoria</span>
+            </button>
+          </form>
         </div>
       )}
 
@@ -493,19 +569,19 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-          {/* Categoria */}
+          {/* Categoria Filter */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="bg-[#040711] border border-white/10 text-xs text-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#00D287]"
           >
-            <option value="todos">Todas Categorias</option>
-            {OFFICIAL_CATEGORIES.map((cat) => (
+            <option value="todos">Todas Categorias ({activeCategories.length})</option>
+            {activeCategories.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
 
-          {/* Status */}
+          {/* Status Filter */}
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
@@ -734,10 +810,10 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">Categoria</label>
                   <select
                     value={editCategory}
-                    onChange={(e) => handleEditCategoryChange(e.target.value as OfferCategory)}
+                    onChange={(e) => handleEditCategoryChange(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
-                    {OFFICIAL_CATEGORIES.map((cat) => (
+                    {activeCategories.map((cat) => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>

@@ -2,27 +2,12 @@ import { OfferCategory } from '@/types/marketplace';
 
 export interface MarginRule {
   id: string;
-  category: OfferCategory;
+  category: string;
   marginPercent: number; // Ex: 20 -> 20%
   description?: string;
 }
 
-export const OFFICIAL_CATEGORIES: OfferCategory[] = [
-  'Celulares',
-  'Peças',
-  'Telas',
-  'Baterias',
-  'Conectores',
-  'Acessórios',
-  'Ferramentas',
-  'Máquinas',
-  'Eletrônicos',
-  'Componentes',
-  'Lotes',
-  'Outros'
-];
-
-export const DEFAULT_MARGIN_RULES: MarginRule[] = [
+export const INITIAL_DEFAULT_MARGIN_RULES: MarginRule[] = [
   { id: 'cat-celulares', category: 'Celulares', marginPercent: 20, description: 'Smartphones novos, seminovos e usados' },
   { id: 'cat-pecas', category: 'Peças', marginPercent: 35, description: 'Câmeras, carcaças, flex e periféricos' },
   { id: 'cat-telas', category: 'Telas', marginPercent: 30, description: 'Displays OLED, Incell e originais' },
@@ -37,7 +22,9 @@ export const DEFAULT_MARGIN_RULES: MarginRule[] = [
   { id: 'cat-outros', category: 'Outros', marginPercent: 25, description: 'Produtos gerais diversos' },
 ];
 
-const STORAGE_KEY = 'cellhub_shop_pricing_rules_v2';
+export const OFFICIAL_CATEGORIES: string[] = INITIAL_DEFAULT_MARGIN_RULES.map((r) => r.category);
+
+const STORAGE_KEY = 'cellhub_shop_pricing_rules_v3';
 
 export const pricingRulesService = {
   getRules(): MarginRule[] {
@@ -45,27 +32,22 @@ export const pricingRulesService = {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Garantir que todas as 12 categorias oficiais estejam presentes na ordem correta
-          const merged = OFFICIAL_CATEGORIES.map((cat) => {
-            const found = parsed.find((p: any) => p.category?.toLowerCase() === cat.toLowerCase());
-            if (found && typeof found.marginPercent === 'number') {
-              return {
-                id: `cat-${cat.toLowerCase()}`,
-                category: cat,
-                marginPercent: found.marginPercent,
-                description: found.description || DEFAULT_MARGIN_RULES.find(d => d.category === cat)?.description,
-              };
-            }
-            return DEFAULT_MARGIN_RULES.find(d => d.category === cat)!;
-          });
-          return merged;
+        if (Array.isArray(parsed)) {
+          return parsed;
         }
       }
     } catch (e) {
       console.error('Erro ao ler regras de precificação:', e);
     }
-    return DEFAULT_MARGIN_RULES;
+    return INITIAL_DEFAULT_MARGIN_RULES;
+  },
+
+  getCategories(): string[] {
+    const rules = this.getRules();
+    if (rules.length === 0) {
+      return OFFICIAL_CATEGORIES;
+    }
+    return rules.map((r) => r.category);
   },
 
   saveRules(rules: MarginRule[]): boolean {
@@ -78,7 +60,7 @@ export const pricingRulesService = {
     }
   },
 
-  updateRule(category: OfferCategory, marginPercent: number): boolean {
+  updateRule(category: string, marginPercent: number): boolean {
     const rules = this.getRules();
     const idx = rules.findIndex((r) => r.category.toLowerCase() === category.toLowerCase());
     if (idx !== -1) {
@@ -88,14 +70,38 @@ export const pricingRulesService = {
     return false;
   },
 
-  resetToDefaults(): MarginRule[] {
-    this.saveRules(DEFAULT_MARGIN_RULES);
-    return DEFAULT_MARGIN_RULES;
+  addRule(category: string, marginPercent: number, description?: string): boolean {
+    const rules = this.getRules();
+    const cleanCat = category.trim();
+    if (!cleanCat) return false;
+
+    const existingIdx = rules.findIndex((r) => r.category.toLowerCase() === cleanCat.toLowerCase());
+    if (existingIdx !== -1) {
+      rules[existingIdx].marginPercent = marginPercent;
+      if (description) rules[existingIdx].description = description;
+      return this.saveRules(rules);
+    }
+
+    rules.push({
+      id: `cat-${cleanCat.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+      category: cleanCat,
+      marginPercent,
+      description: description || `Produtos da categoria ${cleanCat}`,
+    });
+    return this.saveRules(rules);
   },
 
-  /**
-   * Retorna a porcentagem configurada diretamente para a categoria selecionada
-   */
+  deleteRule(category: string): boolean {
+    const rules = this.getRules();
+    const filtered = rules.filter((r) => r.category.toLowerCase() !== category.toLowerCase());
+    return this.saveRules(filtered);
+  },
+
+  resetToDefaults(): MarginRule[] {
+    this.saveRules(INITIAL_DEFAULT_MARGIN_RULES);
+    return INITIAL_DEFAULT_MARGIN_RULES;
+  },
+
   getSuggestedMargin(category: string): number {
     const rules = this.getRules();
     const match = rules.find((r) => r.category.toLowerCase() === (category || '').toLowerCase());

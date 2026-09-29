@@ -20,28 +20,13 @@ import { MercadoLivreOfferCard } from '@/components/marketplace/MercadoLivreOffe
 import { OfferDetailsModal } from '@/components/marketplace/OfferDetailsModal';
 import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
+import { pricingRulesService } from '@/services/pricingRulesService';
 import { toast } from 'sonner';
 
 interface CellHubShopTabProps {
   isDemo?: boolean;
   onUnlock?: (reason?: string) => void;
 }
-
-const CATEGORIES: { id: string; label: string }[] = [
-  { id: 'todos', label: 'Todos os Produtos' },
-  { id: 'Celulares', label: 'Celulares' },
-  { id: 'Peças', label: 'Peças' },
-  { id: 'Telas', label: 'Telas' },
-  { id: 'Baterias', label: 'Baterias' },
-  { id: 'Conectores', label: 'Conectores' },
-  { id: 'Acessórios', label: 'Acessórios' },
-  { id: 'Ferramentas', label: 'Ferramentas' },
-  { id: 'Máquinas', label: 'Máquinas' },
-  { id: 'Eletrônicos', label: 'Eletrônicos' },
-  { id: 'Componentes', label: 'Componentes' },
-  { id: 'Lotes', label: 'Lotes' },
-  { id: 'Outros', label: 'Outros' },
-];
 
 export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, onUnlock }) => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => leadAuthService.getCurrentUser());
@@ -50,6 +35,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [categoriesList, setCategoriesList] = useState<string[]>(() => pricingRulesService.getCategories());
 
   // Modals
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
@@ -58,6 +44,11 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
 
   const loadData = async () => {
     try {
+      // Busca estritamente ofertas oficiais da CellHub
+      const data = await marketplaceService.getOffers({ isOfficial: true });
+      setOffers(data);
+      setCategoriesList(pricingRulesService.getCategories());
+    } catch (e) {
       // Busca estritamente ofertas oficiais da CellHub
       const data = await marketplaceService.getOffers({ isOfficial: true });
       setOffers(data);
@@ -207,25 +198,39 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
             )}
           </div>
 
-          {/* Category Filter Pills (12 Categorias Oficiais) */}
+          {/* Category Filter Pills (Categorias Dinâmicas) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            {CATEGORIES.map((cat) => {
-              const count = cat.id === 'todos' 
-                ? offers.length 
-                : offers.filter((o) => o.category.toLowerCase() === cat.id.toLowerCase()).length;
-              const isSelected = selectedCategory === cat.id;
+            <button
+              onClick={() => setSelectedCategory('todos')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+                selectedCategory === 'todos'
+                  ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
+                  : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
+              }`}
+            >
+              <span>Todos os Produtos</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                selectedCategory === 'todos' ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
+              }`}>
+                {offers.length}
+              </span>
+            </button>
+
+            {categoriesList.map((cat) => {
+              const count = offers.filter((o) => o.category.toLowerCase() === cat.toLowerCase()).length;
+              const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
 
               return (
                 <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
                     isSelected
                       ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
                       : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
                   }`}
                 >
-                  <span>{cat.label}</span>
+                  <span>{cat}</span>
                   <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
                     isSelected ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
                   }`}>

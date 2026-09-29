@@ -91,9 +91,16 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [categoriesList, setCategoriesList] = useState<string[]>(() => pricingRulesService.getCategories());
+
   // Auto-update default suggested margin when Category, Condition or Title changes
   useEffect(() => {
-    const suggested = pricingRulesService.getSuggestedMargin(category, condition, title);
+    const list = pricingRulesService.getCategories();
+    setCategoriesList(list);
+    if (!list.includes(category) && list.length > 0) {
+      setCategory(list[0] as OfferCategory);
+    }
+    const suggested = pricingRulesService.getSuggestedMargin(category);
     setMarginPercent(suggested);
     if (pricingMode === 'margin' && supplierCost) {
       const costNum = parseFloat(supplierCost);
@@ -102,7 +109,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         setPrice(calculated.toFixed(2));
       }
     }
-  }, [category, condition]);
+  }, [category]);
 
   useEffect(() => {
     melhorEnvioService.getPackageDefaults().then((defs) => {
@@ -297,7 +304,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                       onChange={(e) => handleCategoryChange(e.target.value as OfferCategory)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                     >
-                      {CATEGORIES.map((cat) => (
+                      {categoriesList.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
