@@ -4,13 +4,14 @@ import { UserAccount } from '@/services/leadAuthService';
 import {
   Flame,
   Smartphone,
+  ShoppingBag,
   Cpu,
   Repeat
 } from 'lucide-react';
 
 interface InstagramMobileBottomBarProps {
   activeTab: TabId;
-  onSelectTab: (tab: TabId) => void;
+  onSelectTab: (tabId: TabId) => void;
   currentUser: UserAccount | null;
   onOpenProfile: () => void;
 }
@@ -25,21 +26,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060a16] border-t border-white/10 h-13 px-1 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.7)] select-none touch-manipulation m-0">
-      {/* 1. Super Ofertas (Vitrine / Feed) */}
-      <button
-        type="button"
-        onClick={() => onSelectTab('super-ofertas')}
-        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer ${
-          activeTab === 'super-ofertas' ? 'text-[#00D287]' : 'text-slate-400 hover:text-white'
-        }`}
-      >
-        <Flame className={`w-5 h-5 transition-transform ${activeTab === 'super-ofertas' ? 'fill-[#00D287] scale-105' : 'opacity-75'}`} />
-        <span className={`text-[10px] font-bold mt-0.5 tracking-tight ${activeTab === 'super-ofertas' ? 'text-[#00D287]' : 'text-slate-400'}`}>
-          Ofertas
-        </span>
-      </button>
-
-      {/* 2. Venda no Boleto (Crediário Próprio) */}
+      {/* 1. Venda no Boleto (Crediário Próprio) */}
       <button
         type="button"
         onClick={() => onSelectTab('venda-android')}
@@ -53,7 +40,36 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
         </span>
       </button>
 
-      {/* 3. Esquemas Elétricos */}
+      {/* 2. CellHub Shop (Loja Oficial CellHub) */}
+      <button
+        type="button"
+        onClick={() => onSelectTab('cell-shop')}
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer relative ${
+          activeTab === 'cell-shop' ? 'text-[#00D287]' : 'text-slate-400 hover:text-white'
+        }`}
+      >
+        <ShoppingBag className={`w-5 h-5 transition-transform ${activeTab === 'cell-shop' ? 'stroke-[2.5] scale-105 text-[#00D287]' : 'opacity-75'}`} />
+        <span className={`text-[10px] font-bold mt-0.5 tracking-tight ${activeTab === 'cell-shop' ? 'text-[#00D287]' : 'text-slate-400'}`}>
+          Cell Shop
+        </span>
+        <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-[#00D287] animate-pulse" />
+      </button>
+
+      {/* 3. Super Ofertas (Marketplace B2B entre Lojistas) */}
+      <button
+        type="button"
+        onClick={() => onSelectTab('super-ofertas')}
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer ${
+          activeTab === 'super-ofertas' ? 'text-[#00D287]' : 'text-slate-400 hover:text-white'
+        }`}
+      >
+        <Flame className={`w-5 h-5 transition-transform ${activeTab === 'super-ofertas' ? 'fill-[#00D287] scale-105' : 'opacity-75'}`} />
+        <span className={`text-[10px] font-bold mt-0.5 tracking-tight ${activeTab === 'super-ofertas' ? 'text-[#00D287]' : 'text-slate-400'}`}>
+          Ofertas B2B
+        </span>
+      </button>
+
+      {/* 4. Esquemas Elétricos */}
       <button
         type="button"
         onClick={() => onSelectTab('esquemas')}
@@ -67,7 +83,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
         </span>
       </button>
 
-      {/* 4. Trade-In (Simulador) */}
+      {/* 5. Simulador Trade-In */}
       <button
         type="button"
         onClick={() => onSelectTab('trade-in')}
@@ -81,7 +97,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
         </span>
       </button>
 
-      {/* 5. Perfil do Lojista (Estilo Instagram Avatar) */}
+      {/* 6. Perfil do Lojista */}
       <button
         type="button"
         onClick={onOpenProfile}

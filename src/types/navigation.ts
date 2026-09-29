@@ -1,5 +1,6 @@
 export type TabId =
   | 'venda-android'
+  | 'cell-shop'
   | 'super-ofertas'
   | 'esquemas'
   | 'trade-in';
@@ -19,10 +20,16 @@ export const NAVIGATION_TABS: TabItem[] = [
     badge: 'Crediário',
   },
   {
+    id: 'cell-shop',
+    label: 'CellHub Shop',
+    iconName: 'ShoppingBag',
+    badge: 'Oficial',
+  },
+  {
     id: 'super-ofertas',
     label: 'Super Ofertas',
     iconName: 'Flame',
-    badge: 'B2B',
+    badge: 'B2B Lojistas',
   },
   {
     id: 'esquemas',

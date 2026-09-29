@@ -23,7 +23,6 @@ import { HorizontalOfferCard } from '@/components/marketplace/HorizontalOfferCar
 import { OfferDetailsModal } from '@/components/marketplace/OfferDetailsModal';
 import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 import { CreateOfferModal } from '@/components/marketplace/CreateOfferModal';
-import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
 import { MyMarketplacePanel } from '@/components/marketplace/MyMarketplacePanel';
 import { StoriesViewerModal } from '@/components/marketplace/StoriesViewerModal';
 import { toast } from 'sonner';
@@ -226,59 +225,54 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
             </span>
           </div>
 
-          {/* Segmented View Switcher (Exclusivo para Admin ou Vendedor Oficial) */}
-          {currentUser?.role === 'admin' && (
-            <div className="hidden sm:flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
-              <button
-                onClick={() => setActiveView('explorar')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeView === 'explorar'
-                    ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Flame className="w-3.5 h-3.5" />
-                <span>Vitrine Oficial</span>
-              </button>
-              <button
-                onClick={() => setActiveView('painel')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeView === 'painel'
-                    ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Package className="w-3.5 h-3.5" />
-                <span>Painel Admin & Pedidos</span>
-              </button>
-            </div>
-          )}
+          {/* Segmented View Switcher (Explorar vs Minhas Vendas) */}
+          <div className="hidden sm:flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
+            <button
+              onClick={() => setActiveView('explorar')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'explorar'
+                  ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5" />
+              <span>Explorar Vitrine</span>
+            </button>
+            <button
+              onClick={() => setActiveView('painel')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'painel'
+                  ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Meu Painel & Vendas</span>
+            </button>
+          </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          {/* Botão Exclusivo para Administradores da CellHub */}
-          {currentUser?.role === 'admin' ? (
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
-              <span>+ Cadastrar Super Oferta (Admin)</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[#00D287] text-[11px] font-bold">
-              <ShieldCheck className="w-4 h-4 text-[#00D287]" />
-              <span className="hidden sm:inline">Loja Oficial Verificada</span>
-              <span className="sm:hidden">Oficial</span>
-            </div>
-          )}
+          <button
+            onClick={() => {
+              if (isDemo) {
+                onUnlock?.('O anúncio e publicação de ofertas no Marketplace B2B é exclusivo para membros com licença vitalícia ativa.');
+                return;
+              }
+              setIsCreateModalOpen(true);
+            }}
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+          >
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+            <span>+ Anunciar Produto</span>
+          </button>
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="w-full px-4 sm:px-6 py-3.5 space-y-4 flex-1">
-        {/* Banner de Garantia e Confiança Oficial CellHub */}
+        {/* Banner de Intermediação Segura Marketplace B2B */}
         <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#080c17] to-teal-950/30 border border-[#00D287]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-black/40">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-[#00D287]/20 border border-[#00D287]/40 text-[#00D287] flex items-center justify-center flex-shrink-0">
@@ -286,13 +280,13 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
             </div>
             <div>
               <span className="text-xs font-black text-white flex items-center gap-1.5">
-                Envio & Garantia Oficial CellHub
+                Marketplace B2B entre Técnicos e Fornecedores
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 uppercase">
-                  100% Garantido
+                  Intermediação Segura
                 </span>
               </span>
               <p className="text-[10.5px] text-slate-400 mt-0.5">
-                Produtos testados e inspecionados • Envio rastreável Correios / Jadlog • Garantia de 90 dias
+                Compre e venda celulares, peças e ferramentas direto com lojistas parceiros em todo o Brasil.
               </p>
             </div>
           </div>
@@ -460,24 +454,13 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
       )}
 
       {isCreateModalOpen && currentUser && (
-        currentUser.role === 'admin' ? (
-          <CreateOfficialOfferModal
-            currentUser={currentUser}
-            onClose={() => setIsCreateModalOpen(false)}
-            onCreated={() => {
-              loadData();
-              toast.success('Super Oferta Oficial CellHub publicada com sucesso!');
-            }}
-          />
-        ) : (
-          <CreateOfferModal
-            currentUser={currentUser}
-            onClose={() => setIsCreateModalOpen(false)}
-            onCreated={() => {
-              loadData();
-            }}
-          />
-        )
+        <CreateOfferModal
+          currentUser={currentUser}
+          onClose={() => setIsCreateModalOpen(false)}
+          onCreated={() => {
+            loadData();
+          }}
+        />
       )}
 
       {/* Instagram Stories Viewer */}

@@ -29,9 +29,11 @@ import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
 interface CreateOfficialOfferModalProps {
+  isOpen?: boolean;
   currentUser: UserAccount;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onOfferCreated?: () => void;
 }
 
 const CATEGORIES: OfferCategory[] = [
@@ -60,10 +62,13 @@ const CONDITIONS: OfferCondition[] = [
 ];
 
 export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> = ({
+  isOpen = true,
   currentUser,
   onClose,
   onCreated,
+  onOfferCreated,
 }) => {
+  if (isOpen === false) return null;
   const [step, setStep] = useState<'form' | 'preview'>('form');
 
   // Product Fields
@@ -186,7 +191,8 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
       if (res.success) {
         toast.success('Super Oferta Oficial CellHub cadastrada com sucesso!');
-        onCreated();
+        onCreated?.();
+        onOfferCreated?.();
         onClose();
       } else {
         toast.error(res.error || 'Erro ao publicar oferta oficial.');

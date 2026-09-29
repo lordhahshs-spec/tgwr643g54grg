@@ -219,7 +219,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
               <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-[#00D287]/25 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-black text-lg border border-[#00D287]/30 shadow-md shadow-[#00D287]/15">
-                    <ShieldCheck className="w-6 h-6" />
+                    {offer.isOfficial ? <ShieldCheck className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -227,13 +227,24 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                         {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
                       </h4>
                       <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#00D287]/20 text-[#00D287]">
-                        Oficial
+                        {offer.isOfficial ? 'Oficial CellHub' : 'Lojista Verificado'}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400">Garantia Técnica: {offer.warrantyDays || 90} dias</p>
-                    <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5 font-semibold">
-                      <CheckCircle2 className="w-3 h-3" /> Envio & Procedência Garantidos por CellHub
-                    </p>
+                    {offer.isOfficial ? (
+                      <>
+                        <p className="text-xs text-slate-400">Garantia Técnica: {offer.warrantyDays || 90} dias</p>
+                        <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5 font-semibold">
+                          <CheckCircle2 className="w-3 h-3" /> Envio & Procedência Garantidos por CellHub
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-400">Origem: {offer.originCity || 'Brasil'}/{offer.originState || 'BR'}</p>
+                        <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5 font-semibold">
+                          <CheckCircle2 className="w-3 h-3" /> Intermediação e Pagamento Seguro CellHub
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 

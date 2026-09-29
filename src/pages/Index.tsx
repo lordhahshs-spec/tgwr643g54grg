@@ -5,6 +5,7 @@ import { VendaAndroidTab } from '@/components/tabs/VendaAndroidTab';
 import { EsquemasTab } from '@/components/tabs/EsquemasTab';
 import { TradeInTab } from '@/components/tabs/TradeInTab';
 import { SuperOfertasTab } from '@/components/tabs/SuperOfertasTab';
+import { CellHubShopTab } from '@/components/tabs/CellHubShopTab';
 import { BannedScreen } from '@/components/BannedScreen';
 import { UnlockPlatformModal } from '@/components/demo/UnlockPlatformModal';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
@@ -182,7 +183,7 @@ const Index: React.FC = () => {
         )}
 
         {/* Desktop Header for secondary tabs */}
-        {activeTab !== 'venda-android' && activeTab !== 'super-ofertas' && (
+        {activeTab !== 'venda-android' && activeTab !== 'super-ofertas' && activeTab !== 'cell-shop' && (
           <header className="hidden lg:flex h-12 flex-shrink-0 bg-[#080c17]/90 border-b border-white/5 px-6 items-center justify-between backdrop-blur-md z-10">
             <h1 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#00D287]" />
@@ -203,11 +204,14 @@ const Index: React.FC = () => {
 
         {/* Tab Content Display Area com rolagem touch nativa e sem corte inferior */}
         <main className="flex-1 h-full min-h-0 relative flex flex-col overflow-hidden pb-16 lg:pb-0">
-          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
-            <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
-          </div>
           <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
+          </div>
+          <div className={activeTab === 'cell-shop' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
+            <CellHubShopTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
+          </div>
+          <div className={activeTab === 'super-ofertas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
+            <SuperOfertasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
           <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
