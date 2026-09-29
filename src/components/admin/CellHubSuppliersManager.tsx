@@ -12,14 +12,10 @@ import {
   User,
   Tag,
   CheckCircle2,
-  AlertCircle,
   Copy,
-  ExternalLink,
-  ShieldCheck,
   RefreshCw,
   X,
-  Boxes,
-  Layers
+  Boxes
 } from 'lucide-react';
 import { MarketplaceSupplier, MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
@@ -73,7 +69,6 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
     } finally {
       setLoading(false);
     }
-  };
   };
 
   useEffect(() => {
@@ -378,13 +373,13 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
       ) : filteredSuppliers.length === 0 ? (
         <div className="py-12 text-center bg-[#090e1c] border border-white/10 rounded-2xl p-6 space-y-3">
           <Building2 className="w-10 h-10 text-slate-600 mx-auto" />
-          <h4 className="text-sm font-bold text-white">Nenhum fornecedor encontrado</h4>
+          <h4 className="text-sm font-bold text-white">Nenhum fornecedor cadastrado</h4>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Cadastre os parceiros fornecedores para vincular aos produtos e automatizar o cálculo de frete de origem pelo Melhor Envio.
+            Cadastre os fornecedores reais para vincular às tags dos produtos e automatizar o cálculo de frete pelo Melhor Envio.
           </p>
           <button
             onClick={openNewModal}
-            className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs"
+            className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Cadastrar Primeiro Fornecedor</span>
@@ -425,7 +420,7 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
                         </span>
                         <button
                           onClick={() => copyToClipboard(supplier.tag, 'Tag do fornecedor')}
-                          className="p-1 rounded text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
+                          className="p-1 rounded text-slate-500 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                           title="Copiar Tag"
                         >
                           <Copy className="w-3 h-3" />
@@ -503,7 +498,7 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
                   </span>
                   <button
                     onClick={() => openEditModal(supplier)}
-                    className="text-xs text-[#00D287] hover:underline font-semibold"
+                    className="text-xs text-[#00D287] hover:underline font-semibold cursor-pointer"
                   >
                     Editar Origem →
                   </button>
@@ -539,7 +534,7 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
 
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -797,7 +792,7 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
