@@ -16,7 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { marketplaceService } from '@/services/marketplaceService';
+import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { StoryOfferCard } from '@/components/marketplace/StoryOfferCard';
 import { HorizontalOfferCard } from '@/components/marketplace/HorizontalOfferCard';
@@ -111,6 +111,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
   };
 
   useEffect(() => {
+    clearMarketplaceCache();
     const user = leadAuthService.getCurrentUser();
     setCurrentUser(user);
     if (user?.id) {

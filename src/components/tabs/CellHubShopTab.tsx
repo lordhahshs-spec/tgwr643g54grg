@@ -15,7 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory } from '@/types/marketplace';
-import { marketplaceService } from '@/services/marketplaceService';
+import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
 import { HorizontalOfferCard } from '@/components/marketplace/HorizontalOfferCard';
 import { StoryOfferCard } from '@/components/marketplace/StoryOfferCard';
@@ -78,6 +78,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
   };
 
   useEffect(() => {
+    clearMarketplaceCache();
     const user = leadAuthService.getCurrentUser();
     setCurrentUser(user);
     if (user?.id) {

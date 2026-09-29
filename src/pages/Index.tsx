@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabId>('super-ofertas');
+  const [activeTab, setActiveTab] = useState<TabId>('cell-shop');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
