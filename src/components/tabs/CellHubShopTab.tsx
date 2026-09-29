@@ -209,22 +209,6 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
             );
           })}
         </div>
-                    isSelected
-                      ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20'
-                      : 'bg-[#080d1b] text-slate-300 hover:text-white hover:bg-slate-800 border-white/5'
-                  }`}
-                >
-                  <span>{cat}</span>
-                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                    isSelected ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Divisor Dinâmico Minimalista com Brilho Verde */}
         <div className="relative py-2 flex items-center justify-center my-1 w-full">
