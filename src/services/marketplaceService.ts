@@ -203,6 +203,10 @@ export const marketplaceService = {
         salesCount: salesMap[item.id] || 0,
         rating: avgRating,
         reviewsCount: revData?.count || 0,
+        isOfficial: Boolean(item.is_official),
+        supplierCost: Number(item.supplier_cost || 0),
+        warrantyDays: Number(item.warranty_days || 90),
+        badgeText: item.badge_text || 'Oficial CellHub',
         createdAt: item.created_at,
         updatedAt: item.updated_at
       };
@@ -343,6 +347,10 @@ export const marketplaceService = {
       salesCount: 0,
       rating: null,
       reviewsCount: 0,
+      isOfficial: Boolean(item.is_official),
+      supplierCost: Number(item.supplier_cost || 0),
+      warrantyDays: Number(item.warranty_days || 90),
+      badgeText: item.badge_text || 'Oficial CellHub',
       createdAt: item.created_at,
       updatedAt: item.updated_at,
     };
@@ -410,6 +418,10 @@ export const marketplaceService = {
         origin_state: offerData.originState || null,
         images: offerData.images,
         status: offerData.status || 'publicada',
+        is_official: offerData.isOfficial ?? true,
+        supplier_cost: offerData.supplierCost || 0,
+        warranty_days: offerData.warrantyDays || 90,
+        badge_text: offerData.badgeText || 'Oficial CellHub',
         views: 0
       })
       .select('id')

@@ -145,6 +145,10 @@ export interface MarketplaceOffer {
   salesCount?: number;
   rating?: number | null;
   reviewsCount?: number;
+  isOfficial?: boolean;
+  supplierCost?: number;
+  warrantyDays?: number;
+  badgeText?: string;
   createdAt: string;
   updatedAt?: string;
 }

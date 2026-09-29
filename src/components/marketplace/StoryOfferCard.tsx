@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketplaceOffer } from '@/types/marketplace';
-import { Heart, Truck, Building2, Play } from 'lucide-react';
+import { Heart, Truck, ShieldCheck, Play } from 'lucide-react';
 
 interface StoryOfferCardProps {
   offer: MarketplaceOffer;
@@ -106,11 +106,13 @@ export const StoryOfferCard: React.FC<StoryOfferCardProps> = ({
           ) : offer.shippingCost ? (
             <span>+ {formatBRL(offer.shippingCost)} frete</span>
           ) : (
-            <span>Pronta Entrega</span>
+            <span className="text-[#00D287] font-semibold flex items-center gap-0.5">
+              <ShieldCheck className="w-3 h-3" /> Oficial
+            </span>
           )}
 
-          <span className="truncate text-slate-400 max-w-[80px]">
-            {offer.sellerCompany}
+          <span className="truncate text-emerald-300 font-bold max-w-[90px]">
+            {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
           </span>
         </div>
       </div>

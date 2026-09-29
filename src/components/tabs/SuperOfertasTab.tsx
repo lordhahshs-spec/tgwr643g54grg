@@ -10,7 +10,10 @@ import {
   Search,
   X,
   SlidersHorizontal,
-  Layers
+  Layers,
+  ShieldCheck,
+  Truck,
+  CheckCircle2
 } from 'lucide-react';
 import { MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
@@ -20,6 +23,7 @@ import { HorizontalOfferCard } from '@/components/marketplace/HorizontalOfferCar
 import { OfferDetailsModal } from '@/components/marketplace/OfferDetailsModal';
 import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 import { CreateOfferModal } from '@/components/marketplace/CreateOfferModal';
+import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
 import { MyMarketplacePanel } from '@/components/marketplace/MyMarketplacePanel';
 import { StoriesViewerModal } from '@/components/marketplace/StoriesViewerModal';
 import { toast } from 'sonner';
@@ -222,87 +226,100 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
             </span>
           </div>
 
-          {/* Segmented View Switcher (Desktop / Tablet) */}
-          <div className="hidden sm:flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
-            <button
-              onClick={() => setActiveView('explorar')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'explorar'
-                  ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5" />
-              <span>Vitrine</span>
-            </button>
-            <button
-              onClick={() => {
-                if (isDemo) {
-                  onUnlock?.('O Painel de Lojista Vendedor requer uma licença vitalícia ativa.');
-                  return;
-                }
-                setActiveView('painel');
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'painel'
-                  ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Meu Painel & Finanças</span>
-            </button>
-          </div>
+          {/* Segmented View Switcher (Exclusivo para Admin ou Vendedor Oficial) */}
+          {currentUser?.role === 'admin' && (
+            <div className="hidden sm:flex items-center bg-[#090e1c] p-1 rounded-xl border border-white/10">
+              <button
+                onClick={() => setActiveView('explorar')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeView === 'explorar'
+                    ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Vitrine Oficial</span>
+              </button>
+              <button
+                onClick={() => setActiveView('painel')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeView === 'painel'
+                    ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                <span>Painel Admin & Pedidos</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          <button
-            onClick={() => {
-              if (isDemo) {
-                onUnlock?.('O anúncio e publicação de produtos no Marketplace B2B é exclusivo para lojas com plano vitalício ativo.');
-                return;
-              }
-              setIsCreateModalOpen(true);
-            }}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1 sm:gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
-          >
-            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
-            <span>Criar Oferta</span>
-          </button>
-
-          {/* Mobile view toggle */}
-          <button
-            onClick={() => {
-              if (activeView === 'explorar' && isDemo) {
-                onUnlock?.('O Painel de Lojista Vendedor requer uma licença vitalícia ativa.');
-                return;
-              }
-              setActiveView(activeView === 'explorar' ? 'painel' : 'explorar');
-            }}
-            className="sm:hidden p-1.5 rounded-xl bg-slate-900 text-slate-300 border border-white/10 flex-shrink-0"
-            title="Alternar Painel / Vitrine"
-          >
-            <Package className="w-4 h-4" />
-          </button>
+          {/* Botão Exclusivo para Administradores da CellHub */}
+          {currentUser?.role === 'admin' ? (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00D287]/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+              <span>+ Cadastrar Super Oferta (Admin)</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[#00D287] text-[11px] font-bold">
+              <ShieldCheck className="w-4 h-4 text-[#00D287]" />
+              <span className="hidden sm:inline">Loja Oficial Verificada</span>
+              <span className="sm:hidden">Oficial</span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="w-full px-4 sm:px-6 py-3.5 space-y-5 flex-1">
-        {/* VIEW: PAINEL DO LOJISTA */}
-        <div className={activeView === 'painel' ? 'block' : 'hidden'}>
-          {currentUser && (
+      <main className="w-full px-4 sm:px-6 py-3.5 space-y-4 flex-1">
+        {/* Banner de Garantia e Confiança Oficial CellHub */}
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#080c17] to-teal-950/30 border border-[#00D287]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-black/40">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#00D287]/20 border border-[#00D287]/40 text-[#00D287] flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-white flex items-center gap-1.5">
+                Envio & Garantia Oficial CellHub
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 uppercase">
+                  100% Garantido
+                </span>
+              </span>
+              <p className="text-[10.5px] text-slate-400 mt-0.5">
+                Produtos testados e inspecionados • Envio rastreável Correios / Jadlog • Garantia de 90 dias
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-300 font-semibold sm:justify-end border-t sm:border-t-0 border-white/5 pt-1.5 sm:pt-0">
+            <span className="flex items-center gap-1 text-[#00D287]">
+              <Truck className="w-3.5 h-3.5" /> Envio Expresso
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1 text-slate-200">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#00D287]" /> Compra Segura
+            </span>
+          </div>
+        </div>
+
+        {/* VIEW: PAINEL DO ADMIN (se logado como admin e clicado na aba) */}
+        {currentUser?.role === 'admin' && activeView === 'painel' && (
+          <div>
             <MyMarketplacePanel
               currentUser={currentUser}
               onOpenCreateModal={() => setIsCreateModalOpen(true)}
               onSelectOffer={(offer) => setSelectedOfferForDetails(offer)}
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* VIEW: VITRINE PÚBLICA */}
-        <div className={activeView === 'explorar' ? 'block space-y-5' : 'hidden'}>
+        <div className={activeView === 'explorar' || currentUser?.role !== 'admin' ? 'block space-y-4' : 'hidden'}>
           {/* ========================================================================= */}
           {/* 1. SEÇÃO STORIES (OFERTAS EM ALTA)                                        */}
           {/* ========================================================================= */}
@@ -443,14 +460,24 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
       )}
 
       {isCreateModalOpen && currentUser && (
-        <CreateOfferModal
-          currentUser={currentUser}
-          onClose={() => setIsCreateModalOpen(false)}
-          onCreated={() => {
-            loadData();
-            setActiveView('painel');
-          }}
-        />
+        currentUser.role === 'admin' ? (
+          <CreateOfficialOfferModal
+            currentUser={currentUser}
+            onClose={() => setIsCreateModalOpen(false)}
+            onCreated={() => {
+              loadData();
+              toast.success('Super Oferta Oficial CellHub publicada com sucesso!');
+            }}
+          />
+        ) : (
+          <CreateOfferModal
+            currentUser={currentUser}
+            onClose={() => setIsCreateModalOpen(false)}
+            onCreated={() => {
+              loadData();
+            }}
+          />
+        )
       )}
 
       {/* Instagram Stories Viewer */}

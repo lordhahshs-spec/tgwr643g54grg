@@ -126,12 +126,14 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
       {/* Linha Inferior: Loja Vendedora & Ação */}
       <div className="mt-3.5 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-1.5 min-w-0 truncate text-slate-400">
-          <Building2 className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-          <span className="truncate text-slate-300 font-medium">{offer.sellerCompany}</span>
+          <ShieldCheck className="w-3.5 h-3.5 text-[#00D287] flex-shrink-0" />
+          <span className="truncate text-emerald-300 font-bold text-[11px]">
+            {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
+          </span>
         </div>
 
-        <span className="text-[10px] text-[#00D287] font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform flex-shrink-0">
-          <span>Ver Oferta</span>
+        <span className="text-[10px] text-[#00D287] font-extrabold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform flex-shrink-0 bg-[#00D287]/15 px-2 py-0.5 rounded-lg border border-[#00D287]/30">
+          <span>Comprar</span>
           <ArrowRight className="w-3 h-3" />
         </span>
       </div>

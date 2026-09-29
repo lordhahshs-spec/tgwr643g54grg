@@ -216,31 +216,31 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
               </h1>
 
               {/* Seller Box Card */}
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 flex items-center justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-[#00D287]/25 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-black text-lg border border-[#00D287]/30">
-                    <Building2 className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-black text-lg border border-[#00D287]/30 shadow-md shadow-[#00D287]/15">
+                    <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <h4 className="text-sm font-bold text-white">{offer.sellerCompany}</h4>
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#00D287]" />
+                      <h4 className="text-sm font-bold text-white">
+                        {offer.isOfficial ? 'CellHub Oficial' : offer.sellerCompany}
+                      </h4>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#00D287]/20 text-[#00D287]">
+                        Oficial
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-400">Responsável: {offer.sellerOwner}</p>
-                    <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5">
-                      <CheckCircle2 className="w-3 h-3" /> Lojista Cadastrado e Verificado
+                    <p className="text-xs text-slate-400">Garantia Técnica: {offer.warrantyDays || 90} dias</p>
+                    <p className="text-[11px] text-[#00D287] flex items-center gap-1 mt-0.5 font-semibold">
+                      <CheckCircle2 className="w-3 h-3" /> Envio & Procedência Garantidos por CellHub
                     </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={handleWhatsAppContact}
-                  className="flex-shrink-0 px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all"
-                  title="Falar direto no WhatsApp do lojista"
-                >
-                  <MessageCircle className="w-4 h-4 text-[#00D287]" />
-                  <span className="hidden sm:inline">WhatsApp</span>
-                </button>
+                <div className="hidden sm:flex flex-col items-end text-right text-xs text-slate-400">
+                  <span className="text-slate-300 font-bold">Entrega Segura</span>
+                  <span className="text-[11px] text-[#00D287]">Rastreamento em Tempo Real</span>
+                </div>
               </div>
 
               {/* Price Block */}
