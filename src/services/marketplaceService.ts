@@ -74,6 +74,7 @@ export const marketplaceService = {
     sellerId?: string;
     status?: OfferStatus | 'todas';
     sortBy?: 'recent' | 'price_asc' | 'price_desc' | 'views';
+    isOfficial?: boolean;
   }): Promise<MarketplaceOffer[]> {
     const cacheKey = `offers_${JSON.stringify(params || {})}`;
     const cached = getCached<MarketplaceOffer[]>(cacheKey);
@@ -92,6 +93,14 @@ export const marketplaceService = {
     } else if (!params?.sellerId) {
       // Por padrão na vitrine pública mostra apenas publicadas
       query = query.eq('status', 'publicada');
+    }
+
+    if (params?.isOfficial !== undefined) {
+      if (params.isOfficial) {
+        query = query.eq('is_official', true);
+      } else {
+        query = query.or('is_official.is.null,is_official.eq.false');
+      }
     }
 
     if (params?.category && params.category !== 'Todas') {

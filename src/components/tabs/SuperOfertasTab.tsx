@@ -154,6 +154,7 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
     try {
       const regular = await marketplaceService.getOffers({
         status: 'publicada',
+        isOfficial: false,
       });
 
       setRegularOffers(regular);

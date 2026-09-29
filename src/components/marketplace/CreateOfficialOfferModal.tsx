@@ -190,7 +190,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       });
 
       if (res.success) {
-        toast.success('Super Oferta Oficial CellHub cadastrada com sucesso!');
+        toast.success('Produto Oficial CellHub cadastrado no Catálogo com sucesso!');
         onCreated?.();
         onOfferCreated?.();
         onClose();

@@ -1,25 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
-  Sparkles,
   Plus,
   Search,
   Truck,
   ShieldCheck,
   RefreshCw,
-  SlidersHorizontal,
-  Flame,
-  CheckCircle2,
+  Zap,
   PackageCheck,
-  Building2,
-  ArrowRight
+  CheckCircle2,
+  SlidersHorizontal,
+  Sliders
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory } from '@/types/marketplace';
 import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
-import { HorizontalOfferCard } from '@/components/marketplace/HorizontalOfferCard';
-import { StoryOfferCard } from '@/components/marketplace/StoryOfferCard';
-import { StoriesViewerModal } from '@/components/marketplace/StoriesViewerModal';
+import { MercadoLivreOfferCard } from '@/components/marketplace/MercadoLivreOfferCard';
 import { OfferDetailsModal } from '@/components/marketplace/OfferDetailsModal';
 import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
@@ -31,11 +27,11 @@ interface CellHubShopTabProps {
 }
 
 const CATEGORIES: { id: string; label: string }[] = [
-  { id: 'todos', label: 'Tudo' },
+  { id: 'todos', label: 'Todos os Produtos' },
   { id: 'Celulares', label: 'iPhones & Celulares' },
-  { id: 'Peças de Reposição', label: 'Telas & Peças' },
-  { id: 'Ferramentas de Bancada', label: 'Ferramentas' },
-  { id: 'Acessórios & Cabos', label: 'Acessórios' },
+  { id: 'Peças', label: 'Telas & Peças' },
+  { id: 'Ferramentas', label: 'Ferramentas de Bancada' },
+  { id: 'Acessórios', label: 'Acessórios & Cabos' },
 ];
 
 export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, onUnlock }) => {
@@ -50,17 +46,12 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
   const [selectedOfferForDetails, setSelectedOfferForDetails] = useState<MarketplaceOffer | null>(null);
   const [selectedOfferForCheckout, setSelectedOfferForCheckout] = useState<MarketplaceOffer | null>(null);
   const [isCreateOfficialModalOpen, setIsCreateOfficialModalOpen] = useState(false);
-  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
-  const [selectedStoryOfferId, setSelectedStoryOfferId] = useState<string | null>(null);
-
-  const carouselRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
     try {
-      const data = await marketplaceService.getOffers();
-      // Filtrar apenas ofertas oficiais da CellHub
-      const officialOffers = data.filter((o) => o.isOfficial || o.sellerCompany.toLowerCase().includes('cellhub'));
-      setOffers(officialOffers);
+      // Busca estritamente ofertas oficiais da CellHub
+      const data = await marketplaceService.getOffers({ isOfficial: true });
+      setOffers(data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -118,7 +109,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
     setSelectedOfferForCheckout(offer);
   };
 
-  // Filtragem
+  // Filtragem no catálogo
   const filteredOffers = offers.filter((offer) => {
     const term = searchTerm.trim().toLowerCase();
     const matchesSearch = !term ||
@@ -128,17 +119,15 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
 
     const cat = selectedCategory.toLowerCase();
     const matchesCategory = selectedCategory === 'todos' ||
-      offer.category.toLowerCase() === cat ||
-      (offer.subcategory && offer.subcategory.toLowerCase() === cat);
+      offer.category.toLowerCase().includes(cat) ||
+      (offer.subcategory && offer.subcategory.toLowerCase().includes(cat));
 
     return matchesSearch && matchesCategory;
   });
 
-  const hotOffers = offers.filter((o) => o.status === 'publicada');
-
   return (
     <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-12">
-      {/* Top Header Bar Estilo Loja Oficial */}
+      {/* Top Header Bar Estilo Loja Oficial Mercado Livre */}
       <header className="sticky top-0 z-30 bg-[#060a16]/95 backdrop-blur-2xl border-b border-white/10 px-3.5 sm:px-8 py-3 flex items-center justify-between gap-3 shadow-lg shadow-black/40">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center flex-shrink-0 shadow-md shadow-[#00D287]/30">
@@ -150,20 +139,20 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
                 CellHub <span className="text-[#00D287]">Shop</span>
               </span>
               <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider flex items-center gap-0.5">
-                <ShieldCheck className="w-2.5 h-2.5" /> Oficial
+                <Zap className="w-2.5 h-2.5 fill-[#00D287]" /> Full Oficial
               </span>
             </div>
             <p className="text-[10px] text-slate-400 hidden sm:block">
-              Produtos com garantia de 90 dias enviados direto pela CellHub
+              Produtos originais e inspecionados com 90 dias de garantia direta
             </p>
           </div>
         </div>
 
-        {/* Botão de Criação de Oferta Oficial (Exclusivo para Administrador) */}
+        {/* Botão de Criação de Produto Oficial (Exclusivo para Administrador) */}
         {currentUser?.role === 'admin' && (
           <button
             onClick={() => setIsCreateOfficialModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer active:scale-95"
+            className="px-3.5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span className="hidden sm:inline">Adicionar Produto Oficial</span>
@@ -172,40 +161,40 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
         )}
       </header>
 
-      {/* Main Body Content */}
-      <main className="flex-1 px-3.5 sm:px-8 py-4 sm:py-6 max-w-7xl mx-auto w-full space-y-6">
-        {/* Banner de Garantia Oficial CellHub */}
-        <div className="rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#071322] to-slate-950 border border-[#00D287]/30 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center flex-shrink-0">
-              <PackageCheck className="w-5 h-5" />
+      {/* Main Catalog Body */}
+      <main className="flex-1 px-3.5 sm:px-8 py-4 sm:py-6 max-w-7xl mx-auto w-full space-y-5">
+        {/* Banner Oficial Mercado Livre / Full CellHub */}
+        <div className="rounded-2xl bg-gradient-to-r from-emerald-950/50 via-[#071322] to-slate-950 border border-[#00D287]/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center flex-shrink-0 shadow-sm">
+              <PackageCheck className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                Vendido & Enviado Oficialmente por CellHub
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#00D287]" />
+              <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
+                Loja Oficial CellHub
+                <CheckCircle2 className="w-4 h-4 text-[#00D287]" />
               </h3>
-              <p className="text-[11px] text-slate-400">
-                Garantia técnica de 90 dias, Nota Fiscal e rastreamento expresso com seguro total.
+              <p className="text-xs text-slate-400 mt-0.5">
+                Garantia técnica de 90 dias • Envio direto dos nossos galpões • Pagamento seguro em até 12x
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-[10px] font-bold text-[#00D287] bg-[#00D287]/10 px-2 py-1 rounded-lg border border-[#00D287]/20 flex items-center gap-1">
-              <Truck className="w-3 h-3" /> Envio para todo o Brasil
+            <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/10 px-2.5 py-1 rounded-xl border border-[#00D287]/20 flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5" /> Envio Expresso para todo o Brasil
             </span>
           </div>
         </div>
 
-        {/* Barra de Busca e Filtros de Categoria */}
-        <div className="space-y-3">
+        {/* Busca e Filtros de Categoria (Estilo Mercado Livre) */}
+        <div className="space-y-2.5">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar produtos oficiais CellHub..."
+              placeholder="Buscar no catálogo oficial CellHub (iPhones, telas, baterias, ferramentas)..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#080d1a] border border-white/10 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287] transition-all"
             />
           </div>
@@ -215,7 +204,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex-shrink-0 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex-shrink-0 ${
                   selectedCategory === cat.id
                     ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
                     : 'bg-[#090e1c] text-slate-400 hover:text-white border border-white/5'
@@ -227,68 +216,34 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
           </div>
         </div>
 
-        {/* Stories / Destaques Oficiais */}
-        {hotOffers.length > 0 && (
-          <section className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-4 h-4 text-rose-500" />
-                <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
-                  Destaques em Alta
-                </h3>
-              </div>
-              <span className="text-[11px] text-slate-400">Toque para ver detalhes</span>
-            </div>
-
-            <div
-              ref={carouselRef}
-              className="flex items-center gap-3 overflow-x-auto px-1 py-1.5 snap-x snap-mandatory scroll-smooth no-scrollbar"
-            >
-              {hotOffers.map((offer) => (
-                <div key={`story-${offer.id}`} className="snap-start flex-shrink-0">
-                  <StoryOfferCard
-                    offer={offer}
-                    isFavorite={favorites.includes(offer.id)}
-                    onToggleFavorite={handleToggleFavorite}
-                    onSelect={(off) => {
-                      setSelectedStoryOfferId(off.id);
-                      setIsStoryViewerOpen(true);
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Grade de Produtos Oficiais */}
-        <section className="space-y-4">
+        {/* Grade de Produtos no Formato Mercado Livre */}
+        <section className="space-y-3.5">
           <div className="flex items-center justify-between">
             <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#00D287]" />
-              Catálogo Oficial CellHub ({filteredOffers.length})
+              Catálogo Oficial ({filteredOffers.length} {filteredOffers.length === 1 ? 'produto' : 'produtos'})
             </h3>
           </div>
 
           {loading ? (
-            <div className="py-16 text-center flex items-center justify-center">
+            <div className="py-20 text-center flex items-center justify-center">
               <RefreshCw className="w-6 h-6 text-[#00D287] animate-spin" />
             </div>
           ) : filteredOffers.length === 0 ? (
-            <div className="py-16 text-center rounded-3xl bg-[#090e1c] border border-white/5 space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto text-slate-500">
-                <ShoppingBag className="w-6 h-6" />
+            <div className="py-16 text-center rounded-3xl bg-[#090e1c] border border-white/5 space-y-3.5 p-6">
+              <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto text-slate-500">
+                <ShoppingBag className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Nenhum produto oficial encontrado</h3>
+                <h3 className="text-base font-bold text-white">Nenhum produto oficial cadastrado</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                  Novos lotes de aparelhos e ferramentas oficiais chegam semanalmente.
+                  Os produtos oficiais adicionados pela administração aparecerão listados aqui no formato de catálogo.
                 </p>
               </div>
               {currentUser?.role === 'admin' && (
                 <button
                   onClick={() => setIsCreateOfficialModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-bold inline-flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-bold inline-flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
                   Adicionar Primeiro Produto Oficial
@@ -296,9 +251,9 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4.5">
               {filteredOffers.map((offer) => (
-                <HorizontalOfferCard
+                <MercadoLivreOfferCard
                   key={offer.id}
                   offer={offer}
                   isFavorite={favorites.includes(offer.id)}
@@ -311,7 +266,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
         </section>
       </main>
 
-      {/* Modais */}
+      {/* Modais de Detalhes e Checkout */}
       {selectedOfferForDetails && (
         <OfferDetailsModal
           offer={selectedOfferForDetails}
@@ -336,23 +291,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
         />
       )}
 
-      {/* Stories Viewer Modal */}
-      {isStoryViewerOpen && (
-        <StoriesViewerModal
-          isOpen={isStoryViewerOpen}
-          offers={hotOffers}
-          initialOfferId={selectedStoryOfferId}
-          onClose={() => {
-            setIsStoryViewerOpen(false);
-            setSelectedStoryOfferId(null);
-          }}
-          onOpenCheckout={handleOpenCheckout}
-          isFavorite={(id) => favorites.includes(id)}
-          onToggleFavorite={handleToggleFavorite}
-        />
-      )}
-
-      {/* Create Official Offer Modal (Admin only) */}
+      {/* Modal de Criação de Produto Oficial (Exclusivo Admin) */}
       {isCreateOfficialModalOpen && currentUser && (
         <CreateOfficialOfferModal
           isOpen={isCreateOfficialModalOpen}
