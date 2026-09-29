@@ -27,7 +27,7 @@ import {
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
-import { pricingRulesService } from '@/services/pricingRulesService';
+import { pricingRulesService, OFFICIAL_CATEGORIES } from '@/services/pricingRulesService';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
@@ -39,20 +39,7 @@ interface CreateOfficialOfferModalProps {
   onOfferCreated?: () => void;
 }
 
-const CATEGORIES: OfferCategory[] = [
-  'Celulares',
-  'Peças',
-  'Telas',
-  'Baterias',
-  'Conectores',
-  'Acessórios',
-  'Ferramentas',
-  'Máquinas',
-  'Eletrônicos',
-  'Componentes',
-  'Lotes',
-  'Outros'
-];
+const CATEGORIES = OFFICIAL_CATEGORIES;
 
 const CONDITIONS: OfferCondition[] = [
   'Novo',
@@ -392,7 +379,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                             Margem de Lucro (%)
                           </label>
                           <span className="text-[10px] text-[#00D287] font-bold">
-                            Sugerida p/ {category}: {pricingRulesService.getSuggestedMargin(category, condition)}%
+                            Padrão de {category}: {pricingRulesService.getSuggestedMargin(category)}%
                           </span>
                         </div>
                         <div className="relative">

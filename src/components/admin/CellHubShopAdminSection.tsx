@@ -23,11 +23,21 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
-  X
+  X,
+  Smartphone,
+  Cpu,
+  Monitor,
+  Battery,
+  Wrench,
+  Cog,
+  Tv,
+  Layers,
+  HelpCircle,
+  FolderArchive
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory, OfferCondition, ShippingPolicy } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
-import { pricingRulesService, MarginRule } from '@/services/pricingRulesService';
+import { pricingRulesService, MarginRule, OFFICIAL_CATEGORIES } from '@/services/pricingRulesService';
 import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
@@ -35,21 +45,6 @@ import { toast } from 'sonner';
 interface CellHubShopAdminSectionProps {
   currentUser: UserAccount | null;
 }
-
-const CATEGORIES: OfferCategory[] = [
-  'Celulares',
-  'Peças',
-  'Telas',
-  'Baterias',
-  'Conectores',
-  'Acessórios',
-  'Ferramentas',
-  'Máquinas',
-  'Eletrônicos',
-  'Componentes',
-  'Lotes',
-  'Outros'
-];
 
 const CONDITIONS: OfferCondition[] = [
   'Novo',
@@ -70,14 +65,9 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
 
-  // Margin Rules State
+  // Margin Rules State (12 Official Categories)
   const [marginRules, setMarginRules] = useState<MarginRule[]>([]);
   const [isRulesPanelOpen, setIsRulesPanelOpen] = useState<boolean>(false);
-  const [newRuleCategory, setNewRuleCategory] = useState<string>('Acessórios');
-  const [newRuleSubname, setNewRuleSubname] = useState<string>('');
-  const [newRuleCondition, setNewRuleCondition] = useState<string>('Novo');
-  const [newRuleMargin, setNewRuleMargin] = useState<string>('30');
-  const [newRuleDesc, setNewRuleDesc] = useState<string>('');
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -140,46 +130,20 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const totalEstimatedProfit = totalCatalogValue - totalSupplierCost;
   const averageMarginPercent = totalSupplierCost > 0 ? Math.round((totalEstimatedProfit / totalSupplierCost) * 100) : 0;
 
-  // Margin Rules handlers
-  const handleUpdateMarginRule = (id: string, margin: number) => {
-    const success = pricingRulesService.updateRule(id, margin);
+  // Margin Rules handler
+  const handleUpdateMarginRule = (category: OfferCategory, margin: number) => {
+    const success = pricingRulesService.updateRule(category, margin);
     if (success) {
       setMarginRules(pricingRulesService.getRules());
-      toast.success('Regra de margem atualizada com sucesso!');
+      toast.success(`Margem padrão de ${category} atualizada para ${margin}%!`);
     }
-  };
-
-  const handleAddMarginRule = (e: React.FormEvent) => {
-    e.preventDefault();
-    const marginNum = parseFloat(newRuleMargin);
-    if (isNaN(marginNum) || marginNum <= 0) {
-      toast.error('Informe uma porcentagem válida de margem.');
-      return;
-    }
-    pricingRulesService.addRule({
-      category: newRuleCategory,
-      subname: newRuleSubname.trim() || undefined,
-      condition: newRuleCondition,
-      marginPercent: marginNum,
-      description: newRuleDesc.trim() || undefined,
-    });
-    setMarginRules(pricingRulesService.getRules());
-    setNewRuleSubname('');
-    setNewRuleDesc('');
-    toast.success('Nova regra de margem adicionada!');
-  };
-
-  const handleDeleteMarginRule = (id: string) => {
-    pricingRulesService.deleteRule(id);
-    setMarginRules(pricingRulesService.getRules());
-    toast.info('Regra removida.');
   };
 
   const handleResetMarginRules = () => {
-    if (window.confirm('Deseja restaurar as regras de margem padrão de fábrica?')) {
+    if (window.confirm('Deseja restaurar as regras de margem padrão das 12 categorias?')) {
       const defs = pricingRulesService.resetToDefaults();
       setMarginRules(defs);
-      toast.success('Regras de margem restauradas para o padrão.');
+      toast.success('Regras de margem restauradas para os valores padrão.');
     }
   };
 
@@ -232,9 +196,22 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
       setEditMarginPercent(margin);
       setEditPricingMode('margin');
     } else {
-      const suggested = pricingRulesService.getSuggestedMargin(product.category, product.condition, product.title);
+      const suggested = pricingRulesService.getSuggestedMargin(product.category);
       setEditMarginPercent(suggested);
       setEditPricingMode('manual');
+    }
+  };
+
+  const handleEditCategoryChange = (newCat: OfferCategory) => {
+    setEditCategory(newCat);
+    const suggested = pricingRulesService.getSuggestedMargin(newCat);
+    setEditMarginPercent(suggested);
+    if (editPricingMode === 'margin' && editSupplierCost) {
+      const costNum = parseFloat(editSupplierCost);
+      if (!isNaN(costNum) && costNum > 0) {
+        const calculated = pricingRulesService.calculatePriceFromCost(costNum, suggested);
+        setEditPrice(calculated.toFixed(2));
+      }
     }
   };
 
@@ -358,7 +335,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
           <button
             onClick={() => loadData()}
-            className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors"
+            className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer"
             title="Atualizar dados"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#00D287]' : ''}`} />
@@ -374,7 +351,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         </div>
       </div>
 
-      {/* 2. REGRAS DE MARGEM & PRECIFICAÇÃO AUTOMÁTICA (%) COLLAPSIBLE DRAWER */}
+      {/* 2. REGRAS DE MARGEM & PRECIFICAÇÃO AUTOMÁTICA DAS 12 CATEGORIAS OFICIAIS */}
       {isRulesPanelOpen && (
         <div className="p-5 rounded-3xl bg-[#080c17] border border-[#00D287]/30 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
@@ -387,53 +364,43 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   Regras de Porcentagem & Margem Automática por Categoria
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Configure as porcentagens padrão para auto-calcular o preço de venda final a partir do custo do fornecedor.
+                  Configure a porcentagem de lucro padrão para cada uma das 12 categorias oficiais cadastradas.
                 </p>
               </div>
             </div>
 
             <button
               onClick={handleResetMarginRules}
-              className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 text-[11px] font-semibold transition-colors"
+              className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 text-[11px] font-semibold transition-colors cursor-pointer"
             >
               Restaurar Padrões
             </button>
           </div>
 
-          {/* Rules Grid */}
+          {/* 12 Official Categories Grid (1-to-1 Match with Dropdown) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {marginRules.map((rule) => (
               <div
-                key={rule.id}
-                className="p-3.5 rounded-2xl bg-black/40 border border-white/5 hover:border-white/10 space-y-2 relative group transition-all"
+                key={rule.category}
+                className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 hover:border-[#00D287]/30 space-y-2 relative transition-all"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="font-bold text-white text-xs block">
-                      {rule.subname || rule.category}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block">
-                      {rule.condition ? `Condição: ${rule.condition}` : rule.category}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => handleDeleteMarginRule(rule.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-500 hover:text-rose-400 transition-opacity"
-                    title="Excluir regra"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                <div>
+                  <span className="font-bold text-white text-xs block">
+                    {rule.category}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block truncate">
+                    {rule.description || `Produtos da categoria ${rule.category}`}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
-                  <span className="text-[11px] text-slate-400">Margem:</span>
+                  <span className="text-[11px] text-slate-400 font-medium">Margem:</span>
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
                       step="1"
                       value={rule.marginPercent}
-                      onChange={(e) => handleUpdateMarginRule(rule.id, parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleUpdateMarginRule(rule.category, parseFloat(e.target.value) || 0)}
                       className="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-[#00D287] font-black text-center outline-none focus:border-[#00D287]"
                     />
                     <span className="text-xs font-bold text-slate-400">%</span>
@@ -442,59 +409,6 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               </div>
             ))}
           </div>
-
-          {/* Add Custom Margin Rule */}
-          <form onSubmit={handleAddMarginRule} className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 flex flex-wrap items-center gap-2.5 text-xs">
-            <span className="font-bold text-white flex items-center gap-1.5 whitespace-nowrap">
-              <Plus className="w-3.5 h-3.5 text-[#00D287]" /> Nova Regra:
-            </span>
-
-            <select
-              value={newRuleCategory}
-              onChange={(e) => setNewRuleCategory(e.target.value)}
-              className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white outline-none focus:border-[#00D287]"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-
-            <input
-              type="text"
-              value={newRuleSubname}
-              onChange={(e) => setNewRuleSubname(e.target.value)}
-              placeholder="Subnome (Ex: Carregador Tipo C, V8...)"
-              className="flex-1 min-w-[150px] bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-white placeholder:text-slate-600 outline-none focus:border-[#00D287]"
-            />
-
-            <select
-              value={newRuleCondition}
-              onChange={(e) => setNewRuleCondition(e.target.value)}
-              className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white outline-none focus:border-[#00D287]"
-            >
-              {CONDITIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                value={newRuleMargin}
-                onChange={(e) => setNewRuleMargin(e.target.value)}
-                placeholder="30"
-                className="w-16 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white font-bold text-center outline-none focus:border-[#00D287]"
-              />
-              <span className="text-slate-400 font-bold">%</span>
-            </div>
-
-            <button
-              type="submit"
-              className="px-4 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold transition-all cursor-pointer"
-            >
-              Adicionar Regra
-            </button>
-          </form>
         </div>
       )}
 
@@ -586,7 +500,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
             className="bg-[#040711] border border-white/10 text-xs text-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#00D287]"
           >
             <option value="todos">Todas Categorias</option>
-            {CATEGORIES.map((cat) => (
+            {OFFICIAL_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
@@ -820,10 +734,10 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">Categoria</label>
                   <select
                     value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value as OfferCategory)}
+                    onChange={(e) => handleEditCategoryChange(e.target.value as OfferCategory)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
-                    {CATEGORIES.map((cat) => (
+                    {OFFICIAL_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
@@ -855,7 +769,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                     <button
                       type="button"
                       onClick={() => setEditPricingMode('margin')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                         editPricingMode === 'margin'
                           ? 'bg-[#00D287] text-slate-950 shadow-sm'
                           : 'text-slate-400 hover:text-white'
@@ -867,7 +781,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                     <button
                       type="button"
                       onClick={() => setEditPricingMode('manual')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                         editPricingMode === 'manual'
                           ? 'bg-[#00D287] text-slate-950 shadow-sm'
                           : 'text-slate-400 hover:text-white'
@@ -897,9 +811,14 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Margem de Lucro (%)
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-300">
+                            Margem de Lucro (%)
+                          </label>
+                          <span className="text-[10px] text-[#00D287] font-bold">
+                            Padrão: {pricingRulesService.getSuggestedMargin(editCategory)}%
+                          </span>
+                        </div>
                         <div className="relative">
                           <input
                             type="number"
@@ -921,7 +840,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           key={m}
                           type="button"
                           onClick={() => handleEditMarginPercentChange(m)}
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                             editMarginPercent === m
                               ? 'bg-[#00D287] text-slate-950 font-black'
                               : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-white/5'
@@ -978,7 +897,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                     type="number"
                     value={editWarrantyDays}
                     onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   />
                 </div>
 
@@ -987,7 +906,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   <select
                     value={editShippingPolicy}
                     onChange={(e) => setEditShippingPolicy(e.target.value as ShippingPolicy)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
                     <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
                     <option value="comprador_paga">Calculado no Checkout</option>
@@ -1002,7 +921,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   rows={3}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                 />
               </div>
 
@@ -1020,7 +939,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   <button
                     type="button"
                     onClick={handleAddEditImage}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-[#00D287] border border-[#00D287]/30 text-xs font-bold"
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-[#00D287] border border-[#00D287]/30 text-xs font-bold cursor-pointer"
                   >
                     Adicionar
                   </button>
@@ -1033,7 +952,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                       <button
                         type="button"
                         onClick={() => handleRemoveEditImage(idx)}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-rose-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 p-1 rounded-full bg-rose-500 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>

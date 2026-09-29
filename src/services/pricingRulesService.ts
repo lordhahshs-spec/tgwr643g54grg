@@ -1,32 +1,43 @@
+import { OfferCategory } from '@/types/marketplace';
+
 export interface MarginRule {
   id: string;
-  category: string;
-  condition?: string; // Novo, Seminovo, Usado, etc.
-  subname?: string;   // Ex: Tipo C, V8, iPhone, etc.
+  category: OfferCategory;
   marginPercent: number; // Ex: 20 -> 20%
   description?: string;
 }
 
-const DEFAULT_MARGIN_RULES: MarginRule[] = [
-  { id: 'cel-novo', category: 'Celulares', condition: 'Novo', marginPercent: 15, description: 'Smartphones novos lacrados' },
-  { id: 'cel-seminovo', category: 'Celulares', condition: 'Seminovo', marginPercent: 20, description: 'Smartphones seminovos grade A' },
-  { id: 'cel-usado', category: 'Celulares', condition: 'Usado', marginPercent: 25, description: 'Smartphones usados revisados' },
-  { id: 'carr-typec', category: 'Acessórios', subname: 'Carregador Tipo C', marginPercent: 40, description: 'Fontes e cabos USB Tipo-C Turbo' },
-  { id: 'carr-v8', category: 'Acessórios', subname: 'Carregador V8', marginPercent: 50, description: 'Fontes e cabos Micro-USB V8' },
-  { id: 'acess-novo', category: 'Acessórios', condition: 'Novo', marginPercent: 45, description: 'Capinhas, películas, fones e periféricos' },
-  { id: 'telas-novo', category: 'Telas', condition: 'Novo', marginPercent: 30, description: 'Displays OLED, Incell e originais' },
-  { id: 'baterias-novo', category: 'Baterias', condition: 'Novo', marginPercent: 35, description: 'Baterias premium e alta capacidade' },
-  { id: 'pecas-novo', category: 'Peças', condition: 'Novo', marginPercent: 35, description: 'Câmeras, flex e periféricos' },
-  { id: 'conect-novo', category: 'Conectores', condition: 'Novo', marginPercent: 50, description: 'Conectores de carga e solda' },
-  { id: 'ferram-novo', category: 'Ferramentas', condition: 'Novo', marginPercent: 25, description: 'Chaves, microscópios e estações' },
-  { id: 'maquinas-novo', category: 'Máquinas', condition: 'Novo', marginPercent: 20, description: 'Separadoras, laminadoras e lasers' },
-  { id: 'eletro-novo', category: 'Eletrônicos', condition: 'Novo', marginPercent: 25, description: 'Smartwatches, caixas de som e gadgets' },
-  { id: 'comp-novo', category: 'Componentes', condition: 'Novo', marginPercent: 35, description: 'ICs, resistores, capacitores e microcomponentes' },
-  { id: 'lotes-geral', category: 'Lotes', marginPercent: 18, description: 'Lotes atacado fechados' },
-  { id: 'outros-geral', category: 'Outros', marginPercent: 25, description: 'Produtos gerais diversos' },
+export const OFFICIAL_CATEGORIES: OfferCategory[] = [
+  'Celulares',
+  'Peças',
+  'Telas',
+  'Baterias',
+  'Conectores',
+  'Acessórios',
+  'Ferramentas',
+  'Máquinas',
+  'Eletrônicos',
+  'Componentes',
+  'Lotes',
+  'Outros'
 ];
 
-const STORAGE_KEY = 'cellhub_shop_pricing_rules';
+export const DEFAULT_MARGIN_RULES: MarginRule[] = [
+  { id: 'cat-celulares', category: 'Celulares', marginPercent: 20, description: 'Smartphones novos, seminovos e usados' },
+  { id: 'cat-pecas', category: 'Peças', marginPercent: 35, description: 'Câmeras, carcaças, flex e periféricos' },
+  { id: 'cat-telas', category: 'Telas', marginPercent: 30, description: 'Displays OLED, Incell e originais' },
+  { id: 'cat-baterias', category: 'Baterias', marginPercent: 35, description: 'Baterias homologadas de alta capacidade' },
+  { id: 'cat-conectores', category: 'Conectores', marginPercent: 50, description: 'Conectores de carga, solda e placas sub' },
+  { id: 'cat-acessorios', category: 'Acessórios', marginPercent: 40, description: 'Carregadores Tipo C, V8, cabos e capas' },
+  { id: 'cat-ferramentas', category: 'Ferramentas', marginPercent: 25, description: 'Chaves de precisão, microscópios e estações' },
+  { id: 'cat-maquinas', category: 'Máquinas', marginPercent: 20, description: 'Separadoras LCD, laminadoras e lasers' },
+  { id: 'cat-eletronicos', category: 'Eletrônicos', marginPercent: 25, description: 'Smartwatches, caixas de som e fones Bluetooth' },
+  { id: 'cat-componentes', category: 'Componentes', marginPercent: 35, description: 'ICs de carga, resistores e microcomponentes' },
+  { id: 'cat-lotes', category: 'Lotes', marginPercent: 18, description: 'Lotes fechados para atacado e revenda' },
+  { id: 'cat-outros', category: 'Outros', marginPercent: 25, description: 'Produtos gerais diversos' },
+];
+
+const STORAGE_KEY = 'cellhub_shop_pricing_rules_v2';
 
 export const pricingRulesService = {
   getRules(): MarginRule[] {
@@ -35,7 +46,20 @@ export const pricingRulesService = {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Garantir que todas as 12 categorias oficiais estejam presentes na ordem correta
+          const merged = OFFICIAL_CATEGORIES.map((cat) => {
+            const found = parsed.find((p: any) => p.category?.toLowerCase() === cat.toLowerCase());
+            if (found && typeof found.marginPercent === 'number') {
+              return {
+                id: `cat-${cat.toLowerCase()}`,
+                category: cat,
+                marginPercent: found.marginPercent,
+                description: found.description || DEFAULT_MARGIN_RULES.find(d => d.category === cat)?.description,
+              };
+            }
+            return DEFAULT_MARGIN_RULES.find(d => d.category === cat)!;
+          });
+          return merged;
         }
       }
     } catch (e) {
@@ -54,30 +78,14 @@ export const pricingRulesService = {
     }
   },
 
-  updateRule(id: string, marginPercent: number): boolean {
+  updateRule(category: OfferCategory, marginPercent: number): boolean {
     const rules = this.getRules();
-    const idx = rules.findIndex((r) => r.id === id);
+    const idx = rules.findIndex((r) => r.category.toLowerCase() === category.toLowerCase());
     if (idx !== -1) {
       rules[idx].marginPercent = marginPercent;
       return this.saveRules(rules);
     }
     return false;
-  },
-
-  addRule(rule: Omit<MarginRule, 'id'>): MarginRule {
-    const rules = this.getRules();
-    const newRule: MarginRule = {
-      ...rule,
-      id: `rule-${Date.now()}`,
-    };
-    rules.push(newRule);
-    this.saveRules(rules);
-    return newRule;
-  },
-
-  deleteRule(id: string): boolean {
-    const rules = this.getRules().filter((r) => r.id !== id);
-    return this.saveRules(rules);
   },
 
   resetToDefaults(): MarginRule[] {
@@ -86,36 +94,14 @@ export const pricingRulesService = {
   },
 
   /**
-   * Encontra a margem sugerida para um produto com base em categoria, condição ou título
+   * Retorna a porcentagem configurada diretamente para a categoria selecionada
    */
-  getSuggestedMargin(category: string, condition?: string, title?: string): number {
+  getSuggestedMargin(category: string): number {
     const rules = this.getRules();
-    const lowerTitle = (title || '').toLowerCase();
-    const lowerCat = (category || '').toLowerCase();
-    const lowerCond = (condition || '').toLowerCase();
-
-    // 1. Regra específica por título/subnome (Ex: Tipo C, V8)
-    if (lowerTitle.includes('tipo c') || lowerTitle.includes('tipo-c') || lowerTitle.includes('type c') || lowerTitle.includes('type-c')) {
-      const match = rules.find((r) => (r.subname || '').toLowerCase().includes('tipo c'));
-      if (match) return match.marginPercent;
+    const match = rules.find((r) => r.category.toLowerCase() === (category || '').toLowerCase());
+    if (match && typeof match.marginPercent === 'number') {
+      return match.marginPercent;
     }
-
-    if (lowerTitle.includes('v8') || lowerTitle.includes('micro-usb') || lowerTitle.includes('micro usb')) {
-      const match = rules.find((r) => (r.subname || '').toLowerCase().includes('v8'));
-      if (match) return match.marginPercent;
-    }
-
-    // 2. Regra por categoria + condição
-    const matchCatCond = rules.find(
-      (r) => r.category.toLowerCase() === lowerCat && (r.condition || '').toLowerCase() === lowerCond
-    );
-    if (matchCatCond) return matchCatCond.marginPercent;
-
-    // 3. Regra por categoria apenas
-    const matchCat = rules.find((r) => r.category.toLowerCase() === lowerCat);
-    if (matchCat) return matchCat.marginPercent;
-
-    // 4. Padrão geral
     return 20;
   },
 
