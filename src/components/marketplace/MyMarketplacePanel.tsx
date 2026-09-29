@@ -349,10 +349,10 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
 
         <button
           onClick={onOpenCreateModal}
-          className="px-4 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="w-4 h-4" />
-          Nova Super Oferta
+          <Plus className="w-4 h-4 stroke-[3]" />
+          Anunciar Produto
         </button>
       </div>
 

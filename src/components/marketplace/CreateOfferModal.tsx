@@ -311,7 +311,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
       ]);
 
       if (result.success) {
-        toast.success('Super Oferta publicada com sucesso no Marketplace!');
+        toast.success('Oferta publicada com sucesso no Marketplace!');
         onCreated();
         onClose();
       } else {
@@ -345,10 +345,10 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white leading-none">
-                Criar Super Oferta B2B
+                Anunciar Produto no Marketplace
               </h2>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Venda celulares, peças ou equipamentos diretamente para outros lojistas com frete Melhor Envio
+                Venda celulares, peças ou ferramentas para outros lojistas. As ofertas com maior engajamento viram Super Ofertas em Alta!
               </p>
             </div>
           </div>

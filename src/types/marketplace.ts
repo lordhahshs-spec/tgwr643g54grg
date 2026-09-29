@@ -146,6 +146,8 @@ export interface MarketplaceOffer {
   rating?: number | null;
   reviewsCount?: number;
   isOfficial?: boolean;
+  isSuperOffer?: boolean;
+  engagementScore?: number;
   supplierCost?: number;
   warrantyDays?: number;
   badgeText?: string;

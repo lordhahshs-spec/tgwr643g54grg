@@ -45,11 +45,15 @@ export const HorizontalOfferCard: React.FC<HorizontalOfferCardProps> = ({
             <div className="text-slate-600 text-xs">Sem foto</div>
           )}
 
-          {/* Badge de Condição / Oficial */}
+          {/* Badge de Condição / Oficial / Super Oferta */}
           <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 items-start">
             {offer.isOfficial ? (
               <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/30 tracking-tight">
                 OFICIAL
+              </span>
+            ) : offer.isSuperOffer ? (
+              <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md shadow-rose-500/30 tracking-tight flex items-center gap-0.5">
+                SUPER OFERTA 🔥
               </span>
             ) : (
               <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-900/90 backdrop-blur-md text-slate-300 border border-white/10">

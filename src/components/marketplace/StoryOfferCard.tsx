@@ -55,7 +55,9 @@ export const StoryOfferCard: React.FC<StoryOfferCardProps> = ({
               {offer.sellerCompany.substring(0, 1)}
             </div>
           </div>
-          <span className="text-[10px] font-bold text-white">Story</span>
+          <span className="text-[10px] font-black text-white flex items-center gap-0.5">
+            Super Oferta <span className="text-[#00D287]">🔥</span>
+          </span>
         </div>
 
         <button

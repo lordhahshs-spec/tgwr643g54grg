@@ -157,12 +157,41 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
         isOfficial: false,
       });
 
-      setRegularOffers(regular);
-      setHotOffers(regular);
+      // ALGORITMO DE ENGAJAMENTO (SUPER OFERTAS):
+      // Avalia visualizações, compras (vendas) e avaliações entre os lojistas.
+      // Calcula a média da plataforma: ofertas com engajamento acima da média
+      // viram automaticamente "Super Ofertas" e aparecem nos Stories no topo!
+      const scoredOffers = (regular || []).map((o) => {
+        const viewsScore = (o.views || 0) * 1;
+        const salesScore = (o.salesCount || 0) * 15;
+        const reviewsScore = ((o.rating || 0) * (o.reviewsCount || 0)) * 3;
+        const engagementScore = viewsScore + salesScore + reviewsScore;
+        return {
+          ...o,
+          engagementScore,
+        };
+      });
+
+      const totalScore = scoredOffers.reduce((acc, curr) => acc + (curr.engagementScore || 0), 0);
+      const avgScore = scoredOffers.length > 0 ? totalScore / scoredOffers.length : 0;
+
+      // Classifica como Super Oferta se o engajamento for superior à média
+      const mappedWithSuperOfferFlag = scoredOffers.map((o) => ({
+        ...o,
+        isSuperOffer: (o.engagementScore || 0) > avgScore && (o.engagementScore || 0) > 0,
+      }));
+
+      // As ofertas de maior engajamento alimentam o Carrossel de Stories ("Super Ofertas em Alta")
+      const superOffersHotList = [...mappedWithSuperOfferFlag]
+        .filter((o) => o.isSuperOffer || (o.salesCount && o.salesCount > 0))
+        .sort((a, b) => (b.engagementScore || 0) - (a.engagementScore || 0));
+
+      setRegularOffers(mappedWithSuperOfferFlag);
+      setHotOffers(superOffersHotList.length > 0 ? superOffersHotList : mappedWithSuperOfferFlag.slice(0, 8));
 
       try {
-        localStorage.setItem('cellhub_cached_regular_offers', JSON.stringify(regular));
-        localStorage.setItem('cellhub_cached_hot_offers', JSON.stringify(regular));
+        localStorage.setItem('cellhub_cached_regular_offers', JSON.stringify(mappedWithSuperOfferFlag));
+        localStorage.setItem('cellhub_cached_hot_offers', JSON.stringify(superOffersHotList));
       } catch {}
     } catch (e) {
       console.error('[SuperOfertasTab] Erro ao carregar ofertas:', e);
@@ -327,10 +356,10 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-white tracking-tight leading-tight">
-                    Ofertas em Alta
+                    Super Ofertas em Alta <span className="text-[#00D287]">🔥</span>
                   </h2>
                   <p className="text-[11px] text-slate-400">
-                    Toque em qualquer card para assistir em tela cheia no formato Story
+                    Calculadas por algoritmo de engajamento entre os lojistas • Toque para ver o Story
                   </p>
                 </div>
               </div>
