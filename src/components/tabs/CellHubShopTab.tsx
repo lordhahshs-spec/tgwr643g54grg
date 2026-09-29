@@ -49,10 +49,6 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
       setOffers(data);
       setCategoriesList(pricingRulesService.getCategories());
     } catch (e) {
-      // Busca estritamente ofertas oficiais da CellHub
-      const data = await marketplaceService.getOffers({ isOfficial: true });
-      setOffers(data);
-    } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
