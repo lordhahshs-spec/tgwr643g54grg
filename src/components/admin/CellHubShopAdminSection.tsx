@@ -2,30 +2,34 @@ import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
   Plus,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
   Search,
   DollarSign,
   TrendingUp,
   Package,
-  Edit,
-  Trash2,
-  CheckCircle2,
+  ShieldCheck,
   PauseCircle,
   PlayCircle,
-  ShieldCheck,
   Truck,
-  RefreshCw,
-  Zap,
-  Sparkles,
-  ExternalLink,
-  Percent,
-  Calculator,
   Box,
+  Eye,
+  Percent,
+  Sliders,
+  Sparkles,
+  Settings,
+  ChevronDown,
+  ChevronUp,
   X
 } from 'lucide-react';
 import { MarketplaceOffer, OfferCategory, OfferCondition, ShippingPolicy } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
-import { UserAccount } from '@/services/leadAuthService';
+import { pricingRulesService, MarginRule } from '@/services/pricingRulesService';
 import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
+import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
 interface CellHubShopAdminSectionProps {
@@ -57,6 +61,8 @@ const CONDITIONS: OfferCondition[] = [
   'Outro'
 ];
 
+const PRESET_MARGINS = [10, 15, 20, 25, 30, 35, 40, 50];
+
 export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = ({ currentUser }) => {
   const [products, setProducts] = useState<MarketplaceOffer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,14 +70,25 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
 
+  // Margin Rules State
+  const [marginRules, setMarginRules] = useState<MarginRule[]>([]);
+  const [isRulesPanelOpen, setIsRulesPanelOpen] = useState<boolean>(false);
+  const [newRuleCategory, setNewRuleCategory] = useState<string>('Acessórios');
+  const [newRuleSubname, setNewRuleSubname] = useState<string>('');
+  const [newRuleCondition, setNewRuleCondition] = useState<string>('Novo');
+  const [newRuleMargin, setNewRuleMargin] = useState<string>('30');
+  const [newRuleDesc, setNewRuleDesc] = useState<string>('');
+
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<MarketplaceOffer | null>(null);
 
-  // Edit Form Fields
+  // Edit Form Fields & Dynamic Pricing
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState<OfferCategory>('Celulares');
   const [editCondition, setEditCondition] = useState<OfferCondition>('Novo');
+  const [editPricingMode, setEditPricingMode] = useState<'margin' | 'manual'>('margin');
+  const [editMarginPercent, setEditMarginPercent] = useState<number>(20);
   const [editPrice, setEditPrice] = useState('');
   const [editSupplierCost, setEditSupplierCost] = useState('');
   const [editWarrantyDays, setEditWarrantyDays] = useState<number>(90);
@@ -89,6 +106,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         status: 'todas',
       });
       setProducts(data);
+      setMarginRules(pricingRulesService.getRules());
     } catch (e) {
       console.error(e);
       if (!silent) toast.error('Erro ao carregar catálogo da CellHub Shop.');
@@ -119,30 +137,76 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   
   const totalCatalogValue = products.reduce((acc, p) => acc + (p.price || 0), 0);
   const totalSupplierCost = products.reduce((acc, p) => acc + (p.supplierCost || 0), 0);
-  const totalEstimatedProfit = Math.max(totalCatalogValue - totalSupplierCost, 0);
-  const averageMarginPercent = totalCatalogValue > 0 
-    ? Math.round((totalEstimatedProfit / totalCatalogValue) * 100) 
-    : 0;
+  const totalEstimatedProfit = totalCatalogValue - totalSupplierCost;
+  const averageMarginPercent = totalSupplierCost > 0 ? Math.round((totalEstimatedProfit / totalSupplierCost) * 100) : 0;
 
-  // Actions
+  // Margin Rules handlers
+  const handleUpdateMarginRule = (id: string, margin: number) => {
+    const success = pricingRulesService.updateRule(id, margin);
+    if (success) {
+      setMarginRules(pricingRulesService.getRules());
+      toast.success('Regra de margem atualizada com sucesso!');
+    }
+  };
+
+  const handleAddMarginRule = (e: React.FormEvent) => {
+    e.preventDefault();
+    const marginNum = parseFloat(newRuleMargin);
+    if (isNaN(marginNum) || marginNum <= 0) {
+      toast.error('Informe uma porcentagem válida de margem.');
+      return;
+    }
+    pricingRulesService.addRule({
+      category: newRuleCategory,
+      subname: newRuleSubname.trim() || undefined,
+      condition: newRuleCondition,
+      marginPercent: marginNum,
+      description: newRuleDesc.trim() || undefined,
+    });
+    setMarginRules(pricingRulesService.getRules());
+    setNewRuleSubname('');
+    setNewRuleDesc('');
+    toast.success('Nova regra de margem adicionada!');
+  };
+
+  const handleDeleteMarginRule = (id: string) => {
+    pricingRulesService.deleteRule(id);
+    setMarginRules(pricingRulesService.getRules());
+    toast.info('Regra removida.');
+  };
+
+  const handleResetMarginRules = () => {
+    if (window.confirm('Deseja restaurar as regras de margem padrão de fábrica?')) {
+      const defs = pricingRulesService.resetToDefaults();
+      setMarginRules(defs);
+      toast.success('Regras de margem restauradas para o padrão.');
+    }
+  };
+
   const handleToggleStatus = async (product: MarketplaceOffer) => {
     const nextStatus = product.status === 'publicada' ? 'pausada' : 'publicada';
-    const success = await marketplaceService.updateOfferStatus(product.id, nextStatus);
-    if (success) {
-      toast.success(`Produto ${nextStatus === 'publicada' ? 'ativado na vitrine' : 'pausado'}.`);
-      loadData(true);
-    } else {
+    try {
+      const success = await marketplaceService.updateOffer(product.id, {
+        status: nextStatus,
+      });
+      if (success) {
+        toast.success(`Produto ${nextStatus === 'publicada' ? 'ativado' : 'pausado'} no catálogo.`);
+        loadData(true);
+      }
+    } catch (e) {
       toast.error('Erro ao atualizar status do produto.');
     }
   };
 
   const handleDeleteProduct = async (product: MarketplaceOffer) => {
-    if (window.confirm(`Tem certeza que deseja excluir o produto "${product.title}" do catálogo oficial?`)) {
-      const success = await marketplaceService.deleteOffer(product.id);
-      if (success) {
-        toast.success('Produto excluído com sucesso.');
-        loadData(true);
-      } else {
+    if (window.confirm(`Deseja realmente excluir o produto "${product.title}" do catálogo oficial?`)) {
+      try {
+        const success = await marketplaceService.deleteOffer(product.id);
+        if (success) {
+          toast.success('Produto excluído com sucesso.');
+          loadData(true);
+        }
+      } catch (e) {
         toast.error('Erro ao excluir produto.');
       }
     }
@@ -160,6 +224,40 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     setEditShippingPolicy(product.shippingPolicy || (product.freeShipping ? 'frete_gratis' : 'comprador_paga'));
     setEditImages(product.images || []);
     setEditImageUrlInput('');
+
+    // Calculate current implied margin
+    const costNum = product.supplierCost || 0;
+    if (costNum > 0 && product.price > costNum) {
+      const margin = Math.round(((product.price - costNum) / costNum) * 100);
+      setEditMarginPercent(margin);
+      setEditPricingMode('margin');
+    } else {
+      const suggested = pricingRulesService.getSuggestedMargin(product.category, product.condition, product.title);
+      setEditMarginPercent(suggested);
+      setEditPricingMode('manual');
+    }
+  };
+
+  const handleEditSupplierCostChange = (val: string) => {
+    setEditSupplierCost(val);
+    if (editPricingMode === 'margin') {
+      const costNum = parseFloat(val);
+      if (!isNaN(costNum) && costNum > 0) {
+        const calculated = pricingRulesService.calculatePriceFromCost(costNum, editMarginPercent);
+        setEditPrice(calculated.toFixed(2));
+      }
+    }
+  };
+
+  const handleEditMarginPercentChange = (newMargin: number) => {
+    setEditMarginPercent(newMargin);
+    if (editPricingMode === 'margin' && editSupplierCost) {
+      const costNum = parseFloat(editSupplierCost);
+      if (!isNaN(costNum) && costNum > 0) {
+        const calculated = pricingRulesService.calculatePriceFromCost(costNum, newMargin);
+        setEditPrice(calculated.toFixed(2));
+      }
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -240,11 +338,24 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Controle total de estoque próprio, custos de fornecedores, margens de lucro e produtos cadastrados.
+            Controle total de estoque próprio, custos de fornecedores, regras de margem (%) e produtos cadastrados.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+          <button
+            onClick={() => setIsRulesPanelOpen(!isRulesPanelOpen)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              isRulesPanelOpen
+                ? 'bg-[#00D287]/20 text-[#00D287] border-[#00D287]/40 shadow-sm'
+                : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-white/10'
+            }`}
+          >
+            <Percent className="w-3.5 h-3.5 text-[#00D287]" />
+            <span>Regras de Margem (%)</span>
+            {isRulesPanelOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+
           <button
             onClick={() => loadData()}
             className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-colors"
@@ -263,7 +374,131 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         </div>
       </div>
 
-      {/* 2. STATS CARDS */}
+      {/* 2. REGRAS DE MARGEM & PRECIFICAÇÃO AUTOMÁTICA (%) COLLAPSIBLE DRAWER */}
+      {isRulesPanelOpen && (
+        <div className="p-5 rounded-3xl bg-[#080c17] border border-[#00D287]/30 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center flex-shrink-0">
+                <Percent className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  Regras de Porcentagem & Margem Automática por Categoria
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Configure as porcentagens padrão para auto-calcular o preço de venda final a partir do custo do fornecedor.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleResetMarginRules}
+              className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 text-[11px] font-semibold transition-colors"
+            >
+              Restaurar Padrões
+            </button>
+          </div>
+
+          {/* Rules Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {marginRules.map((rule) => (
+              <div
+                key={rule.id}
+                className="p-3.5 rounded-2xl bg-black/40 border border-white/5 hover:border-white/10 space-y-2 relative group transition-all"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-white text-xs block">
+                      {rule.subname || rule.category}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">
+                      {rule.condition ? `Condição: ${rule.condition}` : rule.category}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => handleDeleteMarginRule(rule.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-500 hover:text-rose-400 transition-opacity"
+                    title="Excluir regra"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
+                  <span className="text-[11px] text-slate-400">Margem:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="1"
+                      value={rule.marginPercent}
+                      onChange={(e) => handleUpdateMarginRule(rule.id, parseFloat(e.target.value) || 0)}
+                      className="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-[#00D287] font-black text-center outline-none focus:border-[#00D287]"
+                    />
+                    <span className="text-xs font-bold text-slate-400">%</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Custom Margin Rule */}
+          <form onSubmit={handleAddMarginRule} className="p-3.5 rounded-2xl bg-[#050811] border border-white/5 flex flex-wrap items-center gap-2.5 text-xs">
+            <span className="font-bold text-white flex items-center gap-1.5 whitespace-nowrap">
+              <Plus className="w-3.5 h-3.5 text-[#00D287]" /> Nova Regra:
+            </span>
+
+            <select
+              value={newRuleCategory}
+              onChange={(e) => setNewRuleCategory(e.target.value)}
+              className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white outline-none focus:border-[#00D287]"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              value={newRuleSubname}
+              onChange={(e) => setNewRuleSubname(e.target.value)}
+              placeholder="Subnome (Ex: Carregador Tipo C, V8...)"
+              className="flex-1 min-w-[150px] bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-white placeholder:text-slate-600 outline-none focus:border-[#00D287]"
+            />
+
+            <select
+              value={newRuleCondition}
+              onChange={(e) => setNewRuleCondition(e.target.value)}
+              className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white outline-none focus:border-[#00D287]"
+            >
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                value={newRuleMargin}
+                onChange={(e) => setNewRuleMargin(e.target.value)}
+                placeholder="30"
+                className="w-16 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-white font-bold text-center outline-none focus:border-[#00D287]"
+              />
+              <span className="text-slate-400 font-bold">%</span>
+            </div>
+
+            <button
+              type="submit"
+              className="px-4 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold transition-all cursor-pointer"
+            >
+              Adicionar Regra
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* 3. STATS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Valor Total do Catálogo */}
         <div className="p-5 rounded-2xl bg-[#080c17] border border-white/10 space-y-2 relative overflow-hidden">
@@ -302,18 +537,18 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400 font-semibold">Custo de Fornecedores</span>
             <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
-              <Calculator className="w-4 h-4" />
+              <Truck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-blue-300">
+          <div className="text-2xl font-black text-slate-200">
             {formatBRL(totalSupplierCost)}
           </div>
           <p className="text-[11px] text-slate-500">
-            Custo total de aquisição dos produtos
+            Valor de aquisição direta / atacado
           </p>
         </div>
 
-        {/* Card 4: Status do Catálogo */}
+        {/* Card 4: Total de Produtos Ativos */}
         <div className="p-5 rounded-2xl bg-[#080c17] border border-white/10 space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400 font-semibold">Produtos no Catálogo</span>
@@ -321,79 +556,64 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white flex items-baseline gap-2">
-            {totalProducts}
-            <span className="text-xs font-normal text-slate-400">
-              ({activeProducts} ativos • {pausedProducts} pausados)
-            </span>
+          <div className="text-2xl font-black text-white">
+            {activeProducts} <span className="text-xs text-slate-400 font-normal">/ {totalProducts}</span>
           </div>
           <p className="text-[11px] text-slate-500">
-            Garantia oficial de 90 dias em todos os itens
+            {pausedProducts} produtos em pausa
           </p>
         </div>
       </div>
 
-      {/* 3. FILTROS & BUSCA DE PRODUTOS */}
-      <div className="p-4 rounded-2xl bg-[#080c17] border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* 4. FILTERS & SEARCH BAR */}
+      <div className="p-4 rounded-2xl bg-[#080c17] border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nome, categoria ou modelo..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-950 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
+            placeholder="Buscar produto por título ou categoria..."
+            className="w-full pl-10 pr-4 py-2 bg-[#040711] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+          {/* Categoria */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-[#00D287]"
+            className="bg-[#040711] border border-white/10 text-xs text-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#00D287]"
           >
-            <option value="todos">Todas as Categorias</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+            <option value="todos">Todas Categorias</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
 
+          {/* Status */}
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-[#00D287]"
+            className="bg-[#040711] border border-white/10 text-xs text-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#00D287]"
           >
-            <option value="todos">Todos os Status</option>
-            <option value="publicada">Ativos (Publicados)</option>
+            <option value="todos">Todos Status</option>
+            <option value="publicada">Ativos na Vitrine</option>
             <option value="pausada">Pausados</option>
           </select>
         </div>
       </div>
 
-      {/* 4. TABELA DE PRODUTOS CADASTRADOS NA CELLHUB SHOP */}
-      <div className="rounded-2xl bg-[#080c17] border border-white/10 overflow-hidden shadow-xl">
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-[#00D287]" />
-            Catálogo Oficial CellHub Shop ({filteredProducts.length})
-          </h3>
-          <span className="text-xs text-slate-400">
-            Produtos vendidos e enviados diretamente pela CellHub
-          </span>
-        </div>
-
-        {loading ? (
-          <div className="py-20 text-center flex items-center justify-center">
-            <RefreshCw className="w-6 h-6 text-[#00D287] animate-spin" />
-          </div>
-        ) : filteredProducts.length === 0 ? (
+      {/* 5. PRODUTOS TABLE */}
+      <div className="bg-[#080c17] border border-white/5 rounded-3xl overflow-hidden shadow-xl">
+        {filteredProducts.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto text-slate-500">
+            <div className="w-12 h-12 rounded-2xl bg-white/5 text-slate-500 flex items-center justify-center mx-auto">
               <ShoppingBag className="w-6 h-6" />
             </div>
             <h4 className="text-sm font-bold text-white">Nenhum produto oficial encontrado</h4>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Clique no botão abaixo para adicionar seu primeiro produto com margem de lucro e fotos.
+              Cadastre produtos para exibi-los na vitrine atacado da CellHub Shop com garantia de 90 dias.
             </p>
             <button
               onClick={() => setIsCreateModalOpen(true)}
@@ -422,7 +642,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 {filteredProducts.map((product) => {
                   const cost = product.supplierCost || 0;
                   const profit = product.price - cost;
-                  const marginPct = product.price > 0 ? Math.round((profit / product.price) * 100) : 0;
+                  const marginPct = cost > 0 ? Math.round((profit / cost) * 100) : 0;
                   const isPublished = product.status === 'publicada';
 
                   return (
@@ -510,7 +730,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           <button
                             onClick={() => handleToggleStatus(product)}
                             title={isPublished ? 'Pausar anúncio' : 'Ativar anúncio'}
-                            className={`p-1.5 rounded-lg border transition-colors ${
+                            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
                               isPublished
                                 ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
                                 : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
@@ -523,7 +743,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           <button
                             onClick={() => handleOpenEdit(product)}
                             title="Editar produto"
-                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-colors"
+                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-colors cursor-pointer"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -532,7 +752,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           <button
                             onClick={() => handleDeleteProduct(product)}
                             title="Excluir produto"
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors"
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -547,7 +767,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         )}
       </div>
 
-      {/* 5. MODAL DE CRIAÇÃO DE PRODUTO OFICIAL */}
+      {/* 6. MODAL DE CRIAÇÃO DE PRODUTO OFICIAL */}
       {isCreateModalOpen && currentUser && (
         <CreateOfficialOfferModal
           isOpen={isCreateModalOpen}
@@ -559,195 +779,285 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         />
       )}
 
-      {/* 6. MODAL DE EDIÇÃO DE PRODUTO OFICIAL */}
+      {/* 7. MODAL DE EDIÇÃO DE PRODUTO COM VARIANTE DE PORCENTAGEM */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div 
-            className="relative w-full max-w-2xl max-h-[92vh] bg-[#070b16] border border-[#00D287]/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header Modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#080c17]">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-bold">
-                  <Edit className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-[#090e1c] border border-blue-500/30 rounded-3xl shadow-2xl overflow-hidden my-6">
+            <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-slate-950/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+                  <Edit className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white leading-none">
-                    Editar Produto Oficial CellHub
-                  </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Atualize os preços, margem, fotos e detalhes do produto
-                  </p>
+                  <h3 className="text-base font-bold text-white">Editar Produto Oficial</h3>
+                  <p className="text-xs text-slate-400">Ajuste preços, regras de margem e detalhes do produto</p>
                 </div>
               </div>
 
               <button
                 onClick={() => setEditingProduct(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
+                className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
+            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4">
               {/* Título */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Título do Produto</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Título do Produto</label>
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                 />
               </div>
 
-              {/* Categoria & Condição */}
+              {/* Categoria e Condição */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Categoria</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Categoria</label>
                   <select
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value as OfferCategory)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Condição</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Condição</label>
                   <select
                     value={editCondition}
                     onChange={(e) => setEditCondition(e.target.value as OfferCondition)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
-                    {CONDITIONS.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                    {CONDITIONS.map((cond) => (
+                      <option key={cond} value={cond}>{cond}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {/* Preço de Venda & Custo do Fornecedor */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Preço de Venda (R$)</label>
-                  <input
-                    type="text"
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(e.target.value)}
-                    placeholder="Ex: 2899,00"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-[#00D287]/30 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
-                  />
+              {/* Bloco de Precificação & Margem no Modal de Edição */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-[#00D287]/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-[#00D287]" />
+                    Precificação & Margem
+                  </span>
+
+                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/5 self-start">
+                    <button
+                      type="button"
+                      onClick={() => setEditPricingMode('margin')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                        editPricingMode === 'margin'
+                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Percent className="w-3 h-3" />
+                      Por Porcentagem (%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditPricingMode('manual')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                        editPricingMode === 'manual'
+                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Sliders className="w-3 h-3" />
+                      Manual (Fixo)
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Custo do Fornecedor (R$)</label>
-                  <input
-                    type="text"
-                    value={editSupplierCost}
-                    onChange={(e) => setEditSupplierCost(e.target.value)}
-                    placeholder="Ex: 2100,00"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
-                  />
-                </div>
+                {editPricingMode === 'margin' ? (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Custo no Fornecedor (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editSupplierCost}
+                          onChange={(e) => handleEditSupplierCostChange(e.target.value)}
+                          placeholder="Ex: 3500.00"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Margem de Lucro (%)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="1"
+                            value={editMarginPercent}
+                            onChange={(e) => handleEditMarginPercentChange(parseFloat(e.target.value) || 0)}
+                            className="w-full px-3.5 py-2 pr-8 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preset margin pills */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-slate-400 mr-1">Atalhos:</span>
+                      {PRESET_MARGINS.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handleEditMarginPercentChange(m)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                            editMarginPercent === m
+                              ? 'bg-[#00D287] text-slate-950 font-black'
+                              : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-white/5'
+                          }`}
+                        >
+                          +{m}%
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-white/5 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Preço de Venda Calculado:</span>
+                      <span className="text-base font-black text-[#00D287]">
+                        R$ {parseFloat(editPrice) > 0 ? parseFloat(editPrice).toFixed(2) : '0,00'}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Preço de Venda Final (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                        Custo no Fornecedor (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editSupplierCost}
+                        onChange={(e) => setEditSupplierCost(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-sm focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Garantia Técnica & Política de Frete */}
+              {/* Garantia & Frete */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Garantia Técnica (Dias)</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Garantia (Dias)</label>
                   <input
                     type="number"
                     value={editWarrantyDays}
                     onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Política de Frete</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Política de Frete</label>
                   <select
                     value={editShippingPolicy}
                     onChange={(e) => setEditShippingPolicy(e.target.value as ShippingPolicy)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
-                    <option value="comprador_paga">Comprador Paga (Calculado no Checkout)</option>
-                    <option value="frete_gratis">Frete Grátis (Oficial CellHub assume o frete)</option>
+                    <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
+                    <option value="comprador_paga">Calculado no Checkout</option>
                   </select>
                 </div>
               </div>
 
               {/* Descrição */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Descrição do Produto</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Descrição</label>
                 <textarea
                   rows={3}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                 />
               </div>
 
-              {/* Fotos do Produto */}
-              <div className="space-y-2">
-                <label className="block text-slate-300 font-bold">Fotos do Produto ({editImages.length})</label>
-                <div className="flex gap-2">
+              {/* Imagens */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Fotos</label>
+                <div className="flex gap-2 mb-2">
                   <input
-                    type="text"
+                    type="url"
                     value={editImageUrlInput}
                     onChange={(e) => setEditImageUrlInput(e.target.value)}
-                    placeholder="Cole o link da imagem (URL https://...)"
-                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-[#00D287]"
+                    placeholder="Link da imagem..."
+                    className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   />
                   <button
                     type="button"
                     onClick={handleAddEditImage}
-                    className="px-3 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs"
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-[#00D287] border border-[#00D287]/30 text-xs font-bold"
                   >
-                    Adicionar Foto
+                    Adicionar
                   </button>
                 </div>
 
-                {editImages.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {editImages.map((img, idx) => (
-                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-slate-950 group">
-                        <img src={img} alt="" className="w-full h-full object-contain" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEditImage(idx)}
-                          className="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="grid grid-cols-5 gap-2">
+                  {editImages.map((img, idx) => (
+                    <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10 bg-slate-950">
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEditImage(idx)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-rose-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Footer Modal */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 bg-[#080c17]">
+            <div className="px-6 py-4 border-t border-white/5 bg-slate-950/60 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setEditingProduct(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
+
               <button
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={isSavingEdit}
-                className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-black shadow-lg shadow-[#00D287]/20 flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
-                <CheckCircle2 className="w-4 h-4" />
                 {isSavingEdit ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </div>
