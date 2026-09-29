@@ -652,10 +652,10 @@ export const AdminPage: React.FC = () => {
               {adminTab === 'marketplace' && (
                 <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
               )}
-              <ShoppingBag className="w-4 h-4 text-[#00D287] flex-shrink-0" />
+              <Flame className="w-4 h-4 text-[#00D287] flex-shrink-0" />
               {(!isSidebarCollapsed || isMobileSidebarOpen) && (
                 <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="truncate">Loja & Marketplace</span>
+                  <span className="truncate">Super Ofertas B2B</span>
                   <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
                     B2B
                   </span>
@@ -796,8 +796,8 @@ export const AdminPage: React.FC = () => {
               )}
               {adminTab === 'marketplace' && (
                 <>
-                  <ShoppingBag className="w-4 h-4 text-[#00D287]" />
-                  <span>Loja Oficial CellHub & Marketplace B2B</span>
+                  <Flame className="w-4 h-4 text-[#00D287]" />
+                  <span>Marketplace Super Ofertas (B2B entre Lojistas)</span>
                 </>
               )}
               {adminTab === 'schematics' && (
