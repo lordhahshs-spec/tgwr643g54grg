@@ -30,7 +30,9 @@ import {
   Box,
   RotateCcw,
   History,
-  Lock
+  Lock,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { 
   MarketplaceOffer, 
@@ -681,6 +683,32 @@ export const MarketplaceAdminSection: React.FC = () => {
                 <RotateCcw className="w-3.5 h-3.5" />
                 Reset Geral (Tudo)
               </button>
+            </div>
+          </div>
+
+          {/* Card de Testes de Web App / PWA (Exclusivo para Equipe Admin) */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 to-[#080d1a] border border-[#00D287]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center flex-shrink-0">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  Ambiente de Testes do Web App Mobile (PWA)
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 uppercase">
+                    Admin Only
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  O download do aplicativo mobile está mantido em segundo plano e oculto para leads. Os ícones em alta resolução e o manifesto standalone estão prontos para testes internos.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs font-mono text-[#00D287]">
+                PWA: Standalone Ativo
+              </span>
             </div>
           </div>
         </div>

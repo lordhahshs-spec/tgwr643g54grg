@@ -9,10 +9,9 @@ import { BannedScreen } from '@/components/BannedScreen';
 import { UnlockPlatformModal } from '@/components/demo/UnlockPlatformModal';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { InstagramMobileBottomBar } from '@/components/mobile/InstagramMobileBottomBar';
-import { MobileAppInstallBanner } from '@/components/mobile/MobileAppInstallBanner';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { leadAuthService, UserAccount } from '@/services/leadAuthService';
-import { Menu, Sparkles, Lock, User } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -226,9 +225,6 @@ const Index: React.FC = () => {
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileModalOpen(true)}
       />
-
-      {/* Banner Flutuante de Instalação Mobile (Android & iOS) */}
-      <MobileAppInstallBanner />
 
       {/* User Profile Modal */}
       <UserProfileModal

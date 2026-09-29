@@ -249,34 +249,36 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           </div>
         </div>
 
-        {/* Seção Baixar Aplicativo (Android / iOS / PWA) */}
-        <div className="pt-2 border-t border-white/5 space-y-2">
-          <span className="text-[11px] font-bold text-slate-400 block">
-            Aplicativo Móvel
-          </span>
+        {/* Seção Baixar Aplicativo (Android / iOS / PWA) - Visível apenas para Administradores em fase de testes */}
+        {currentUser?.role === 'admin' && (
+          <div className="pt-2 border-t border-white/5 space-y-2">
+            <span className="text-[11px] font-bold text-slate-400 block">
+              Aplicativo Móvel (Ambiente de Testes)
+            </span>
 
-          <button
-            type="button"
-            onClick={handleInstallApp}
-            className="w-full p-3 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0a1526] hover:from-[#0a1526] hover:to-[#0f2038] border border-[#00D287]/30 text-white flex items-center justify-between transition-all cursor-pointer group"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#00D287]/20 text-[#00D287] flex items-center justify-center">
-                <Smartphone className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className="w-full p-3 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0a1526] hover:from-[#0a1526] hover:to-[#0f2038] border border-[#00D287]/30 text-white flex items-center justify-between transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#00D287]/20 text-[#00D287] flex items-center justify-center">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-bold text-white block group-hover:text-[#00D287] transition-colors">
+                    Testar Instalação no Celular
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Acesso exclusivo para administradores
+                  </span>
+                </div>
               </div>
-              <div className="text-left">
-                <span className="text-xs font-bold text-white block group-hover:text-[#00D287] transition-colors">
-                  Instalar App no Celular
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  Compatível com Android e iPhone (iOS)
-                </span>
-              </div>
-            </div>
 
-            <Download className="w-4 h-4 text-[#00D287] group-hover:translate-y-0.5 transition-transform" />
-          </button>
-        </div>
+              <Download className="w-4 h-4 text-[#00D287] group-hover:translate-y-0.5 transition-transform" />
+            </button>
+          </div>
+        )}
 
         {/* Ações Finais */}
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
