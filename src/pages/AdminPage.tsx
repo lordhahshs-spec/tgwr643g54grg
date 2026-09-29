@@ -605,14 +605,14 @@ export const AdminPage: React.FC = () => {
           </div>
 
           {/* Admin Navigation Tabs */}
-          <nav className="p-3 space-y-1">
-            {/* Gestão de Usuários */}
+          <nav className="p-3 space-y-1.5">
+            {/* 1. Gestão de Lojistas & Leads */}
             <button
               onClick={() => {
                 setAdminTab('users');
                 setSearchQuery('');
               }}
-              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
+              className={`w-full group relative flex items-center rounded-xl text-xs font-bold transition-all duration-150 outline-none
                 ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
                 ${adminTab === 'users'
                   ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
@@ -625,17 +625,50 @@ export const AdminPage: React.FC = () => {
               )}
               <Users className="w-4 h-4 flex-shrink-0" />
               {(!isSidebarCollapsed || isMobileSidebarOpen) && (
-                <span className="truncate">Gestão de Usuários</span>
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">Lojistas & Leads</span>
+                  <span className="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-900 text-slate-300 border border-white/10">
+                    {accounts.length}
+                  </span>
+                </div>
               )}
             </button>
 
-            {/* Controle de Esquemas Elétricos */}
+            {/* 2. Loja Oficial CellHub & Marketplace B2B */}
+            <button
+              onClick={() => {
+                setAdminTab('marketplace');
+                setSearchQuery('');
+              }}
+              className={`w-full group relative flex items-center rounded-xl text-xs font-bold transition-all duration-150 outline-none
+                ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
+                ${adminTab === 'marketplace'
+                  ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] border border-transparent'
+                }
+              `}
+            >
+              {adminTab === 'marketplace' && (
+                <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
+              )}
+              <ShoppingBag className="w-4 h-4 text-[#00D287] flex-shrink-0" />
+              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">Loja & Marketplace</span>
+                  <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
+                    B2B
+                  </span>
+                </div>
+              )}
+            </button>
+
+            {/* 3. Esquemas Elétricos */}
             <button
               onClick={() => {
                 setAdminTab('schematics');
                 setSearchQuery('');
               }}
-              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
+              className={`w-full group relative flex items-center rounded-xl text-xs font-bold transition-all duration-150 outline-none
                 ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
                 ${adminTab === 'schematics'
                   ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
@@ -648,17 +681,22 @@ export const AdminPage: React.FC = () => {
               )}
               <Cpu className="w-4 h-4 flex-shrink-0" />
               {(!isSidebarCollapsed || isMobileSidebarOpen) && (
-                <span className="truncate">Controle de Esquemas Elétricos ({schematics.length})</span>
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">Esquemas Elétricos</span>
+                  <span className="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-900 text-slate-300 border border-white/10">
+                    {schematics.length}
+                  </span>
+                </div>
               )}
             </button>
 
-            {/* Estoque de Celulares */}
+            {/* 4. Tabela de Trade-In */}
             <button
               onClick={() => {
                 setAdminTab('catalog');
                 setSearchQuery('');
               }}
-              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
+              className={`w-full group relative flex items-center rounded-xl text-xs font-bold transition-all duration-150 outline-none
                 ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
                 ${adminTab === 'catalog'
                   ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
@@ -669,45 +707,24 @@ export const AdminPage: React.FC = () => {
               {adminTab === 'catalog' && (
                 <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
               )}
-              <ShoppingBag className="w-4 h-4 flex-shrink-0" />
-              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
-                <span className="truncate">Estoque de Aparelhos ({devices.length})</span>
-              )}
-            </button>
-
-            {/* Marketplace B2B Super Ofertas */}
-            <button
-              onClick={() => {
-                setAdminTab('marketplace');
-                setSearchQuery('');
-              }}
-              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
-                ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
-                ${adminTab === 'marketplace'
-                  ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] border border-transparent'
-                }
-              `}
-            >
-              {adminTab === 'marketplace' && (
-                <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#00D287] rounded-r-full shadow-sm shadow-[#00D287]" />
-              )}
-              <Flame className="w-4 h-4 text-[#00D287] flex-shrink-0" />
+              <Zap className="w-4 h-4 flex-shrink-0" />
               {(!isSidebarCollapsed || isMobileSidebarOpen) && (
                 <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="truncate">Super Ofertas B2B</span>
-                  <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-[#00D287]/20 text-[#00D287]">B2B</span>
+                  <span className="truncate">Tabela Trade-In</span>
+                  <span className="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-900 text-slate-300 border border-white/10">
+                    {devices.length}
+                  </span>
                 </div>
               )}
             </button>
 
-            {/* Webhooks & Monitor */}
+            {/* 5. Webhooks & Logs */}
             <button
               onClick={() => {
                 setAdminTab('webhooks');
                 setSearchQuery('');
               }}
-              className={`w-full group relative flex items-center rounded-xl text-xs font-semibold transition-all duration-150 outline-none
+              className={`w-full group relative flex items-center rounded-xl text-xs font-bold transition-all duration-150 outline-none
                 ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
                 ${adminTab === 'webhooks'
                   ? 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 shadow-sm'
@@ -721,8 +738,10 @@ export const AdminPage: React.FC = () => {
               <RotateCw className="w-4 h-4 text-[#00D287] flex-shrink-0 animate-spin-slow" />
               {(!isSidebarCollapsed || isMobileSidebarOpen) && (
                 <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="truncate">Webhooks do Sistema</span>
-                  <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-[#00D287]/20 text-[#00D287]">Live</span>
+                  <span className="truncate">Webhooks & Logs</span>
+                  <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Live
+                  </span>
                 </div>
               )}
             </button>
@@ -767,29 +786,29 @@ export const AdminPage: React.FC = () => {
               <Menu className="w-4 h-4" />
             </button>
 
-            <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-2">
               {adminTab === 'users' && (
                 <>
                   <Users className="w-4 h-4 text-[#00D287]" />
-                  <span>Gestão de Usuários & Contas Reais</span>
+                  <span>Gestão de Lojistas, Leads & Acessos</span>
+                </>
+              )}
+              {adminTab === 'marketplace' && (
+                <>
+                  <ShoppingBag className="w-4 h-4 text-[#00D287]" />
+                  <span>Loja Oficial CellHub & Marketplace B2B</span>
                 </>
               )}
               {adminTab === 'schematics' && (
                 <>
                   <Cpu className="w-4 h-4 text-[#00D287]" />
-                  <span>Controle de Esquemas Elétricos (PDF)</span>
+                  <span>Banco de Esquemas Elétricos (PDF)</span>
                 </>
               )}
               {adminTab === 'catalog' && (
                 <>
-                  <ShoppingBag className="w-4 h-4 text-[#00D287]" />
-                  <span>Estoque Real de Celulares</span>
-                </>
-              )}
-              {adminTab === 'marketplace' && (
-                <>
-                  <Flame className="w-4 h-4 text-[#00D287]" />
-                  <span>Moderação Marketplace B2B (Super Ofertas)</span>
+                  <Zap className="w-4 h-4 text-[#00D287]" />
+                  <span>Tabela de Referência Trade-In</span>
                 </>
               )}
               {adminTab === 'webhooks' && (
