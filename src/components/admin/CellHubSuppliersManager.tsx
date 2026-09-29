@@ -30,57 +30,6 @@ interface CellHubSuppliersManagerProps {
   onSupplierSelected?: (supplier: MarketplaceSupplier) => void;
 }
 
-const DEFAULT_SUPPLIERS_PRESETS = [
-  {
-    name: 'Fornecedor Boss SP',
-    tag: 'FORN-BOSS-SP',
-    phone: '(11) 98765-4321',
-    email: 'contato@bossdistribuidora.com.br',
-    contactPerson: 'Eduardo Boss',
-    postalCode: '01205-000',
-    street: 'Rua Santa Ifigênia',
-    number: '450',
-    complement: 'Sala 12',
-    neighborhood: 'Santa Ifigênia',
-    city: 'São Paulo',
-    state: 'SP',
-    notes: 'Distribuidor direto de iPhones lacrados e seminovos grade A+.',
-    status: 'ativo' as const,
-  },
-  {
-    name: 'TechDistribuidora Paulista',
-    tag: 'TECH-PAULISTA-01',
-    phone: '(11) 97654-3210',
-    email: 'logistica@techpaulista.com',
-    contactPerson: 'Renato Silva',
-    postalCode: '01021-100',
-    street: 'Rua 25 de Março',
-    number: '1080',
-    complement: 'Galpão 3',
-    neighborhood: 'Centro Histórico',
-    city: 'São Paulo',
-    state: 'SP',
-    notes: 'Fornecedor de peças, telas OLED premium e baterias homologadas.',
-    status: 'ativo' as const,
-  },
-  {
-    name: 'Apple Prime Import',
-    tag: 'APPLE-PRIME-PR',
-    phone: '(41) 99123-4567',
-    email: 'vendas@appleprimeimport.com',
-    contactPerson: 'Carla Prado',
-    postalCode: '80010-000',
-    street: 'Rua XV de Novembro',
-    number: '780',
-    complement: 'Conjunto 502',
-    neighborhood: 'Centro',
-    city: 'Curitiba',
-    state: 'PR',
-    notes: 'Especialista em iPads, MacBooks e Apple Watches lacrados.',
-    status: 'ativo' as const,
-  }
-];
-
 export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = ({
   products = [],
 }) => {
@@ -116,16 +65,7 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
   const loadSuppliers = async () => {
     setLoading(true);
     try {
-      let data = await marketplaceService.getSuppliers();
-      
-      // Se ainda não tiver nenhum fornecedor cadastrado, insere automaticamente os presets
-      if (data.length === 0) {
-        for (const preset of DEFAULT_SUPPLIERS_PRESETS) {
-          await marketplaceService.createSupplier(preset);
-        }
-        data = await marketplaceService.getSuppliers();
-      }
-      
+      const data = await marketplaceService.getSuppliers();
       setSuppliers(data);
     } catch (error) {
       console.error(error);
@@ -133,6 +73,7 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
     } finally {
       setLoading(false);
     }
+  };
   };
 
   useEffect(() => {
