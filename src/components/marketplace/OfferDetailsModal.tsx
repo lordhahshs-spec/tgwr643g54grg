@@ -194,14 +194,6 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 <div className="text-slate-600 text-xs">Sem foto</div>
               )}
 
-              {/* Selo de Desconto no Canto Superior Direito da Imagem */}
-              {hasDiscount && discountPercent > 0 && (
-                <div className="absolute top-3 right-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs px-2.5 py-1 rounded-full shadow-lg shadow-red-600/40 border border-red-400/40 flex items-center gap-1 animate-pulse">
-                  <ArrowDown className="w-3 h-3 stroke-[3]" />
-                  <span>{discountPercent}% OFF</span>
-                </div>
-              )}
-
               {images.length > 1 && (
                 <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] text-slate-400 font-mono">
                   {activeImageIndex + 1} / {images.length}
@@ -257,26 +249,36 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 {offer.title}
               </h1>
 
-              {/* Preço & Parcelamento Minimalista */}
+              {/* Preço & Parcelamento Minimalista Estilo Mercado Livre */}
               <div className="pt-2 pb-3 border-y border-white/5 space-y-1">
                 {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 line-through font-medium">
-                      De: {formatBRL(offer.originalPrice)}
+                    <span className="text-xs text-slate-500 line-through font-normal">
+                      {formatBRL(offer.originalPrice)}
                     </span>
-                    <span className="text-[10px] font-black text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20 flex items-center gap-0.5">
-                      <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
-                      -{discountPercent}% OFF
+                    <span className="text-xs font-bold text-emerald-400">
+                      {discountPercent}% OFF
                     </span>
                   </div>
                 )}
 
                 <div className="flex items-baseline gap-2">
-                  <div className="text-2xl sm:text-3xl font-black text-[#00D287] tracking-tight">
+                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                     {formatBRL(offer.price)}
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">à vista no PIX</span>
                 </div>
+
+                <div className="text-xs sm:text-sm text-emerald-400 font-medium">
+                  em <span className="font-bold">12x de {formatBRL(offer.price / 12)}</span> sem juros
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold pt-1">
+                  <span>Frete grátis</span>
+                  <span className="inline-flex items-center gap-0.5 text-[#00D287] font-black italic tracking-tighter text-[10px] bg-[#00D287]/15 px-1.5 py-0.2 rounded">
+                    <Zap className="w-2.5 h-2.5 fill-[#00D287]" /> FULL
+                  </span>
+                </div>
+              </div>
 
                 <div className="text-xs text-slate-300 font-medium">
                   ou <strong className="text-white">12x de {formatBRL(installment12x)}</strong> sem juros
