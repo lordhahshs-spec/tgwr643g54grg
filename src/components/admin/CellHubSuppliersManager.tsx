@@ -7,9 +7,6 @@ import {
   Search,
   Building2,
   MapPin,
-  Phone,
-  Mail,
-  User,
   Tag,
   CheckCircle2,
   Copy,
@@ -23,7 +20,6 @@ import { toast } from 'sonner';
 
 interface CellHubSuppliersManagerProps {
   products?: MarketplaceOffer[];
-  onSupplierSelected?: (supplier: MarketplaceSupplier) => void;
 }
 
 export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = ({
@@ -32,7 +28,6 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
   const [suppliers, setSuppliers] = useState<MarketplaceSupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [stateFilter, setStateFilter] = useState('todos');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,23 +35,13 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
-  // Form Fields
-  const [formData, setFormData] = useState({
-    name: '',
-    tag: '',
-    phone: '',
-    email: '',
-    contactPerson: '',
-    postalCode: '',
-    street: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    notes: '',
-    status: 'ativo' as 'ativo' | 'inativo',
-  });
+  // Minimal Form: Apenas Nome e CEP
+  const [name, setName] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [resolvedCity, setResolvedCity] = useState('');
+  const [resolvedState, setResolvedState] = useState('');
+  const [resolvedStreet, setResolvedStreet] = useState('');
+  const [resolvedNeighborhood, setResolvedNeighborhood] = useState('');
 
   const loadSuppliers = async () => {
     setLoading(true);
@@ -77,150 +62,112 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
 
   const openNewModal = () => {
     setEditingSupplier(null);
-    setFormData({
-      name: '',
-      tag: '',
-      phone: '',
-      email: '',
-      contactPerson: '',
-      postalCode: '',
-      street: '',
-      number: '',
-      complement: '',
-      neighborhood: '',
-      city: '',
-      state: '',
-      notes: '',
-      status: 'ativo',
-    });
+    setName('');
+    setPostalCode('');
+    setResolvedCity('');
+    setResolvedState('');
+    setResolvedStreet('');
+    setResolvedNeighborhood('');
     setIsModalOpen(true);
   };
 
   const openEditModal = (supplier: MarketplaceSupplier) => {
     setEditingSupplier(supplier);
-    setFormData({
-      name: supplier.name,
-      tag: supplier.tag,
-      phone: supplier.phone || '',
-      email: supplier.email || '',
-      contactPerson: supplier.contactPerson || '',
-      postalCode: supplier.postalCode,
-      street: supplier.street,
-      number: supplier.number,
-      complement: supplier.complement || '',
-      neighborhood: supplier.neighborhood,
-      city: supplier.city,
-      state: supplier.state,
-      notes: supplier.notes || '',
-      status: supplier.status,
-    });
+    setName(supplier.name);
+    setPostalCode(supplier.postalCode);
+    setResolvedCity(supplier.city);
+    setResolvedState(supplier.state);
+    setResolvedStreet(supplier.street);
+    setResolvedNeighborhood(supplier.neighborhood);
     setIsModalOpen(true);
   };
 
-  const handleCepLookup = async (cepInput: string) => {
-    const cleanCep = cepInput.replace(/\D/g, '');
-    if (cleanCep.length !== 8) return;
-
-    setIsLoadingCep(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await res.json();
-      if (!data.erro) {
-        setFormData(prev => ({
-          ...prev,
-          postalCode: cleanCep.replace(/^(\d{5})(\d{3})/, '$1-$2'),
-          street: data.logradouro || prev.street,
-          neighborhood: data.bairro || prev.neighborhood,
-          city: data.localidade || prev.city,
-          state: data.uf || prev.state,
-        }));
-        toast.success(`Endereço encontrado: ${data.localidade} - ${data.uf}`);
-      } else {
-        toast.error('CEP não localizado no ViaCEP.');
+  const handleCepChange = async (val: string) => {
+    setPostalCode(val);
+    const cleanCep = val.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      setIsLoadingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setResolvedCity(data.localidade || 'São Paulo');
+          setResolvedState(data.uf || 'SP');
+          setResolvedStreet(data.logradouro || 'Centro');
+          setResolvedNeighborhood(data.bairro || 'Centro');
+          toast.success(`${data.localidade} - ${data.uf} identificado!`);
+        }
+      } catch (e) {
+        // silencioso
+      } finally {
+        setIsLoadingCep(false);
       }
-    } catch (e) {
-      console.error(e);
-      toast.error('Erro ao consultar CEP automático.');
-    } finally {
-      setIsLoadingCep(false);
     }
-  };
-
-  const autoGenerateTag = (name: string, city: string, uf: string) => {
-    if (!name.trim()) return '';
-    const cleanName = name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase();
-    const cleanUf = (uf || 'SP').trim().toUpperCase();
-    return `FORN-${cleanName}-${cleanUf}`;
-  };
-
-  const handleNameChange = (val: string) => {
-    setFormData(prev => {
-      const next = { ...prev, name: val };
-      if (!editingSupplier && (!prev.tag || prev.tag.startsWith('FORN-'))) {
-        next.tag = autoGenerateTag(val, prev.city, prev.state);
-      }
-      return next;
-    });
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
+    if (!name.trim()) {
       toast.error('Informe o nome do fornecedor.');
       return;
     }
-    if (!formData.tag.trim()) {
-      toast.error('Informe a tag/código do fornecedor.');
-      return;
-    }
-    if (!formData.postalCode.trim() || !formData.city.trim() || !formData.state.trim()) {
-      toast.error('Preencha o CEP, Cidade e Estado para cálculo correto do frete.');
+    const cleanCep = postalCode.replace(/\D/g, '');
+    if (cleanCep.length !== 8) {
+      toast.error('Informe um CEP válido com 8 dígitos.');
       return;
     }
 
     setIsSaving(true);
+    const cleanTag = `FORN-${name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase()}-${resolvedState || 'SP'}`;
+    const formattedCep = cleanCep.replace(/^(\d{5})(\d{3})/, '$1-$2');
+
+    const payload = {
+      name: name.trim(),
+      tag: cleanTag,
+      postalCode: formattedCep,
+      street: resolvedStreet || 'Endereço Comercial',
+      number: 'S/N',
+      neighborhood: resolvedNeighborhood || 'Centro',
+      city: resolvedCity || 'São Paulo',
+      state: (resolvedState || 'SP').toUpperCase(),
+      status: 'ativo' as const,
+    };
+
     try {
       if (editingSupplier) {
-        const res = await marketplaceService.updateSupplier(editingSupplier.id, formData);
+        const res = await marketplaceService.updateSupplier(editingSupplier.id, payload);
         if (res.success) {
-          toast.success('Fornecedor atualizado com sucesso!');
+          toast.success('Fornecedor atualizado!');
           setIsModalOpen(false);
           loadSuppliers();
         } else {
-          toast.error(res.error || 'Erro ao atualizar fornecedor.');
+          toast.error(res.error || 'Erro ao atualizar.');
         }
       } else {
-        const res = await marketplaceService.createSupplier(formData);
+        const res = await marketplaceService.createSupplier(payload);
         if (res.success) {
-          toast.success('Fornecedor cadastrado com sucesso!');
+          toast.success('Fornecedor cadastrado!');
           setIsModalOpen(false);
           loadSuppliers();
         } else {
-          toast.error(res.error || 'Erro ao criar fornecedor.');
+          toast.error(res.error || 'Erro ao cadastrar.');
         }
       }
     } catch (err) {
       console.error(err);
-      toast.error('Ocorreu um erro ao salvar o fornecedor.');
+      toast.error('Erro ao salvar fornecedor.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (supplier: MarketplaceSupplier) => {
-    const linkedProducts = products.filter(p => p.supplierId === supplier.id || p.supplierTag === supplier.tag);
-    
-    if (linkedProducts.length > 0) {
-      const confirmMsg = `Este fornecedor está vinculado a ${linkedProducts.length} produto(s) no catálogo. Deseja realmente excluí-lo?`;
-      if (!window.confirm(confirmMsg)) return;
-    } else {
-      if (!window.confirm(`Deseja excluir o fornecedor "${supplier.name}"?`)) return;
-    }
+    if (!window.confirm(`Deseja excluir o fornecedor "${supplier.name}"?`)) return;
 
     try {
       const res = await marketplaceService.deleteSupplier(supplier.id);
       if (res.success) {
-        toast.success('Fornecedor removido com sucesso!');
+        toast.success('Fornecedor removido!');
         loadSuppliers();
       } else {
         toast.error('Erro ao remover fornecedor.');
@@ -231,105 +178,20 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
     }
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado!`);
+  const copyTag = (tag: string) => {
+    navigator.clipboard.writeText(tag);
+    toast.success('Tag copiada!');
   };
 
-  // Filtragem
-  const filteredSuppliers = suppliers.filter(s => {
-    const matchesSearch = 
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.postalCode.includes(searchQuery);
-
-    const matchesState = stateFilter === 'todos' || s.state.toUpperCase() === stateFilter.toUpperCase();
-
-    return matchesSearch && matchesState;
-  });
-
-  const uniqueStates = Array.from(new Set(suppliers.map(s => s.state.toUpperCase()))).filter(Boolean);
+  const filteredSuppliers = suppliers.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.postalCode.includes(searchQuery)
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header & Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-[#0b101d] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-slate-400 block">Total Fornecedores</span>
-            <span className="text-2xl font-black text-white">{suppliers.length}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#00D287]/10 border border-[#00D287]/20 flex items-center justify-center text-[#00D287]">
-            <Building2 className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-[#0b101d] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-slate-400 block">Origem de Frete Ativa</span>
-            <span className="text-2xl font-black text-emerald-400">
-              {suppliers.filter(s => s.status === 'ativo').length}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-            <Truck className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-[#0b101d] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-slate-400 block">Estados / Polos</span>
-            <span className="text-2xl font-black text-cyan-400">{uniqueStates.length}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-            <MapPin className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-[#0b101d] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-slate-400 block">Produtos Vinculados</span>
-            <span className="text-2xl font-black text-purple-400">
-              {products.filter(p => Boolean(p.supplierId || p.supplierTag)).length}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <Boxes className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Explanatory Banner */}
-      <div className="bg-gradient-to-r from-emerald-950/40 via-[#0a1224] to-[#070d1a] border border-[#00D287]/20 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#00D287]/20 text-[#00D287] flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Truck className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              Logística Dropshipping & Cálculo de Frete pelo Melhor Envio
-              <span className="text-[10px] bg-[#00D287]/20 text-[#00D287] px-2 py-0.5 rounded-md font-black uppercase">
-                Origem Automática
-              </span>
-            </h4>
-            <p className="text-xs text-slate-300 leading-relaxed mt-0.5">
-              Cada produto associado a uma <strong>Tag de Fornecedor</strong> utiliza o endereço base cadastrado aqui como <strong>CEP de Origem</strong> para o cálculo exato do frete no momento em que o cliente compra.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={openNewModal}
-          className="px-4 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all active:scale-95 flex-shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Cadastrar Fornecedor</span>
-        </button>
-      </div>
-
-      {/* Filter & Search Bar */}
+    <div className="space-y-4">
+      {/* Top Action Bar Minimalista */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#080d19] border border-white/10 rounded-2xl p-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -337,26 +199,23 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nome, tag, cidade, estado ou CEP..."
+            placeholder="Buscar por nome ou CEP..."
             className="w-full bg-[#050811] border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <select
-            value={stateFilter}
-            onChange={(e) => setStateFilter(e.target.value)}
-            className="bg-[#050811] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#00D287]"
+          <button
+            onClick={openNewModal}
+            className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all active:scale-95 cursor-pointer"
           >
-            <option value="todos">Todos os Estados</option>
-            {uniqueStates.map(uf => (
-              <option key={uf} value={uf}>{uf}</option>
-            ))}
-          </select>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Novo Fornecedor</span>
+          </button>
 
           <button
             onClick={loadSuppliers}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 transition-colors"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 transition-colors cursor-pointer"
             title="Recarregar"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -364,81 +223,65 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
         </div>
       </div>
 
-      {/* Grid of Suppliers */}
+      {/* Lista Minimalista de Fornecedores */}
       {loading ? (
-        <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
-          <RefreshCw className="w-6 h-6 animate-spin text-[#00D287]" />
-          <span className="text-xs font-medium">Carregando base de fornecedores...</span>
+        <div className="py-10 flex flex-col items-center justify-center text-slate-400 space-y-2">
+          <RefreshCw className="w-5 h-5 animate-spin text-[#00D287]" />
+          <span className="text-xs">Carregando fornecedores...</span>
         </div>
       ) : filteredSuppliers.length === 0 ? (
-        <div className="py-12 text-center bg-[#090e1c] border border-white/10 rounded-2xl p-6 space-y-3">
-          <Building2 className="w-10 h-10 text-slate-600 mx-auto" />
+        <div className="py-10 text-center bg-[#090e1c] border border-white/10 rounded-2xl p-6 space-y-2">
+          <Building2 className="w-8 h-8 text-slate-600 mx-auto" />
           <h4 className="text-sm font-bold text-white">Nenhum fornecedor cadastrado</h4>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Cadastre os fornecedores reais para vincular às tags dos produtos e automatizar o cálculo de frete pelo Melhor Envio.
+          <p className="text-xs text-slate-400">
+            Cadastre o nome e o CEP do fornecedor para calcular o frete de origem.
           </p>
           <button
             onClick={openNewModal}
-            className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs cursor-pointer"
+            className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>Cadastrar Primeiro Fornecedor</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Cadastrar Fornecedor</span>
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredSuppliers.map((supplier) => {
-            const linkedProducts = products.filter(p => p.supplierId === supplier.id || p.supplierTag === supplier.tag);
+            const linkedCount = products.filter(p => p.supplierId === supplier.id || p.supplierTag === supplier.tag).length;
 
             return (
               <div
                 key={supplier.id}
-                className="bg-[#090e1c] hover:bg-[#0c1428] border border-white/10 hover:border-white/20 rounded-2xl p-4.5 flex flex-col justify-between transition-all duration-200 shadow-sm hover:shadow-xl group"
+                className="bg-[#090e1c] hover:bg-[#0c1428] border border-white/10 hover:border-white/20 rounded-2xl p-3.5 flex flex-col justify-between transition-all"
               >
-                <div className="space-y-3">
-                  {/* Top Header */}
+                <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-white group-hover:text-[#00D287] transition-colors">
-                          {supplier.name}
-                        </h3>
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
-                          supplier.status === 'ativo'
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-slate-800 text-slate-400 border border-slate-700'
-                        }`}>
-                          {supplier.status}
-                        </span>
-                      </div>
-
-                      {/* Tag Badge */}
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-[#00D287]/10 text-[#00D287] border border-[#00D287]/30 px-2 py-0.5 rounded-lg">
-                          <Tag className="w-3 h-3" />
-                          {supplier.tag}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(supplier.tag, 'Tag do fornecedor')}
-                          className="p-1 rounded text-slate-500 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                          title="Copiar Tag"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                      </div>
+                      <h3 className="text-sm font-bold text-white truncate">
+                        {supplier.name}
+                      </h3>
+                      <button
+                        onClick={() => copyTag(supplier.tag)}
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-[#00D287]/10 text-[#00D287] border border-[#00D287]/30 px-2 py-0.5 rounded-md hover:bg-[#00D287]/20 transition-colors cursor-pointer"
+                        title="Clique para copiar"
+                      >
+                        <Tag className="w-3 h-3" />
+                        {supplier.tag}
+                        <Copy className="w-2.5 h-2.5 ml-0.5 opacity-70" />
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEditModal(supplier)}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
                         title="Editar"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(supplier)}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/5 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                         title="Excluir"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -446,62 +289,20 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
                     </div>
                   </div>
 
-                  {/* Endereço de Origem (Para Melhor Envio) */}
-                  <div className="bg-[#050811] border border-white/5 rounded-xl p-2.5 space-y-1 text-xs">
-                    <div className="flex items-center gap-1.5 text-slate-400 font-semibold text-[11px]">
-                      <MapPin className="w-3.5 h-3.5 text-[#00D287] flex-shrink-0" />
-                      <span>Origem do Frete (Melhor Envio):</span>
-                    </div>
-                    <p className="text-slate-200 font-medium pl-5 truncate">
-                      {supplier.street}, {supplier.number} {supplier.complement ? `(${supplier.complement})` : ''}
-                    </p>
-                    <p className="text-slate-400 text-[11px] pl-5 truncate">
-                      {supplier.neighborhood} • <strong>{supplier.city} - {supplier.state}</strong> • CEP: <span className="font-mono text-emerald-400 font-bold">{supplier.postalCode}</span>
-                    </p>
+                  <div className="bg-[#050811] border border-white/5 rounded-xl px-2.5 py-1.5 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#00D287]" />
+                      {supplier.city ? `${supplier.city} - ${supplier.state}` : 'Origem'}
+                    </span>
+                    <span className="font-mono text-emerald-400 font-bold">
+                      CEP {supplier.postalCode}
+                    </span>
                   </div>
-
-                  {/* Contato do Fornecedor */}
-                  <div className="space-y-1 text-[11px] text-slate-400">
-                    {supplier.contactPerson && (
-                      <div className="flex items-center gap-1.5 truncate">
-                        <User className="w-3 h-3 text-slate-500" />
-                        <span>Contato: <strong className="text-slate-300">{supplier.contactPerson}</strong></span>
-                      </div>
-                    )}
-                    {supplier.phone && (
-                      <div className="flex items-center gap-1.5 truncate">
-                        <Phone className="w-3 h-3 text-slate-500" />
-                        <span>WhatsApp/Tel: <strong className="text-slate-300">{supplier.phone}</strong></span>
-                      </div>
-                    )}
-                    {supplier.email && (
-                      <div className="flex items-center gap-1.5 truncate">
-                        <Mail className="w-3 h-3 text-slate-500" />
-                        <span className="truncate">{supplier.email}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Observações / Notas */}
-                  {supplier.notes && (
-                    <p className="text-[11px] text-slate-500 line-clamp-2 bg-white/[0.02] p-2 rounded-lg border border-white/5 italic">
-                      "{supplier.notes}"
-                    </p>
-                  )}
                 </div>
 
-                {/* Footer Card */}
-                <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <Boxes className="w-3.5 h-3.5 text-purple-400" />
-                    <strong>{linkedProducts.length}</strong> produtos associados
-                  </span>
-                  <button
-                    onClick={() => openEditModal(supplier)}
-                    className="text-xs text-[#00D287] hover:underline font-semibold cursor-pointer"
-                  >
-                    Editar Origem →
-                  </button>
+                <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>{linkedCount} produto(s) vinculado(s)</span>
+                  <span className="text-emerald-400 font-medium">● Ativo</span>
                 </div>
               </div>
             );
@@ -509,309 +310,91 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
         </div>
       )}
 
-      {/* Modal de Cadastro / Edição de Fornecedor */}
+      {/* Modal Ultra Simplificado (Apenas Nome e CEP) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setIsModalOpen(false)}
+        >
           <div 
-            className="relative w-full max-w-2xl bg-[#0a0f1d] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            className="relative w-full max-w-sm bg-[#0a0f1d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl p-5 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#070b16]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 flex items-center justify-center">
-                  <Building2 className="w-5 h-5" />
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+                  <Truck className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-base font-black text-white">
-                    {editingSupplier ? 'Editar Fornecedor & Origem' : 'Novo Fornecedor de Origem'}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Defina o endereço base para cálculo do frete automático no Melhor Envio.
-                  </p>
-                </div>
+                <h3 className="text-sm font-bold text-white">
+                  {editingSupplier ? 'Editar Fornecedor' : 'Cadastrar Fornecedor'}
+                </h3>
               </div>
-
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Form Body */}
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-              
-              {/* Seção 1: Dados Gerais e Tag */}
-              <div className="space-y-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#00D287] flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5" /> Identificação do Fornecedor
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Nome do Fornecedor / Empresa *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      placeholder="Ex: Fornecedor Boss SP"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Tag Identificadora do Produto *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.tag}
-                      onChange={(e) => setFormData(prev => ({ ...prev, tag: e.target.value.toUpperCase() }))}
-                      placeholder="Ex: FORN-BOSS-SP"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-[#00D287] placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                    <span className="text-[10px] text-slate-500 mt-1 block">
-                      Esta tag será exibida para seleção no cadastro e edição dos produtos.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Pessoa de Contato
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.contactPerson}
-                      onChange={(e) => setFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
-                      placeholder="Ex: Carlos Eduardo"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      WhatsApp / Telefone
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="Ex: (11) 98765-4321"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      E-mail do Fornecedor
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Ex: vendas@fornecedor.com"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-                </div>
+            {/* Form */}
+            <form onSubmit={handleSave} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Nome do Fornecedor *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Fornecedor Boss SP"
+                  className="w-full bg-[#050811] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
+                />
               </div>
 
-              {/* Seção 2: Endereço de Origem (Melhor Envio) */}
-              <div className="space-y-3 pt-2 border-t border-white/10">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#00D287] flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5" /> Endereço Base de Origem (Cálculo de Frete)
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  CEP de Origem *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    maxLength={9}
+                    value={postalCode}
+                    onChange={(e) => handleCepChange(e.target.value)}
+                    placeholder="00000-000"
+                    className="w-full bg-[#050811] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
+                  />
+                  {isLoadingCep && (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00D287] absolute right-3 top-1/2 -translate-y-1/2" />
+                  )}
+                </div>
+                {resolvedCity && (
+                  <span className="text-[11px] text-emerald-400 mt-1 block">
+                    ✓ {resolvedCity} - {resolvedState}
                   </span>
-                  <span className="text-[10px] text-slate-400">
-                    O CEP deste fornecedor será a origem do pacote.
-                  </span>
-                </div>
-
-                {/* Linha CEP */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      CEP de Origem *
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        required
-                        maxLength={9}
-                        value={formData.postalCode}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormData(prev => ({ ...prev, postalCode: val }));
-                          if (val.replace(/\D/g, '').length === 8) {
-                            handleCepLookup(val);
-                          }
-                        }}
-                        placeholder="00000-000"
-                        className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                      />
-                      {isLoadingCep && (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00D287] absolute right-3 top-1/2 -translate-y-1/2" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Logradouro (Rua / Av / Galpão) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.street}
-                      onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
-                      placeholder="Ex: Rua Santa Ifigênia"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-                </div>
-
-                {/* Linha Número, Complemento, Bairro */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Número *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.number}
-                      onChange={(e) => setFormData(prev => ({ ...prev, number: e.target.value }))}
-                      placeholder="Ex: 450"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Complemento (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.complement}
-                      onChange={(e) => setFormData(prev => ({ ...prev, complement: e.target.value }))}
-                      placeholder="Ex: Sala 12, Bloco B"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Bairro *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.neighborhood}
-                      onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
-                      placeholder="Ex: Santa Ifigênia"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-                </div>
-
-                {/* Linha Cidade & Estado */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Cidade *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.city}
-                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="Ex: São Paulo"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Estado (UF) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={2}
-                      value={formData.state}
-                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
-                      placeholder="SP"
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs uppercase font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Seção 3: Observações e Status */}
-              <div className="space-y-3 pt-2 border-t border-white/10">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Observações / Detalhes de Envio
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={formData.notes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Ex: Despacha no mesmo dia se aprovado até 14h. Envia por Jadlog e Sedex."
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287] resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Status Operacional
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'ativo' | 'inativo' }))}
-                      className="w-full bg-[#050811] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#00D287]"
-                    >
-                      <option value="ativo">Ativo (Habilitado para Frete)</option>
-                      <option value="inativo">Inativo (Pausado)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-2.5">
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs shadow-lg shadow-[#00D287]/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs shadow-md shadow-[#00D287]/20 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
-                  {isSaving ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>{editingSupplier ? 'Atualizar Fornecedor' : 'Salvar Fornecedor'}</span>
-                    </>
-                  )}
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
                 </button>
               </div>
             </form>
