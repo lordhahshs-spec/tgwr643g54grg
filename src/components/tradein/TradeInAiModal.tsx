@@ -73,6 +73,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     tierUsed?: 'free' | 'paid';
   } | null>(null);
 
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
+
   const isMobile = checkIsMobileDevice();
   const [activeTab, setActiveTab] = useState<'mobile_camera' | 'qr' | 'upload'>(isMobile ? 'mobile_camera' : 'qr');
 
@@ -131,7 +133,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   const initSession = async () => {
     if (!currentModel) return;
-    setLoading(true);
+    
+    // Configuração Otimista Instantânea (0ms de atraso)
     setAnalysisResult(null);
     setAnalysisError(null);
     setRejectionData(null);
@@ -142,27 +145,54 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     hasTriggeredRef.current = false;
     setActiveTab(isMobile ? 'mobile_camera' : 'qr');
 
+    const cleanUser = (userId || 'usr').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+    const instantToken = `ses_${cleanUser}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    const optimisticSession: AiEvaluationSession = {
+      id: '',
+      session_token: instantToken,
+      user_id: userId,
+      brand: currentModel.brand,
+      model_name: currentModel.model_name,
+      storage: currentModel.storage,
+      allowed_presets: brandPresets,
+      photos: [],
+      status: 'waiting_for_phone',
+      detected_presets: [],
+      visual_summary: [],
+      confidence: 'medium',
+      expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    setSession(optimisticSession);
+    setLoading(false);
+
+    // Persistência paralela em segundo plano e checagem de cota
     try {
-      const q = await tradeinAiService.checkQuota(userId);
-      setQuota(q);
+      const [res, q] = await Promise.all([
+        tradeinAiService.createSession({
+          userId,
+          brand: currentModel.brand,
+          modelName: currentModel.model_name,
+          storage: currentModel.storage,
+          allowedPresets: brandPresets,
+          customSessionToken: instantToken
+        }),
+        tradeinAiService.checkQuota(userId).catch(() => null)
+      ]);
 
-      const res = await tradeinAiService.createSession({
-        userId,
-        brand: currentModel.brand,
-        modelName: currentModel.model_name,
-        storage: currentModel.storage,
-        allowedPresets: brandPresets
-      });
-
+      if (q) setQuota(q);
       if (res.success && res.session) {
-        setSession(res.session);
-      } else {
-        toast.error('Erro ao gerar sessão de IA.');
+        setSession(prev => ({
+          ...prev,
+          ...res.session,
+          session_token: res.session?.session_token || instantToken
+        }));
       }
     } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      console.error('Erro ao sincronizar sessão em background:', err);
     }
   };
 
@@ -361,8 +391,31 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     setMobilePreviews(prev => ({ ...prev, [type]: url }));
   };
 
+  const ensureActiveSessionId = async (): Promise<string | null> => {
+    if (session?.id && !session.id.startsWith('temp_') && session.id !== '') {
+      return session.id;
+    }
+    try {
+      const res = await tradeinAiService.createSession({
+        userId,
+        brand: currentModel?.brand || '',
+        modelName: currentModel?.model_name || '',
+        storage: currentModel?.storage || '',
+        allowedPresets: brandPresets,
+        customSessionToken: session?.session_token
+      });
+      if (res.success && res.session?.id) {
+        setSession(res.session);
+        return res.session.id;
+      }
+    } catch (e) {
+      console.error('Erro ao assegurar sessão:', e);
+    }
+    return session?.id || null;
+  };
+
   const handleMobileSubmit = async () => {
-    if (!mobileFiles.front || !mobileFiles.side || !mobileFiles.back || !session) {
+    if (!mobileFiles.front || !mobileFiles.side || !mobileFiles.back) {
       toast.error('Por favor, tire as 3 fotos do aparelho (Frente, Lateral e Traseira).');
       return;
     }
@@ -372,20 +425,27 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     setRejectionData(null);
 
     try {
+      const activeSessionId = await ensureActiveSessionId();
+      if (!activeSessionId) {
+        toast.error('Erro ao sincronizar sessão. Tente novamente.');
+        setAnalyzing(false);
+        return;
+      }
+
       const itemsToUpload = [
         { type: 'front' as const, file: mobileFiles.front },
         { type: 'side' as const, file: mobileFiles.side },
         { type: 'back' as const, file: mobileFiles.back }
       ];
 
-      const uploadRes = await tradeinAiService.uploadPhotosForSession(session.id, itemsToUpload);
+      const uploadRes = await tradeinAiService.uploadPhotosForSession(activeSessionId, itemsToUpload);
       if (!uploadRes.success) {
         toast.error('Erro no upload das imagens.');
         setAnalyzing(false);
         return;
       }
 
-      await runAiAnalysis(session.id);
+      await runAiAnalysis(activeSessionId);
     } catch (err) {
       setAnalysisError('Erro no upload das imagens.');
       setAnalyzing(false);
@@ -393,7 +453,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   };
 
   const handleManualUploadSubmit = async () => {
-    if (!desktopFiles.front || !desktopFiles.side || !desktopFiles.back || !session) {
+    if (!desktopFiles.front || !desktopFiles.side || !desktopFiles.back) {
       toast.error('Por favor, selecione as 3 fotos (Frontal, Lateral e Traseira).');
       return;
     }
@@ -403,20 +463,27 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     setRejectionData(null);
 
     try {
+      const activeSessionId = await ensureActiveSessionId();
+      if (!activeSessionId) {
+        toast.error('Erro ao sincronizar sessão. Tente novamente.');
+        setAnalyzing(false);
+        return;
+      }
+
       const itemsToUpload = [
         { type: 'front' as const, file: desktopFiles.front },
         { type: 'side' as const, file: desktopFiles.side },
         { type: 'back' as const, file: desktopFiles.back }
       ];
 
-      const uploadRes = await tradeinAiService.uploadPhotosForSession(session.id, itemsToUpload);
+      const uploadRes = await tradeinAiService.uploadPhotosForSession(activeSessionId, itemsToUpload);
       if (!uploadRes.success) {
         toast.error('Erro no upload das imagens.');
         setAnalyzing(false);
         return;
       }
 
-      await runAiAnalysis(session.id);
+      await runAiAnalysis(activeSessionId);
     } catch (err) {
       setAnalysisError('Erro no upload das imagens.');
       setAnalyzing(false);
