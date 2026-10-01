@@ -9,11 +9,12 @@ import {
   RefreshCw, 
   Upload, 
   Layers, 
-  ShieldCheck,
-  Zap,
-  Lock,
-  XCircle,
-  Trash2
+  ShieldCheck, 
+  Zap, 
+  Lock, 
+  XCircle, 
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
@@ -44,12 +45,20 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  
+  // Rejeição por não ser smartphone
+  const [rejectionData, setRejectionData] = useState<{
+    detectedObject: string;
+    reason: string;
+  } | null>(null);
+
   const [analysisResult, setAnalysisResult] = useState<{
     detectedPresetIds: string[];
     visualSummary: string[];
     confidence: string;
     tierUsed?: 'free' | 'paid';
   } | null>(null);
+
   const [upgradeRequired, setUpgradeRequired] = useState(false);
   const [activeTab, setActiveTab] = useState<'qr' | 'upload'>('qr');
 
@@ -68,6 +77,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     setLoading(true);
     setAnalysisResult(null);
     setAnalysisError(null);
+    setRejectionData(null);
     setUpgradeRequired(false);
     hasTriggeredRef.current = false;
 
@@ -103,6 +113,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
       setSession(null);
       setAnalysisResult(null);
       setAnalysisError(null);
+      setRejectionData(null);
       hasTriggeredRef.current = false;
     }
 
@@ -113,10 +124,10 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   // Polling para acompanhar o celular conectado e recebimento das fotos
   useEffect(() => {
-    if (!isOpen || !session || analysisResult || analyzing || upgradeRequired || hasTriggeredRef.current) return;
+    if (!isOpen || !session || analysisResult || analyzing || upgradeRequired || rejectionData || hasTriggeredRef.current) return;
 
     let pollAttempts = 0;
-    const MAX_POLL_ATTEMPTS = 60; // 3 minutos
+    const MAX_POLL_ATTEMPTS = 60;
 
     pollingRef.current = setInterval(async () => {
       pollAttempts += 1;
@@ -133,21 +144,20 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           setSession(updated);
         }
 
-        // Se o celular terminou de subir as fotos e ainda não disparou
         if (updated.status === 'photos_received' && !hasTriggeredRef.current) {
           hasTriggeredRef.current = true;
           if (pollingRef.current) clearInterval(pollingRef.current);
           runAiAnalysis(updated.id);
         }
       } catch (e) {
-        // Silenciar erros transitórios de polling
+        // Silenciar erros de rede no polling
       }
-    }, 2000);
+    }, 1500);
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [isOpen, session?.id, session?.status, analysisResult, analyzing, upgradeRequired]);
+  }, [isOpen, session?.id, session?.status, analysisResult, analyzing, upgradeRequired, rejectionData]);
 
   const handleCancelSession = async () => {
     if (pollingRef.current) clearInterval(pollingRef.current);
@@ -163,6 +173,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   const runAiAnalysis = async (sessionId?: string) => {
     setAnalyzing(true);
     setAnalysisError(null);
+    setRejectionData(null);
 
     try {
       const res = await tradeinAiService.triggerEvaluation({
@@ -173,14 +184,24 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
         allowedPresets: brandPresets
       });
 
-      if (res.success && res.detectedPresetIds) {
+      if (res.success) {
+        // Checar se a IA rejeitou por não ser um smartphone
+        if (res.isValidSmartphone === false) {
+          setRejectionData({
+            detectedObject: res.detectedObjectDescription || 'Objeto não reconhecido / Imagem inválida',
+            reason: res.rejectionReason || 'As fotos enviadas não correspondem a um smartphone.'
+          });
+          toast.error('Fotos rejeitadas: As imagens não são de um smartphone!');
+          return;
+        }
+
         setAnalysisResult({
-          detectedPresetIds: res.detectedPresetIds,
+          detectedPresetIds: res.detectedPresetIds || [],
           visualSummary: res.visualSummary || [],
           confidence: res.confidence || 'high',
           tierUsed: res.tierUsed
         });
-        toast.success('Análise visual concluída com sucesso!');
+        toast.success('Diagnóstico concluído!');
       } else if (res.requiresUpgrade) {
         setUpgradeRequired(true);
       } else {
@@ -202,6 +223,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
     setAnalyzing(true);
     setAnalysisError(null);
+    setRejectionData(null);
 
     try {
       const itemsToUpload = [
@@ -302,8 +324,47 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 Ativar CellHub IA (Pagamento em Breve)
               </Button>
             </div>
+          ) : rejectionData ? (
+            /* Rejection Screen (Not a Smartphone) */
+            <div className="p-6 rounded-3xl bg-[#1e293b] border-2 border-red-500/50 text-center space-y-4 animate-in zoom-in-95">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-white">Fotos Rejeitadas pela IA</h3>
+                <p className="text-xs text-red-300 font-semibold max-w-md mx-auto">
+                  As fotografias enviadas não correspondem a um smartphone válido.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#0a0f1d] border border-slate-800 text-xs space-y-1.5 text-left max-w-md mx-auto">
+                <div className="flex items-start gap-2">
+                  <span className="text-slate-400 shrink-0">Objeto Detectado:</span>
+                  <strong className="text-amber-400">{rejectionData.detectedObject}</strong>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-slate-400 shrink-0">Diagnóstico:</span>
+                  <span className="text-slate-200">{rejectionData.reason}</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-400">
+                Por favor, aponte a câmera e tire fotos reais e nítidas do smartphone que está sendo avaliado.
+              </p>
+
+              <div className="flex justify-center gap-3 pt-2">
+                <Button
+                  onClick={initSession}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 px-6 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Fotografar Celular Novamente
+                </Button>
+              </div>
+            </div>
           ) : analysisError ? (
-            /* Error with direct Retry Button without losing photos */
+            /* Error with direct Retry Button */
             <div className="p-6 rounded-3xl bg-[#1e293b] border border-amber-500/40 text-center space-y-4 animate-in fade-in duration-200">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
                 <AlertCircle className="w-7 h-7" />
@@ -312,7 +373,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               <div className="space-y-1.5">
                 <h3 className="text-base font-bold text-white">Instabilidade Momentânea na IA</h3>
                 <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                  {analysisError}. As fotos já estão salvas com segurança no sistema. Clique abaixo para reprocessar o laudo.
+                  {analysisError}. As fotos já estão salvas com segurança. Clique abaixo para reprocessar o laudo.
                 </p>
               </div>
 

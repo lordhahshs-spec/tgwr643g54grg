@@ -211,6 +211,9 @@ export const tradeinAiService = {
     photos?: { type: string; url?: string; base64?: string }[];
   }): Promise<{
     success: boolean;
+    isValidSmartphone?: boolean;
+    detectedObjectDescription?: string;
+    rejectionReason?: string;
     tierUsed?: 'free' | 'paid';
     detectedPresetIds?: string[];
     visualSummary?: string[];
@@ -243,6 +246,9 @@ export const tradeinAiService = {
 
       return {
         success: true,
+        isValidSmartphone: data.isValidSmartphone !== false,
+        detectedObjectDescription: data.detectedObjectDescription,
+        rejectionReason: data.rejectionReason,
         tierUsed: data.tierUsed,
         detectedPresetIds: data.detectedPresetIds || [],
         visualSummary: data.visualSummary || [],

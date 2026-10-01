@@ -28,14 +28,12 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// Lista ordenada por velocidade de resposta e suporte multimodal nativo
-const FAST_MODELS_CASCADE = [
+// Modelos ultrarrápidos para latência mínima
+const PRIMARY_VISION_MODELS = [
   { ver: "v1beta", model: "gemini-2.0-flash" },
   { ver: "v1beta", model: "gemini-1.5-flash-8b" },
   { ver: "v1beta", model: "gemini-1.5-flash" },
-  { ver: "v1", model: "gemini-1.5-flash" },
-  { ver: "v1beta", model: "gemini-2.0-flash-exp" },
-  { ver: "v1beta", model: "gemini-1.5-pro" }
+  { ver: "v1", model: "gemini-1.5-flash" }
 ];
 
 serve(async (req) => {
@@ -68,8 +66,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[cellhub-ai-router] Ação recebida: ${action} para usuário: ${userId}, sessão: ${sessionId || "n/a"}`);
-
+    // Cancelar Sessão
     if (action === "cancel_session" && sessionId) {
       await supabase
         .from("ai_evaluation_sessions")
@@ -90,7 +87,6 @@ serve(async (req) => {
       .single();
 
     if (configError || !configRow) {
-      console.error("[cellhub-ai-router] Erro ao carregar ai_configurations:", configError);
       return new Response(
         JSON.stringify({ success: false, error: "config_unavailable", message: "Configurações da CellHub IA indisponíveis." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -104,7 +100,7 @@ serve(async (req) => {
       ? `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`
       : `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
 
-    // 3. Contar uso gratuito do lojista no período
+    // 3. Contar uso gratuito
     const { count: usedFreeCount } = await supabase
       .from("ai_usage_logs")
       .select("*", { count: "exact", head: true })
@@ -162,7 +158,7 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           error: "free_limit_reached",
-          message: "Limite de análises gratuitas atingido. Para continuar utilizando a avaliação automática, ative a CellHub IA.",
+          message: "Limite de análises gratuitas atingido. Ative a CellHub IA para análises ilimitadas.",
           requires_upgrade: true,
           freeLimit,
           usedFree,
@@ -189,7 +185,7 @@ serve(async (req) => {
 
       if (sessionErr || !sessionData) {
         return new Response(
-          JSON.stringify({ success: false, error: "session_not_found", message: "Sessão de avaliação expirada ou inválida." }),
+          JSON.stringify({ success: false, error: "session_not_found", message: "Sessão expirada ou não encontrada." }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -214,37 +210,43 @@ serve(async (req) => {
 
     if (!photosToAnalyze || photosToAnalyze.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: "no_photos", message: "É necessário enviar pelo menos as 3 fotografias do aparelho." }),
+        JSON.stringify({ success: false, error: "no_photos", message: "Envie as 3 fotos do aparelho." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 7. Preparar conteúdo multimodal
+    // 7. Preparar conteúdo multimodal com Verificação de Objeto Real
     const allowedPresetsDescriptions = allowedPresetsList.map(p => `- ID: "${p.id}" | Nome: "${p.label}"`).join("\n");
 
-    const systemPrompt = `Você é o módulo de análise visual da CellHub IA.
-Sua função é analisar fotografias de aparelhos celulares (${deviceBrand} ${deviceModel}) e identificar SOMENTE condições físicas e avarias visivelmente comprováveis nas fotos.
+    const systemPrompt = `Você é o perito em inspeção visual e triagem da CellHub IA.
+Você está analisando 3 fotografias enviadas para a avaliação de um SMARTPHONE: ${deviceBrand} ${deviceModel}.
 
-REGRAS OBRIGATÓRIAS:
-1. Você deve selecionar APENAS condições presentes na lista de presets permitidos abaixo. NUNCA invente um ID ou retorne IDs fora da lista.
-2. NUNCA retorne valores financeiros ou estimativas em dinheiro. A CellHub cuida dos preços.
-3. NUNCA tente determinar defeitos funcionais internos (bateria interna, Face ID/biometria eletrônica, Wi-Fi, conector interno, microfone, sensores) a menos que haja dano físico visível direto na lente/tela/conector.
-4. Ignore reflexos de luz, poeira leve e artefatos de compressão da imagem quando não houver evidência clara de trinco ou risco.
-5. Se não houver evidência visual clara, NÃO selecione a avaria.
+⚠️ REGRA CRÍTICA 1 - VALIDAÇÃO DE OBJETO REAL (OBRIGATÓRIO):
+- Inspecione as fotos e verifique se elas representam de fato um SMARTPHONE / APARELHO CELULAR REAL (tela/frente, lateral/quina ou traseira).
+- Se as fotos mostrarem outros objetos (como teclado de computador, mouse, tela de notebook, parede, mesa vazia, chão, pessoa, foto preta ou ilegível), você DEVE IMEDIATAMENTE rejeitar a análise definindo:
+  "is_valid_smartphone": false,
+  "rejection_reason": "As fotos enviadas não correspondem a um smartphone. Objeto detectado: [descreva o que foi fotografado, ex: teclado de computador/mesa/outro objeto]",
+  "selected_preset_ids": []
+- NUNCA marque como 'sem avarias' uma foto que não seja de um celular!
 
-LISTA DE PRESETS PERMITIDOS PARA ESTE APARELHO:
+⚠️ REGRA CRÍTICA 2 - DETECÇÃO DE AVARIAS (Somente se is_valid_smartphone for true):
+- Se for um smartphone real, identifique SOMENTE avarias físicas comprovadas nas fotos (riscos na tela, trincos no display ou vidro traseiro, quinas amassadas, burn-in visível, lente da câmera trincada).
+- Escolha APENAS IDs presentes na lista permitida abaixo. NUNCA invente IDs:
 ${allowedPresetsDescriptions}
 
 FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
 {
+  "is_valid_smartphone": true | false,
+  "detected_object_description": "Descrição do que está presente nas fotos",
+  "rejection_reason": null | "Motivo se não for um celular",
   "selected_preset_ids": ["id_1", "id_2"],
-  "visual_summary": ["Descrição objetiva do que foi visualizado em cada foto (frente, lateral, traseira)"],
+  "visual_summary": ["Resumo do que foi inspecionado em cada foto"],
   "confidence": "high" | "medium" | "low"
 }`;
 
     const contentsParts: any[] = [{ text: systemPrompt }];
 
-    // Baixar fotos em paralelo para velocidade máxima
+    // Baixar fotos em paralelo
     const photoPromises = photosToAnalyze.map(async (photo) => {
       if (photo.base64) {
         const cleanBase64 = photo.base64.replace(/^data:image\/\w+;base64,/, "");
@@ -264,7 +266,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
             };
           }
         } catch (e) {
-          console.error(`[cellhub-ai-router] Erro no download do storage:`, e);
+          console.error(`[cellhub-ai-router] Erro no storage download:`, e);
         }
       } else if (photo.url) {
         try {
@@ -286,17 +288,17 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     resolvedPhotos.forEach(p => contentsParts.push(p));
 
     contentsParts.push({
-      text: `Analise as fotografias acima para o aparelho ${deviceBrand} ${deviceModel}. Retorne o JSON com as avarias visíveis identificadas.`
+      text: `Analise as imagens e determine se é um smartphone ${deviceBrand} ${deviceModel} e suas avarias. Retorne o JSON.`
     });
 
-    // 8. Chamar API Gemini com Modelos Ultrarrápidos em cascata curta
+    // 8. Chamar Modelo de Visão Direto
     let geminiData: any = null;
     let successfulModel = "";
     let lastErrorText = "";
 
-    for (const item of FAST_MODELS_CASCADE) {
+    for (const item of PRIMARY_VISION_MODELS) {
       const geminiUrl = `https://generativelanguage.googleapis.com/${item.ver}/models/${item.model}:generateContent?key=${apiKey}`;
-      console.log(`[cellhub-ai-router] Chamando ${item.ver}/${item.model}...`);
+      console.log(`[cellhub-ai-router] Executando análise rápida em ${item.model}...`);
 
       try {
         const geminiResponse = await fetch(geminiUrl, {
@@ -314,11 +316,9 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
         if (geminiResponse.ok) {
           geminiData = await geminiResponse.json();
           successfulModel = `${item.ver}/${item.model}`;
-          console.log(`[cellhub-ai-router] Sucesso com ${successfulModel}!`);
           break;
         } else {
           lastErrorText = await geminiResponse.text();
-          console.warn(`[cellhub-ai-router] ${item.model} HTTP ${geminiResponse.status}:`, lastErrorText.slice(0, 150));
         }
       } catch (reqErr: any) {
         lastErrorText = reqErr.message || "Erro de rede";
@@ -334,7 +334,15 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
 
     const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    let parsedResult: { selected_preset_ids: string[]; visual_summary: string[]; confidence: string } = {
+    let parsedResult: { 
+      is_valid_smartphone?: boolean;
+      detected_object_description?: string;
+      rejection_reason?: string | null;
+      selected_preset_ids?: string[]; 
+      visual_summary?: string[]; 
+      confidence?: string 
+    } = {
+      is_valid_smartphone: true,
       selected_preset_ids: [],
       visual_summary: [],
       confidence: "medium"
@@ -349,9 +357,15 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       console.error("[cellhub-ai-router] Erro ao fazer parse do JSON do Gemini:", parseErr, candidateText);
     }
 
-    // 9. Validação e Sanitização Estrita de Presets
+    const isValidSmartphone = parsedResult.is_valid_smartphone !== false;
+    const rejectionReason = parsedResult.rejection_reason || null;
+    const detectedObjectDescription = parsedResult.detected_object_description || "Aparelho Celular";
+
+    console.log(`[cellhub-ai-router] Validação de Objeto: isValidSmartphone=${isValidSmartphone}, Objeto="${detectedObjectDescription}"`);
+
+    // Validação de presets somente se for um smartphone válido
     const validPresetIdsSet = new Set(allowedPresetsList.map(p => p.id));
-    const rawIds = Array.isArray(parsedResult.selected_preset_ids) ? parsedResult.selected_preset_ids : [];
+    const rawIds = (isValidSmartphone && Array.isArray(parsedResult.selected_preset_ids)) ? parsedResult.selected_preset_ids : [];
     const sanitizedPresetIds = Array.from(new Set(rawIds.filter(id => validPresetIdsSet.has(id))));
 
     const usageMetadata = geminiData.usageMetadata || {};
@@ -362,7 +376,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     const costPerMillionOutput = selectedTier === "paid" ? 10.50 : 0.30;
     const estimatedCostUsd = ((inputTokens * costPerMillionInput) + (outputTokens * costPerMillionOutput)) / 1_000_000;
 
-    // 10. Registrar Log de Consumo
+    // Registrar log
     await supabase.from("ai_usage_logs").insert({
       user_id: userId,
       session_id: sessionId || null,
@@ -370,19 +384,19 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       api_tier: selectedTier,
       model: successfulModel,
       operation: "tradein_visual_evaluation",
-      status: "success",
+      status: isValidSmartphone ? "success" : "rejected_non_phone",
       tokens_input: inputTokens,
       tokens_output: outputTokens,
       estimated_cost: estimatedCostUsd,
-      period_key: periodKey
+      period_key: periodKey,
+      error_message: isValidSmartphone ? null : rejectionReason
     });
 
-    // 11. Atualizar sessão no banco
     if (sessionId) {
       await supabase
         .from("ai_evaluation_sessions")
         .update({
-          status: "completed",
+          status: isValidSmartphone ? "completed" : "rejected",
           detected_presets: sanitizedPresetIds,
           visual_summary: parsedResult.visual_summary || [],
           confidence: parsedResult.confidence || "high",
@@ -395,6 +409,9 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     return new Response(
       JSON.stringify({
         success: true,
+        isValidSmartphone,
+        detectedObjectDescription,
+        rejectionReason,
         tierUsed: selectedTier,
         modelUsed: successfulModel,
         detectedPresetIds: sanitizedPresetIds,
