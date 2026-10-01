@@ -471,7 +471,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     <p className="text-xs text-slate-300 font-medium leading-relaxed">
                       {aiEvaluated
                         ? `A IA analisou as fotos e marcou automaticamente as avarias detectadas. Você pode revisar na lista abaixo.`
-                        : `Fotografe Frente, Traseira e Lateral via QR Code no celular para identificar riscos, trincos e burn-in.`}
+                        : `Fotografe Frente, Traseira e Lateral para identificar riscos, trincos, manchas e burn-in via IA.`}
                     </p>
                   </div>
 
@@ -485,7 +485,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     }`}
                   >
                     <Camera className="w-4 h-4 text-slate-950" />
-                    {aiEvaluated ? 'Reavaliar com IA' : 'Abrir Câmera IA (QR Code)'}
+                    {aiEvaluated ? 'Reavaliar com IA' : 'Abrir Câmera IA'}
                     <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
                   </Button>
                 </div>

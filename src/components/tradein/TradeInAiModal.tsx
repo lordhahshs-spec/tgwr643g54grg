@@ -1,26 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Sparkles, 
-  X, 
-  QrCode, 
-  Smartphone, 
-  CheckCircle2, 
-  AlertCircle, 
-  RefreshCw, 
-  Upload, 
-  Layers, 
-  ShieldCheck, 
-  Zap, 
-  Lock, 
-  XCircle, 
+import {
+  Sparkles,
+  X,
+  QrCode,
+  Smartphone,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Upload,
+  Layers,
+  ShieldCheck,
+  Zap,
+  Lock,
+  XCircle,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Camera,
+  RotateCcw,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
 import { ValuationModel, FaultDefinition } from '@/types/tradein';
 import { tradeinAiService } from '@/services/tradeinAiService';
-import { AiEvaluationSession, AiQuotaStatus } from '@/types/tradeinAi';
+import { AiEvaluationSession, AiQuotaStatus, AiEvaluationPhoto } from '@/types/tradeinAi';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface TradeInAiModalProps {
@@ -31,6 +35,15 @@ interface TradeInAiModalProps {
   brandPresets: FaultDefinition[];
   onApplyDetectedFaults: (faultIds: string[], photos?: AiEvaluationPhoto[], visualSummary?: string[]) => void;
 }
+
+// Detecção inteligente de dispositivo móvel
+const checkIsMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
+  const isTouchScreen = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 800;
+  return isMobileUA || isTouchScreen;
+};
 
 export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   isOpen,
@@ -59,8 +72,21 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     tierUsed?: 'free' | 'paid';
   } | null>(null);
 
-  const [upgradeRequired, setUpgradeRequired] = useState(false);
-  const [activeTab, setActiveTab] = useState<'qr' | 'upload'>('qr');
+  const isMobile = checkIsMobileDevice();
+  const [activeTab, setActiveTab] = useState<'mobile_camera' | 'qr' | 'upload'>(isMobile ? 'mobile_camera' : 'qr');
+
+  // Mobile / Camera State
+  const [mobileFiles, setMobileFiles] = useState<{
+    front: File | null;
+    side: File | null;
+    back: File | null;
+  }>({ front: null, side: null, back: null });
+
+  const [mobilePreviews, setMobilePreviews] = useState<{
+    front: string | null;
+    side: string | null;
+    back: string | null;
+  }>({ front: null, side: null, back: null });
 
   // Manual Desktop Upload State
   const [desktopFiles, setDesktopFiles] = useState<{
@@ -109,7 +135,11 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     setAnalysisError(null);
     setRejectionData(null);
     setUpgradeRequired(false);
+    setMobileFiles({ front: null, side: null, back: null });
+    setMobilePreviews({ front: null, side: null, back: null });
+    setDesktopFiles({ front: null, side: null, back: null });
     hasTriggeredRef.current = false;
+    setActiveTab(isMobile ? 'mobile_camera' : 'qr');
 
     try {
       const q = await tradeinAiService.checkQuota(userId);
@@ -319,6 +349,44 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     } catch (err: any) {
       setAnalysisError(err?.message || 'Instabilidade momentânea no processamento da IA.');
     } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleMobilePhotoCapture = (type: 'front' | 'side' | 'back', file: File | null) => {
+    if (!file) return;
+    setMobileFiles(prev => ({ ...prev, [type]: file }));
+    const url = URL.createObjectURL(file);
+    setMobilePreviews(prev => ({ ...prev, [type]: url }));
+  };
+
+  const handleMobileSubmit = async () => {
+    if (!mobileFiles.front || !mobileFiles.side || !mobileFiles.back || !session) {
+      toast.error('Por favor, tire as 3 fotos do aparelho (Frente, Lateral e Traseira).');
+      return;
+    }
+
+    setAnalyzing(true);
+    setAnalysisError(null);
+    setRejectionData(null);
+
+    try {
+      const itemsToUpload = [
+        { type: 'front' as const, file: mobileFiles.front },
+        { type: 'side' as const, file: mobileFiles.side },
+        { type: 'back' as const, file: mobileFiles.back }
+      ];
+
+      const uploadRes = await tradeinAiService.uploadPhotosForSession(session.id, itemsToUpload);
+      if (!uploadRes.success) {
+        toast.error('Erro no upload das imagens.');
+        setAnalyzing(false);
+        return;
+      }
+
+      await runAiAnalysis(session.id);
+    } catch (err) {
+      setAnalysisError('Erro no upload das imagens.');
       setAnalyzing(false);
     }
   };
@@ -632,33 +700,167 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               </div>
             </div>
           ) : (
-            /* Initial QR Code / Upload View */
+            /* Initial View: Mobile Camera vs QR Code vs Upload */
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 bg-[#040711] p-1 rounded-2xl border border-white/10">
+              {/* Tab Selector */}
+              <div className="grid grid-cols-3 gap-1.5 bg-[#040711] p-1 rounded-2xl border border-white/10 text-xs">
+                <button
+                  onClick={() => setActiveTab('mobile_camera')}
+                  className={`py-2 px-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'mobile_camera'
+                      ? 'bg-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/20'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span className="truncate">{isMobile ? 'Câmera do Celular' : 'Câmera Direta'}</span>
+                </button>
+
                 <button
                   onClick={() => setActiveTab('qr')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'qr'
                       ? 'bg-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/20'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <QrCode className="w-3.5 h-3.5" /> Escanear QR Code (Celular)
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span className="truncate">Outro Celular (QR)</span>
                 </button>
+
                 <button
                   onClick={() => setActiveTab('upload')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'upload'
                       ? 'bg-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/20'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <Upload className="w-3.5 h-3.5" /> Enviar Fotos do Computador
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="truncate">Galeria / PC</span>
                 </button>
               </div>
 
-              {activeTab === 'qr' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
+              {/* TAB 1: MOBILE DIRECT CAMERA */}
+              {activeTab === 'mobile_camera' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="p-3 rounded-2xl bg-[#090f1f] border border-[#00D287]/20 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#00D287] animate-pulse shrink-0" />
+                      <span className="text-slate-300 font-medium">
+                        Toque em cada uma das 3 posições para fotografar direto com a câmera do celular:
+                      </span>
+                    </div>
+
+                    <a
+                      href={mobileCaptureUrl}
+                      className="hidden sm:inline-flex items-center gap-1 text-[11px] text-[#00D287] hover:underline font-bold shrink-0"
+                    >
+                      Modo Tela Cheia ↗
+                    </a>
+                  </div>
+
+                  {/* 3 Camera Slots */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { type: 'front' as const, label: '1. Foto Frontal', sub: 'Tela ligada com fundo claro' },
+                      { type: 'side' as const, label: '2. Foto Lateral', sub: 'Bordas, aro e botões' },
+                      { type: 'back' as const, label: '3. Foto Traseira', sub: 'Lentes das câmeras e tampa' }
+                    ].map(slot => {
+                      const hasPhoto = Boolean(mobileFiles[slot.type]);
+                      const preview = mobilePreviews[slot.type];
+
+                      return (
+                        <div
+                          key={slot.type}
+                          className={`relative rounded-2xl border-2 p-3.5 flex flex-col items-center justify-between transition-all min-h-[150px] ${
+                            hasPhoto
+                              ? 'border-[#00D287] bg-[#00D287]/10'
+                              : 'border-dashed border-white/20 bg-[#090f1f] hover:border-[#00D287]/50'
+                          }`}
+                        >
+                          {/* Hidden File Input with Camera Capture Trigger */}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            id={`camera-input-${slot.type}`}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0] || null;
+                              handleMobilePhotoCapture(slot.type, f);
+                            }}
+                            className="hidden"
+                          />
+
+                          {preview ? (
+                            <div className="w-full flex flex-col items-center space-y-2">
+                              <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/20 shadow-md">
+                                <img
+                                  src={preview}
+                                  alt={slot.label}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#00D287] text-slate-950 flex items-center justify-center font-bold">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </div>
+                              </div>
+                              <span className="text-xs font-bold text-white text-center block">
+                                {slot.label}
+                              </span>
+                              <label
+                                htmlFor={`camera-input-${slot.type}`}
+                                className="text-[11px] text-slate-400 hover:text-white cursor-pointer underline flex items-center gap-1"
+                              >
+                                <RotateCcw className="w-3 h-3" /> Refazer foto
+                              </label>
+                            </div>
+                          ) : (
+                            <label
+                              htmlFor={`camera-input-${slot.type}`}
+                              className="w-full h-full flex flex-col items-center justify-center text-center cursor-pointer space-y-2 py-3"
+                            >
+                              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#00D287] shadow-inner group-hover:scale-105 transition-transform">
+                                <Camera className="w-6 h-6 stroke-[2]" />
+                              </div>
+                              <div>
+                                <span className="text-xs font-bold text-white block">{slot.label}</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">{slot.sub}</span>
+                              </div>
+                              <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#00D287]/20 text-[#00D287] font-bold mt-1">
+                                Abrir Câmera
+                              </span>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Submission Progress / Submit Button */}
+                  <div className="pt-2 space-y-2">
+                    {quota && (
+                      <p className="text-[11px] text-slate-400 text-center sm:text-left">
+                        Franquia gratuita: <strong className="text-[#00D287]">{quota.remainingFree} restantes</strong> hoje.
+                      </p>
+                    )}
+
+                    <Button
+                      onClick={handleMobileSubmit}
+                      disabled={!mobileFiles.front || !mobileFiles.side || !mobileFiles.back || analyzing}
+                      className="w-full bg-[#00D287] hover:bg-[#00be7a] disabled:bg-[#0c1424] disabled:text-slate-600 text-slate-950 font-black text-xs sm:text-sm h-12 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                    >
+                      <Sparkles className="w-4 h-4 stroke-[2.5]" />
+                      {!mobileFiles.front || !mobileFiles.side || !mobileFiles.back
+                        ? `Tire as 3 Fotos (${[mobileFiles.front, mobileFiles.side, mobileFiles.back].filter(Boolean).length}/3)`
+                        : '✨ Analisar Fotos com CellHub IA'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: QR CODE (FOR SECONDARY DEVICE) */}
+              {activeTab === 'qr' && (
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center animate-in fade-in duration-150">
                   <div className="sm:col-span-6 flex flex-col items-center justify-center p-4 rounded-3xl bg-white text-black shadow-xl mx-auto">
                     <QRCodeDisplay
                       value={mobileCaptureUrl}
@@ -684,8 +886,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                     <div className="p-3 rounded-2xl bg-[#090f1f] border border-white/10 flex items-center gap-2.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-[#00D287] animate-ping"></div>
                       <span className="text-xs font-bold text-slate-200">
-                        {session?.status === 'phone_connected' 
-                          ? 'Celular conectado! Aguardando envio das fotos...' 
+                        {session?.status === 'phone_connected'
+                          ? 'Celular conectado! Aguardando envio das fotos...'
                           : 'Aguardando leitura do QR Code...'}
                       </span>
                     </div>
@@ -706,15 +908,18 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-3">
+              )}
+
+              {/* TAB 3: UPLOAD MANUAL / PC */}
+              {activeTab === 'upload' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
                   <p className="text-xs text-slate-300">
-                    Selecione as 3 fotos do aparelho salvas no computador:
+                    Selecione as 3 fotos do aparelho salvas no computador ou galeria:
                   </p>
 
                   <div className="grid grid-cols-3 gap-2.5">
                     {(['front', 'side', 'back'] as const).map(type => (
-                      <label 
+                      <label
                         key={type}
                         className="p-3 rounded-2xl border border-dashed border-white/15 bg-[#090f1f] hover:bg-[#0c1424] text-center cursor-pointer flex flex-col items-center justify-center space-y-1 text-xs"
                       >
@@ -746,6 +951,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 </div>
               )}
             </div>
+          )}
           )}
         </div>
       </div>
