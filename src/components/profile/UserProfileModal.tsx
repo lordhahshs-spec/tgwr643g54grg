@@ -129,10 +129,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
         {/* Foto de Perfil / Avatar Uploader */}
         <div className="flex flex-col items-center justify-center space-y-2.5">
