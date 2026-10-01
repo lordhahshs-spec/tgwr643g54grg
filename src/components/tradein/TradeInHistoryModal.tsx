@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { TradeInEvaluation, ValuationSettings } from '@/types/tradein';
 import { tradeinService, DEFAULT_LEGAL_TERMS } from '@/services/tradeinService';
 import { leadAuthService } from '@/services/leadAuthService';
@@ -64,62 +63,62 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-[#0f172a] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
+      <div className="relative w-full max-w-4xl bg-[#11161d] border border-[#252d37] rounded-xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0">
         
         {/* Header (Hidden on print) */}
-        <div className="p-4 sm:p-6 border-b border-slate-800 bg-[#1e293b]/80 flex items-center justify-between shrink-0 print:hidden">
+        <div className="p-4 sm:p-6 border-b border-[#252d37] bg-[#171d25] flex items-center justify-between shrink-0 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-[#11161d] border border-[#252d37] flex items-center justify-center text-[#16b981] shrink-0">
               <History className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+              <h2 className="text-base sm:text-lg font-semibold text-[#f3f5f7] tracking-tight">
                 Histórico de Compras & Termos de Procedência
               </h2>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-[#a3adb8] mt-0.5">
                 Arquivo digital seguro para consultar e reimprimir termos a qualquer momento
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-[#11161d] border border-[#252d37] text-[#a3adb8] hover:text-white hover:bg-[#252d37] flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Search Bar (Hidden on print) */}
-        <div className="p-4 border-b border-slate-800 bg-[#0f172a] flex flex-col sm:flex-row gap-2.5 shrink-0 print:hidden">
+        <div className="p-4 border-b border-[#252d37] bg-[#11161d] flex flex-col sm:flex-row gap-2.5 shrink-0 print:hidden">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#737e8a] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && loadEvaluations()}
               placeholder="Pesquisar por Código (REC-...), IMEI, Modelo ou CPF do cliente..."
-              className="bg-[#1e293b] border-slate-700 pl-10 text-xs sm:text-sm rounded-xl focus:border-blue-500 text-white h-11"
+              className="bg-[#171d25] border-[#252d37] pl-10 text-xs sm:text-sm rounded-lg focus:border-[#16b981] text-[#f3f5f7] h-10"
             />
           </div>
           <Button
             onClick={loadEvaluations}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shrink-0 h-11 px-5 rounded-xl"
+            className="bg-[#16b981] hover:bg-[#10b981] text-white text-xs sm:text-sm font-medium shrink-0 h-10 px-5 rounded-lg"
           >
             {loading ? 'Buscando...' : 'Buscar'}
           </Button>
         </div>
 
-        {/* Content Body with customized smooth scrollbar */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 print:p-0 print:overflow-visible">
+        {/* Content Body with scrollbar */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-[#252d37] print:p-0 print:overflow-visible">
           {selectedEvaluation ? (
             /* DETAILED VIEW & PRINTABLE DOCUMENT OF A PAST EVALUATION */
-            <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="space-y-4 animate-in fade-in duration-150">
               <div className="flex items-center justify-between print:hidden">
                 <button
                   onClick={() => setSelectedEvaluation(null)}
-                  className="text-xs sm:text-sm text-blue-400 hover:underline flex items-center gap-1.5 font-bold"
+                  className="text-xs sm:text-sm text-[#16b981] hover:underline flex items-center gap-1.5 font-medium"
                 >
                   ← Voltar para a lista de termos
                 </button>
@@ -127,14 +126,14 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
                 <Button
                   size="sm"
                   onClick={handlePrintDocument}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 h-10 px-4 rounded-xl"
+                  className="bg-[#16b981] hover:bg-[#10b981] text-white font-medium text-xs sm:text-sm flex items-center gap-2 h-9 px-4 rounded-lg"
                 >
                   <Printer className="w-4 h-4" /> Re-imprimir Recibo Oficial
                 </Button>
               </div>
 
               {/* Printable Official Contract */}
-              <div className="p-6 rounded-2xl bg-white text-slate-900 border border-slate-300 shadow-xl space-y-4 text-xs font-sans print:shadow-none print:border-none print:p-0">
+              <div className="p-6 rounded-xl bg-white text-slate-900 border border-slate-300 shadow-sm space-y-4 text-xs font-sans print:shadow-none print:border-none print:p-0">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b-2 border-slate-800 pb-3">
                   <div>
@@ -145,9 +144,9 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
                     {settings?.store_address && <p className="text-[10px] text-slate-600">{settings.store_address}</p>}
                   </div>
                   <div className="text-right">
-                    <Badge className="bg-slate-900 text-white font-mono font-bold text-xs">
+                    <span className="inline-block px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-xs">
                       {selectedEvaluation.evaluation_code}
-                    </Badge>
+                    </span>
                     <p className="text-[10px] text-slate-500 mt-1">
                       Data: {new Date(selectedEvaluation.created_at).toLocaleDateString('pt-BR')} às {new Date(selectedEvaluation.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -244,38 +243,38 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
           ) : (
             /* LIST OF EVALUATIONS */
             evaluations.length === 0 ? (
-              <div className="text-center py-14 text-slate-400">
-                <FileText className="w-10 h-10 mx-auto mb-3 opacity-40 text-slate-400" />
-                <p className="text-sm font-bold text-white">Nenhum termo de compra encontrado</p>
-                <p className="text-xs text-slate-400 mt-1">Ao gerar termos de compra no balcão, eles ficarão salvos com segurança aqui.</p>
+              <div className="text-center py-14 text-[#a3adb8]">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-30 text-[#a3adb8]" />
+                <p className="text-sm font-semibold text-[#f3f5f7]">Nenhum termo de compra encontrado</p>
+                <p className="text-xs text-[#737e8a] mt-1">Ao gerar termos de compra no balcão, eles ficarão salvos com segurança aqui.</p>
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-[58vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
+              <div className="space-y-2 max-h-[58vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#252d37]">
                 {evaluations.map((item) => (
                   <div
                     key={item.id}
                     onClick={() => setSelectedEvaluation(item)}
-                    className="p-4 rounded-xl bg-[#1e293b] border border-slate-700/80 hover:border-blue-500/60 transition-all cursor-pointer flex items-center justify-between gap-3 group shadow-sm"
+                    className="p-3.5 rounded-lg bg-[#171d25] border border-[#252d37] hover:border-[#333d4b] transition-all cursor-pointer flex items-center justify-between gap-3 group"
                   >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-200 group-hover:text-blue-400 transition-colors shrink-0">
-                        <Smartphone className="w-5 h-5" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-[#11161d] border border-[#252d37] flex items-center justify-center text-[#a3adb8] group-hover:text-[#16b981] transition-colors shrink-0">
+                        <Smartphone className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-slate-900 text-slate-200 font-mono text-[10px] border-slate-700">
+                          <span className="px-1.5 py-0.5 rounded bg-[#11161d] text-[#f3f5f7] font-mono text-[10px] border border-[#252d37]">
                             {item.evaluation_code}
-                          </Badge>
-                          <span className="text-xs sm:text-sm font-bold text-white">
+                          </span>
+                          <span className="text-xs sm:text-sm font-medium text-[#f3f5f7]">
                             {item.brand} {item.model_name} {item.storage}
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#737e8a] mt-0.5">
                           {item.customer_data?.name && (
-                            <span>Cliente: <strong className="text-slate-200 font-semibold">{item.customer_data.name}</strong></span>
+                            <span>Cliente: <strong className="text-[#a3adb8] font-normal">{item.customer_data.name}</strong></span>
                           )}
                           {item.imei && (
-                            <span className="font-mono text-blue-400">IMEI: {item.imei}</span>
+                            <span className="font-mono text-[#16b981]">IMEI: {item.imei}</span>
                           )}
                           <span>{new Date(item.created_at).toLocaleDateString('pt-BR')}</span>
                         </div>
@@ -284,14 +283,14 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
 
                     <div className="flex items-center gap-3 text-right">
                       <div>
-                        <span className="text-sm sm:text-base font-black text-blue-400 block">
+                        <span className="text-sm sm:text-base font-bold text-[#16b981] block">
                           R$ {item.final_valuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">
+                        <span className="text-[10px] text-[#737e8a] uppercase font-medium">
                           {item.type === 'troca' ? 'Troca' : 'Compra'}
                         </span>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-[#737e8a] group-hover:text-[#f3f5f7] transition-colors" />
                     </div>
                   </div>
                 ))}

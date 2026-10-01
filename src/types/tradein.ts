@@ -12,10 +12,13 @@ export type DeviceBrand =
 
 export interface FaultDefinition {
   id: string;
-  category: 'estetica' | 'tela' | 'bateria' | 'cameras_sensores' | 'placa_sistema';
+  category?: 'estetica' | 'tela' | 'bateria' | 'cameras_sensores' | 'placa_sistema' | 'outros';
   label: string;
-  description?: string;
+  type?: 'discount' | 'bonus';
   defaultDiscount: number;
+  description?: string;
+  // Specific condition rule (e.g. requiresSPen)
+  requiresSPen?: boolean;
 }
 
 export interface ValuationModel {
@@ -37,8 +40,9 @@ export interface ValuationModel {
 export interface SelectedFault {
   id: string;
   label: string;
-  category: string;
+  category?: string;
   discount: number;
+  type?: 'discount' | 'bonus';
 }
 
 export interface CustomerData {

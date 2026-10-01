@@ -8,21 +8,258 @@ import {
   SelectedFault 
 } from '@/types/tradein';
 
-export const FAULT_DEFINITIONS: FaultDefinition[] = [
-  { id: 'marcas_leves', category: 'estetica', label: 'Marcas leves', description: 'Micro-riscos normais de uso no aro ou traseira', defaultDiscount: 150 },
-  { id: 'marcas_moderadas', category: 'estetica', label: 'Marcas moderadas', description: 'Arranhões perceptíveis na carcaça ou bordas', defaultDiscount: 350 },
-  { id: 'bateria_baixa', category: 'bateria', label: 'Bateria (saúde baixa)', description: 'Bateria com degradação química acentuada (< 80%)', defaultDiscount: 300 },
-  { id: 'tela_quebrada', category: 'tela', label: 'Troca de tela', description: 'Vidro trincado ou necessidade de substituição do display', defaultDiscount: 850 },
-  { id: 'traseira_danificada', category: 'estetica', label: 'Traseira', description: 'Vidro traseiro trincado ou carcaça danificada', defaultDiscount: 400 },
-  { id: 'face_id', category: 'cameras_sensores', label: 'Face ID / Biometria', description: 'Reconhecimento facial ou leitor biométrico inoperante', defaultDiscount: 600 },
-  { id: 'conector_carga', category: 'bateria', label: 'Doc de carga', description: 'Conector de carga com mau contato ou sem carregar', defaultDiscount: 250 },
-  { id: 'camera_traseira', category: 'cameras_sensores', label: 'Câmera traseira', description: 'Lente com avaria, manchas ou vibração no foco', defaultDiscount: 650 },
-  { id: 'camera_frontal', category: 'cameras_sensores', label: 'Câmera frontal', description: 'Câmera frontal embaçada ou defeituosa', defaultDiscount: 300 },
-  { id: 'notif_camera', category: 'placa_sistema', label: 'Notif. peça — câmera', description: 'Aviso de peça desconhecida / não genuína da câmera', defaultDiscount: 500 },
-  { id: 'notif_bateria', category: 'placa_sistema', label: 'Notif. peça — bateria', description: 'Aviso de peça desconhecida / não genuína da bateria', defaultDiscount: 350 },
-  { id: 'notif_tela', category: 'placa_sistema', label: 'Notif. peça — tela', description: 'Aviso de peça desconhecida / não genuína do display', defaultDiscount: 450 },
-  { id: 'sinais_oxidacao', category: 'placa_sistema', label: 'Sinais de oxidação', description: 'Contato com líquido ou sensores de umidade ativados', defaultDiscount: 1000 },
-];
+// 1. PRESETS ESPECÍFICOS POR FABRICANTE
+export const BRAND_PRESETS: Record<string, FaultDefinition[]> = {
+  // APPLE
+  Apple: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 35, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 85, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 150, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Troca de tela', defaultDiscount: 240, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / vidro traseiro danificado', defaultDiscount: 85, category: 'estetica' },
+    { id: 'face_id', label: 'Face ID / Biometria com problema', defaultDiscount: 600, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Dock / conector de carga', defaultDiscount: 250, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 650, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 300, category: 'cameras_sensores' },
+    { id: 'notif_camera', label: 'Notificação de peça — câmera', defaultDiscount: 500, category: 'placa_sistema' },
+    { id: 'notif_bateria', label: 'Notificação de peça — bateria', defaultDiscount: 350, category: 'placa_sistema' },
+    { id: 'notif_tela', label: 'Notificação de peça — tela', defaultDiscount: 450, category: 'placa_sistema' },
+    { id: 'sinais_oxidacao', label: 'Sinais de oxidação', defaultDiscount: 1000, category: 'placa_sistema' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 250, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 100, category: 'estetica' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de ativação', defaultDiscount: 1000, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original identificada', defaultDiscount: 300, category: 'placa_sistema' },
+  ],
+
+  // SAMSUNG
+  Samsung: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 35, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 80, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 120, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 250, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 300, category: 'tela' },
+    { id: 'burn_in', label: 'Burn-in / retenção de imagem', defaultDiscount: 250, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa traseira danificada', defaultDiscount: 100, category: 'estetica' },
+    { id: 'biometria', label: 'Leitor de digital / biometria com problema', defaultDiscount: 250, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 200, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 350, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 200, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 180, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 100, category: 'estetica' },
+    { id: 'spen_defeito', label: 'S Pen com problema', defaultDiscount: 250, category: 'outros', requiresSPen: true },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 500, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível identificado', defaultDiscount: 250, category: 'placa_sistema' },
+    { id: 'bloqueio_conta', label: 'Aparelho com bloqueio de conta / restrição', defaultDiscount: 500, category: 'placa_sistema' },
+  ],
+
+  // MOTOROLA
+  Motorola: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 30, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 70, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 100, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 200, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 220, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 80, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 180, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 180, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 300, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 150, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 80, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 400, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 180, category: 'placa_sistema' },
+    { id: 'carregamento_sem_fio', label: 'Problema no carregamento sem fio', defaultDiscount: 150, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 400, category: 'placa_sistema' },
+  ],
+
+  // XIAOMI (Também cobre Redmi e POCO)
+  Xiaomi: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 30, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 70, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 100, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 220, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 250, category: 'tela' },
+    { id: 'burn_in', label: 'Burn-in / retenção de imagem', defaultDiscount: 200, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 80, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 180, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 180, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 300, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 150, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 80, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 400, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 180, category: 'placa_sistema' },
+    { id: 'carregamento_rapido', label: 'Problema de carregamento rápido', defaultDiscount: 120, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 400, category: 'placa_sistema' },
+  ],
+
+  // REALME
+  Realme: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 30, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 60, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 90, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 180, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 200, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 70, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 150, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 150, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 250, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 130, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 90, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 90, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 130, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 70, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 350, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'carregamento_rapido', label: 'Problema de carregamento rápido', defaultDiscount: 100, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 350, category: 'placa_sistema' },
+  ],
+
+  // INFINIX
+  Infinix: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 25, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 50, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 80, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 150, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 180, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 60, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 120, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 120, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 180, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 100, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 80, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 60, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 250, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'carregamento_problema', label: 'Problema de carregamento', defaultDiscount: 100, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 250, category: 'placa_sistema' },
+  ],
+
+  // ITEL
+  Itel: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 20, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 40, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 60, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 100, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 120, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 40, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 80, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 80, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 100, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 60, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 50, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 50, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 40, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 150, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 80, category: 'placa_sistema' },
+    { id: 'carregamento_problema', label: 'Problema de carregamento', defaultDiscount: 70, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 150, category: 'placa_sistema' },
+  ],
+
+  // TECNO
+  Tecno: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 25, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 50, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 80, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 150, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 170, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 60, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 120, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 120, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 180, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 100, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 80, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 60, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 250, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'carregamento_problema', label: 'Problema de carregamento', defaultDiscount: 100, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 250, category: 'placa_sistema' },
+  ],
+
+  // HOTWAY / OUTROS (Fallback padrão)
+  Outros: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 25, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 50, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 80, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 150, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / tampa danificada', defaultDiscount: 60, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 100, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 100, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira com problema', defaultDiscount: 150, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 80, category: 'cameras_sensores' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 250, category: 'placa_sistema' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 250, category: 'placa_sistema' },
+  ]
+};
+
+// Aliases para famílias e variações de capitalização
+export function getBrandPresets(brand: string, modelName?: string): FaultDefinition[] {
+  const norm = (brand || '').toLowerCase().trim();
+  let baseList: FaultDefinition[] = [];
+
+  if (norm.includes('apple') || norm.includes('iphone')) {
+    baseList = BRAND_PRESETS.Apple;
+  } else if (norm.includes('samsung')) {
+    baseList = BRAND_PRESETS.Samsung;
+  } else if (norm.includes('motorola') || norm.includes('moto')) {
+    baseList = BRAND_PRESETS.Motorola;
+  } else if (norm.includes('xiaomi') || norm.includes('redmi') || norm.includes('poco') || norm.includes('mi ')) {
+    baseList = BRAND_PRESETS.Xiaomi;
+  } else if (norm.includes('realme')) {
+    baseList = BRAND_PRESETS.Realme;
+  } else if (norm.includes('infinix')) {
+    baseList = BRAND_PRESETS.Infinix;
+  } else if (norm.includes('itel')) {
+    baseList = BRAND_PRESETS.Itel;
+  } else if (norm.includes('tecno')) {
+    baseList = BRAND_PRESETS.Tecno;
+  } else {
+    baseList = BRAND_PRESETS.Outros;
+  }
+
+  // Filtrar condições especiais (ex: S Pen para Samsung)
+  if (norm.includes('samsung')) {
+    const modelLower = (modelName || '').toLowerCase();
+    const hasSPen = 
+      modelLower.includes('ultra') || 
+      modelLower.includes('note') || 
+      modelLower.includes('fold') || 
+      modelLower.includes('s pen') || 
+      modelLower.includes('spen') ||
+      modelLower.includes('stylus');
+
+    return baseList.filter(preset => {
+      if (preset.requiresSPen && !hasSPen) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  return baseList;
+}
+
+// Fallback genérico para retrocompatibilidade
+export const FAULT_DEFINITIONS: FaultDefinition[] = BRAND_PRESETS.Apple;
 
 export const BRANDS_LIST: DeviceBrand[] = [
   'Apple',
@@ -48,6 +285,11 @@ export const DEFAULT_LEGAL_TERMS = `DECLARAÇÃO DE PROPRIEDADE, PROCEDÊNCIA E 
 4. Em caso de constatação de bloqueio por perda/furto/roubo posterior a esta data, o(A) VENDEDOR(A) obriga-se a ressarcir integral e imediatamente à LOJA COMPRADORA o valor total recebido na transação, acrescido de perdas e danos.`;
 
 export const tradeinService = {
+  // Obter presets de avaria por fabricante
+  getPresetsForBrand(brand: string, modelName?: string): FaultDefinition[] {
+    return getBrandPresets(brand, modelName);
+  },
+
   // Obter modelos da tabela do lojista (com fallback para os modelos padrão)
   async getModels(brand?: string, userId?: string, includeInactive = false): Promise<ValuationModel[]> {
     try {
