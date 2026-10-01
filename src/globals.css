@@ -81,21 +81,22 @@
 
 .scrollbar-thin::-webkit-scrollbar {
   display: block !important;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 9999px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #252d37;
+  background: #334155;
   border-radius: 9999px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #333d4b;
+  background: #475569;
 }
 
 .glow-aurus {

@@ -232,7 +232,7 @@ const Index: React.FC = () => {
           <div className={activeTab === 'esquemas' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <EsquemasTab isDemo={isDemo} onUnlock={handleOpenUnlockModal} />
           </div>
-          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
+          <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto lg:overflow-hidden touch-scroll-area mobile-animate-in' : 'hidden'}>
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
           </div>
         </main>
