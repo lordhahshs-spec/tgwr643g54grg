@@ -261,25 +261,6 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancelSession}
-              className="border-red-500/30 bg-red-500/10 text-red-300 hover:text-white hover:bg-red-500/20 text-xs font-bold rounded-xl h-8 px-2.5 flex items-center gap-1"
-            >
-              <XCircle className="w-3.5 h-3.5 text-red-400" />
-              Cancelar Sessão
-            </Button>
-
-            <button
-              onClick={handleCancelSession}
-              className="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
         </div>
 
         {/* Modal Body Container */}
