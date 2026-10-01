@@ -20,6 +20,7 @@ export interface FaultDefinition {
 
 export interface ValuationModel {
   id: string;
+  user_id?: string | null;
   brand: string;
   model_name: string;
   storage: string;
@@ -52,6 +53,7 @@ export interface CustomerData {
 
 export interface TradeInEvaluation {
   id: string;
+  user_id?: string | null;
   evaluation_code: string;
   created_by_id?: string;
   created_by_name?: string;
@@ -78,6 +80,7 @@ export interface TradeInEvaluation {
 
 export interface ValuationSettings {
   id?: string;
+  user_id?: string | null;
   store_name: string;
   store_cnpj: string;
   store_address: string;

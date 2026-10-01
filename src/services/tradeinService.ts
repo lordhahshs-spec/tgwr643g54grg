@@ -37,32 +37,81 @@ export const BRANDS_LIST: DeviceBrand[] = [
   'Outros'
 ];
 
+export const DEFAULT_LEGAL_TERMS = `DECLARAÇÃO DE PROPRIEDADE, PROCEDÊNCIA E RESPONSABILIDADE CIVIL E PENAL:
+
+1. O(A) VENDEDOR(A) acima qualificado(a) declara, sob as penas do art. 299 do Código Penal Brasileiro (Falsidade Ideológica) e do art. 180 (Receptação), ser o(a) legítimo(a) proprietário(a) e possuidor(a) de boa-fé do smartphone/aparelho acima discriminado e caracterizado pelo seu respectivo número de IMEI.
+
+2. Declara expressamente que o aparelho encontra-se 100% livre e desembaraçado de quaisquer ônus, dúvidas, pendências financeiras, bloqueios de operadoras, queixas de furto, roubo ou extravio, com todas as contas de usuário (iCloud, Google, Samsung Account, Mi Cloud ou similares) devidamente desvinculadas.
+
+3. O(A) VENDEDOR(A) assume total e irrestrita responsabilidade civil e criminal pela procedência lícita do bem alienado, isentando a LOJA COMPRADORA e seus responsáveis legais de qualquer responsabilidade perante autoridades policiais, judiciais ou terceiros.
+
+4. Em caso de constatação de bloqueio por perda/furto/roubo posterior a esta data, o(A) VENDEDOR(A) obriga-se a ressarcir integral e imediatamente à LOJA COMPRADORA o valor total recebido na transação, acrescido de perdas e danos.`;
+
 export const tradeinService = {
-  // Obter todos os modelos cadastrados no banco
-  async getModels(brand?: string, includeInactive = false): Promise<ValuationModel[]> {
+  // Obter modelos da tabela do lojista (com fallback para os modelos padrão)
+  async getModels(brand?: string, userId?: string, includeInactive = false): Promise<ValuationModel[]> {
     try {
-      let query = supabase
+      // 1. Se o usuário tem modelos personalizados com o seu user_id
+      if (userId) {
+        let userQuery = supabase
+          .from('valuation_models')
+          .select('*')
+          .eq('user_id', userId)
+          .order('display_order', { ascending: true })
+          .order('model_name', { ascending: true });
+
+        if (brand && brand !== 'Todos' && brand !== 'Outros') {
+          userQuery = userQuery.eq('brand', brand);
+        }
+        if (!includeInactive) {
+          userQuery = userQuery.eq('is_active', true);
+        }
+
+        const { data: userData, error: userError } = await userQuery;
+
+        if (!userError && userData && userData.length > 0) {
+          return userData.map((row: any) => ({
+            id: row.id,
+            user_id: row.user_id,
+            brand: row.brand,
+            model_name: row.model_name,
+            storage: row.storage,
+            base_price: Number(row.base_price) || 0,
+            buy_price: Number(row.buy_price) || 0,
+            trade_bonus: Number(row.trade_bonus) || 0,
+            fault_discounts: row.fault_discounts || {},
+            is_active: row.is_active,
+            display_order: row.display_order || 0,
+            created_at: row.created_at,
+            updated_at: row.updated_at
+          }));
+        }
+      }
+
+      // 2. Se não tem dados personalizados ainda, buscar modelos padrão (user_id IS NULL)
+      let defaultQuery = supabase
         .from('valuation_models')
         .select('*')
+        .is('user_id', null)
         .order('display_order', { ascending: true })
         .order('model_name', { ascending: true });
 
       if (brand && brand !== 'Todos' && brand !== 'Outros') {
-        query = query.eq('brand', brand);
+        defaultQuery = defaultQuery.eq('brand', brand);
       }
-
       if (!includeInactive) {
-        query = query.eq('is_active', true);
+        defaultQuery = defaultQuery.eq('is_active', true);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await defaultQuery;
       if (error) {
-        console.error('Erro ao buscar modelos de avaliação:', error);
+        console.error('Erro ao buscar modelos padrão:', error);
         return [];
       }
 
       return (data || []).map((row: any) => ({
         id: row.id,
+        user_id: row.user_id,
         brand: row.brand,
         model_name: row.model_name,
         storage: row.storage,
@@ -81,10 +130,11 @@ export const tradeinService = {
     }
   },
 
-  // Salvar / Atualizar modelo (Admin)
-  async saveModel(model: Partial<ValuationModel>): Promise<{ success: boolean; data?: ValuationModel; error?: string }> {
+  // Salvar / Atualizar modelo do lojista
+  async saveModel(model: Partial<ValuationModel>, userId?: string): Promise<{ success: boolean; data?: ValuationModel; error?: string }> {
     try {
       const payload: any = {
+        user_id: userId || model.user_id || null,
         brand: model.brand,
         model_name: model.model_name,
         storage: model.storage || '128GB',
@@ -97,7 +147,8 @@ export const tradeinService = {
         updated_at: new Date().toISOString()
       };
 
-      if (model.id) {
+      if (model.id && model.user_id) {
+        // Atualizar modelo já existente do usuário
         const { data, error } = await supabase
           .from('valuation_models')
           .update(payload)
@@ -108,6 +159,7 @@ export const tradeinService = {
         if (error) throw error;
         return { success: true, data };
       } else {
+        // Inserir novo modelo para este usuário
         const { data, error } = await supabase
           .from('valuation_models')
           .insert(payload)
@@ -123,7 +175,51 @@ export const tradeinService = {
     }
   },
 
-  // Deletar modelo (Admin)
+  // Clonar catálogo padrão para o lojista personalizar livremente
+  async initializeCustomCatalogForUser(userId: string): Promise<boolean> {
+    try {
+      if (!userId) return false;
+
+      // Verificar se já tem modelos
+      const { data: existing } = await supabase
+        .from('valuation_models')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+
+      if (existing && existing.length > 0) return true;
+
+      // Buscar todos os modelos padrão
+      const { data: defaultModels } = await supabase
+        .from('valuation_models')
+        .select('*')
+        .is('user_id', null);
+
+      if (!defaultModels || defaultModels.length === 0) return true;
+
+      // Inserir cópias vinculadas ao user_id do lojista
+      const copies = defaultModels.map((m: any) => ({
+        user_id: userId,
+        brand: m.brand,
+        model_name: m.model_name,
+        storage: m.storage,
+        base_price: m.base_price,
+        buy_price: m.buy_price,
+        trade_bonus: m.trade_bonus,
+        fault_discounts: m.fault_discounts,
+        is_active: m.is_active,
+        display_order: m.display_order
+      }));
+
+      await supabase.from('valuation_models').insert(copies);
+      return true;
+    } catch (err) {
+      console.error('Erro ao inicializar catálogo personalizado:', err);
+      return false;
+    }
+  },
+
+  // Deletar modelo
   async deleteModel(id: string): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -139,8 +235,9 @@ export const tradeinService = {
     }
   },
 
-  // Salvar Avaliação Concluída (Compra ou Troca)
+  // Salvar Avaliação / Termo de Compra Concluído no Histórico
   async createEvaluation(evaluation: {
+    userId?: string;
     type: 'compra' | 'troca';
     brand: string;
     model_name: string;
@@ -162,12 +259,13 @@ export const tradeinService = {
     created_by_name?: string;
   }): Promise<{ success: boolean; evaluation?: TradeInEvaluation; error?: string }> {
     try {
-      const randomCode = `AV-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+      const randomCode = `REC-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
       const payload = {
+        user_id: evaluation.userId || evaluation.created_by_id || null,
         evaluation_code: randomCode,
         created_by_id: evaluation.created_by_id || null,
-        created_by_name: evaluation.created_by_name || 'Vendedor Lojista',
+        created_by_name: evaluation.created_by_name || 'Lojista',
         type: evaluation.type,
         brand: evaluation.brand,
         model_name: evaluation.model_name,
@@ -198,24 +296,29 @@ export const tradeinService = {
       if (error) throw error;
       return { success: true, evaluation: data as TradeInEvaluation };
     } catch (err: any) {
-      console.error('Erro ao registrar avaliação:', err);
+      console.error('Erro ao registrar termo no histórico:', err);
       return { success: false, error: err.message };
     }
   },
 
-  // Buscar Histórico de Avaliações
-  async getEvaluations(searchQuery?: string): Promise<TradeInEvaluation[]> {
+  // Buscar Histórico de Termos do Lojista
+  async getEvaluations(userId?: string, searchQuery?: string): Promise<TradeInEvaluation[]> {
     try {
       let query = supabase
         .from('tradein_evaluations')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},created_by_id.eq.${userId}`);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
 
       let list = (data || []).map((row: any) => ({
         id: row.id,
+        user_id: row.user_id,
         evaluation_code: row.evaluation_code,
         created_by_id: row.created_by_id,
         created_by_name: row.created_by_name,
@@ -258,53 +361,77 @@ export const tradeinService = {
     }
   },
 
-  // Obter Configurações
-  async getSettings(): Promise<ValuationSettings> {
+  // Obter Configurações do Lojista
+  async getSettings(userId?: string): Promise<ValuationSettings> {
     try {
-      const { data, error } = await supabase
+      if (userId) {
+        const { data: userSettings } = await supabase
+          .from('valuation_settings')
+          .select('*')
+          .eq('user_id', userId)
+          .limit(1)
+          .single();
+
+        if (userSettings) {
+          return {
+            id: userSettings.id,
+            user_id: userSettings.user_id,
+            store_name: userSettings.store_name || 'Minha Loja de Celulares',
+            store_cnpj: userSettings.store_cnpj || '',
+            store_address: userSettings.store_address || '',
+            default_trade_bonus: Number(userSettings.default_trade_bonus) || 100,
+            terms_text: userSettings.terms_text || DEFAULT_LEGAL_TERMS
+          };
+        }
+      }
+
+      // Fallback para configurações globais
+      const { data } = await supabase
         .from('valuation_settings')
         .select('*')
         .limit(1)
         .single();
 
-      if (error || !data) {
+      if (data) {
         return {
-          store_name: 'CellHub Lojista',
-          store_cnpj: '',
-          store_address: '',
-          default_trade_bonus: 100,
-          terms_text: 'Declaro para os devidos fins que sou o legítimo proprietário do aparelho acima qualificado, respondendo civil e criminalmente pela procedência lícita do mesmo, atestando que o mesmo não é fruto de furto, roubo ou qualquer ilícito.'
+          id: data.id,
+          user_id: data.user_id,
+          store_name: data.store_name || 'Minha Loja de Celulares',
+          store_cnpj: data.store_cnpj || '',
+          store_address: data.store_address || '',
+          default_trade_bonus: Number(data.default_trade_bonus) || 100,
+          terms_text: data.terms_text || DEFAULT_LEGAL_TERMS
         };
       }
 
       return {
-        id: data.id,
-        store_name: data.store_name,
-        store_cnpj: data.store_cnpj || '',
-        store_address: data.store_address || '',
-        default_trade_bonus: Number(data.default_trade_bonus) || 100,
-        terms_text: data.terms_text || ''
-      };
-    } catch (err) {
-      return {
-        store_name: 'CellHub Lojista',
+        store_name: 'Minha Loja de Celulares',
         store_cnpj: '',
         store_address: '',
         default_trade_bonus: 100,
-        terms_text: 'Declaro para os devidos fins que sou o legítimo proprietário do aparelho acima qualificado, respondendo civil e criminalmente pela procedência lícita do mesmo.'
+        terms_text: DEFAULT_LEGAL_TERMS
+      };
+    } catch (err) {
+      return {
+        store_name: 'Minha Loja de Celulares',
+        store_cnpj: '',
+        store_address: '',
+        default_trade_bonus: 100,
+        terms_text: DEFAULT_LEGAL_TERMS
       };
     }
   },
 
-  // Salvar Configurações (Admin)
-  async saveSettings(settings: ValuationSettings): Promise<boolean> {
+  // Salvar Configurações do Lojista
+  async saveSettings(settings: ValuationSettings, userId?: string): Promise<boolean> {
     try {
       const payload = {
+        user_id: userId || settings.user_id || null,
         store_name: settings.store_name,
         store_cnpj: settings.store_cnpj,
         store_address: settings.store_address,
-        default_trade_bonus: Number(settings.default_trade_bonus) || 0,
-        terms_text: settings.terms_text,
+        default_trade_bonus: Number(settings.default_trade_bonus) || 100,
+        terms_text: settings.terms_text || DEFAULT_LEGAL_TERMS,
         updated_at: new Date().toISOString()
       };
 
@@ -320,7 +447,7 @@ export const tradeinService = {
       }
       return true;
     } catch (err) {
-      console.error('Erro ao salvar configurações de avaliação:', err);
+      console.error('Erro ao salvar configurações do lojista:', err);
       return false;
     }
   }

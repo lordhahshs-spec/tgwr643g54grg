@@ -7,18 +7,18 @@ import {
   Save, 
   X, 
   Smartphone, 
-  ShieldCheck, 
-  Check, 
-  DollarSign,
-  Layers,
-  FileText
+  FileText,
+  RotateCcw,
+  Sparkles,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ValuationModel, ValuationSettings, DeviceBrand } from '@/types/tradein';
-import { tradeinService, FAULT_DEFINITIONS, BRANDS_LIST } from '@/services/tradeinService';
+import { ValuationModel, ValuationSettings } from '@/types/tradein';
+import { tradeinService, FAULT_DEFINITIONS, BRANDS_LIST, DEFAULT_LEGAL_TERMS } from '@/services/tradeinService';
+import { leadAuthService } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
 interface TradeInAdminModalProps {
@@ -35,6 +35,7 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
   const [tab, setTab] = useState<'models' | 'settings'>('models');
   const [models, setModels] = useState<ValuationModel[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string>('Apple');
+  const [searchModel, setSearchModel] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [editingModel, setEditingModel] = useState<Partial<ValuationModel> | null>(null);
   const [settings, setSettings] = useState<ValuationSettings>({
@@ -42,15 +43,23 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
     store_cnpj: '',
     store_address: '',
     default_trade_bonus: 100,
-    terms_text: ''
+    terms_text: DEFAULT_LEGAL_TERMS
   });
+
+  const currentUser = leadAuthService.getCurrentUser();
+  const userId = currentUser?.id;
 
   const loadData = async () => {
     setLoading(true);
     try {
+      // Se for a primeira vez que o lojista abre, inicializa seu catálogo individual
+      if (userId) {
+        await tradeinService.initializeCustomCatalogForUser(userId);
+      }
+
       const [modelsData, settingsData] = await Promise.all([
-        tradeinService.getModels(selectedBrand, true),
-        tradeinService.getSettings()
+        tradeinService.getModels(selectedBrand, userId, true),
+        tradeinService.getSettings(userId)
       ]);
       setModels(modelsData);
       setSettings(settingsData);
@@ -77,9 +86,9 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
     }
 
     try {
-      const res = await tradeinService.saveModel(editingModel);
+      const res = await tradeinService.saveModel(editingModel, userId);
       if (res.success) {
-        toast.success(`Modelo "${editingModel.model_name}" salvo com sucesso!`);
+        toast.success(`Modelo "${editingModel.model_name}" salvo na sua tabela!`);
         setEditingModel(null);
         loadData();
         onModelUpdated();
@@ -92,32 +101,32 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
   };
 
   const handleDeleteModel = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja remover o modelo "${name}"?`)) return;
+    if (!window.confirm(`Tem certeza que deseja remover "${name}" da sua tabela de preços?`)) return;
     const ok = await tradeinService.deleteModel(id);
     if (ok) {
-      toast.success('Modelo excluído com sucesso!');
+      toast.success('Modelo excluído da sua tabela!');
       loadData();
       onModelUpdated();
     }
   };
 
   const handleSaveSettings = async () => {
-    const ok = await tradeinService.saveSettings(settings);
+    const ok = await tradeinService.saveSettings(settings, userId);
     if (ok) {
-      toast.success('Configurações salvas com sucesso!');
+      toast.success('Dados e regras da sua loja salvos com sucesso!');
     } else {
       toast.error('Erro ao salvar configurações.');
     }
   };
 
   const openNewModel = () => {
-    // Generate default fault discounts
     const defaultFaults: Record<string, number> = {};
     FAULT_DEFINITIONS.forEach(f => {
       defaultFaults[f.id] = f.defaultDiscount;
     });
 
     setEditingModel({
+      user_id: userId,
       brand: selectedBrand,
       model_name: '',
       storage: '128GB',
@@ -130,21 +139,25 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
     });
   };
 
+  const filteredModels = models.filter(m => 
+    !searchModel || m.model_name.toLowerCase().includes(searchModel.toLowerCase())
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-[#080c17] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl bg-[#080c17] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60 shrink-0">
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/70 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
               <Settings className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-white">
-                Gestão da Tabela de Avaliações & Avarias (Admin)
+                Configurar Minha Tabela de Preços & Avarias
               </h2>
               <p className="text-xs text-slate-400">
-                Configure os valores de compra, bônus de troca e tabela de descontos de avarias por modelo
+                Sua tabela exclusiva: personalize valores de compra, adicione novos modelos e ajuste descontos
               </p>
             </div>
           </div>
@@ -162,21 +175,21 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
             onClick={() => { setTab('models'); setEditingModel(null); }}
             className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 ${
               tab === 'models'
-                ? 'border-[#00D287] text-[#00D287]'
+                ? 'border-blue-500 text-blue-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Smartphone className="w-4 h-4" /> Modelos & Avarias
+            <Smartphone className="w-4 h-4" /> Modelos & Preços da Loja
           </button>
           <button
             onClick={() => { setTab('settings'); setEditingModel(null); }}
             className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 ${
               tab === 'settings'
-                ? 'border-[#00D287] text-[#00D287]'
+                ? 'border-blue-500 text-blue-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <FileText className="w-4 h-4" /> Termo & Configurações da Loja
+            <FileText className="w-4 h-4" /> Dados da Loja & Termo Legal
           </button>
         </div>
 
@@ -184,11 +197,11 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
         <div className="p-4 sm:p-5 overflow-y-auto flex-1">
           {tab === 'models' && (
             editingModel ? (
-              /* EDIT / CREATE MODEL FORM */
+              /* FORM: ADD / EDIT MODEL */
               <div className="space-y-4 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    {editingModel.id ? 'Editar Modelo de Avaliação' : 'Adicionar Novo Modelo à Tabela'}
+                    {editingModel.id ? 'Editar Modelo na Minha Tabela' : 'Adicionar Novo Modelo'}
                   </h3>
                   <button
                     onClick={() => setEditingModel(null)}
@@ -204,7 +217,7 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                     <select
                       value={editingModel.brand}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, brand: e.target.value }))}
-                      className="w-full bg-slate-950 border border-slate-800 text-xs rounded-xl p-2.5 text-white focus:border-[#00D287] outline-none"
+                      className="w-full bg-slate-950 border border-slate-800 text-xs rounded-xl p-2.5 text-white focus:border-blue-500 outline-none"
                     >
                       {BRANDS_LIST.map(b => (
                         <option key={b} value={b}>{b}</option>
@@ -218,75 +231,72 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                       value={editingModel.model_name || ''}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, model_name: e.target.value }))}
                       placeholder="Ex: iPhone 15 Pro Max"
-                      className="bg-slate-950 border-slate-800 text-xs rounded-xl focus:border-[#00D287] text-white"
+                      className="bg-slate-950 border-slate-800 text-xs rounded-xl focus:border-blue-500 text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1 font-medium">Armazenamento Padrão:</label>
+                    <label className="text-xs text-slate-300 block mb-1 font-medium">Armazenamento:</label>
                     <Input
                       value={editingModel.storage || '128GB'}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, storage: e.target.value }))}
                       placeholder="Ex: 128GB, 256GB"
-                      className="bg-slate-950 border-slate-800 text-xs rounded-xl focus:border-[#00D287] text-white"
+                      className="bg-slate-950 border-slate-800 text-xs rounded-xl focus:border-blue-500 text-white"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-950 border border-slate-800">
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1 font-medium">Valor de Compra Base (R$):</label>
+                    <label className="text-xs text-slate-300 block mb-1 font-medium">
+                      Valor de Compra Base (R$):
+                    </label>
                     <Input
                       type="number"
                       value={editingModel.buy_price || 0}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, buy_price: Number(e.target.value) || 0 }))}
-                      className="bg-slate-900 border-slate-700 text-xs rounded-xl text-emerald-400 font-bold"
+                      className="bg-slate-900 border-slate-700 text-xs text-emerald-400 font-bold rounded-xl"
                     />
-                    <span className="text-[10px] text-slate-500 mt-1 block">Valor máximo se aparelho estiver 100% perfeito</span>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      Valor pago pelo aparelho se estiver 100% impecável (sem avarias)
+                    </span>
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1 font-medium">Bônus de Troca na Loja (R$):</label>
+                    <label className="text-xs text-slate-300 block mb-1 font-medium">
+                      Bônus de Troca na Loja (R$):
+                    </label>
                     <Input
                       type="number"
                       value={editingModel.trade_bonus || 0}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, trade_bonus: Number(e.target.value) || 0 }))}
-                      className="bg-slate-900 border-slate-700 text-xs rounded-xl text-emerald-400 font-bold"
+                      className="bg-slate-900 border-slate-700 text-xs text-blue-400 font-bold rounded-xl"
                     />
-                    <span className="text-[10px] text-slate-500 mt-1 block">Crédito extra aplicado se o cliente levar outro aparelho</span>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1 font-medium">Preço Base de Mercado (R$):</label>
-                    <Input
-                      type="number"
-                      value={editingModel.base_price || 0}
-                      onChange={(e) => setEditingModel(prev => ({ ...prev!, base_price: Number(e.target.value) || 0 }))}
-                      className="bg-slate-900 border-slate-700 text-xs rounded-xl text-white"
-                    />
-                    <span className="text-[10px] text-slate-500 mt-1 block">Referência de revenda da loja</span>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      Crédito extra concedido se o cliente levar outro celular do estoque
+                    </span>
                   </div>
                 </div>
 
-                {/* Specific Faults Discount Matrix for this Model */}
-                <div className="space-y-2 pt-2">
+                {/* Specific Faults Discount Table for this Model */}
+                <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                      Tabela de Descontos por Avaria para este Modelo
+                      Descontos por Avaria para este Modelo
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      Personalize quanto descontar para cada defeito neste modelo específico
+                      Defina quanto abater para cada avaria
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto p-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1">
                     {FAULT_DEFINITIONS.map(fault => {
                       const currentVal = editingModel.fault_discounts?.[fault.id] !== undefined
                         ? editingModel.fault_discounts[fault.id]
                         : fault.defaultDiscount;
 
                       return (
-                        <div key={fault.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                        <div key={fault.id} className="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                           <span className="text-[11px] font-medium text-slate-300 block leading-tight truncate">
                             {fault.label}
                           </span>
@@ -314,7 +324,7 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                   <Button
                     variant="outline"
                     onClick={() => setEditingModel(null)}
@@ -324,16 +334,16 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   </Button>
                   <Button
                     onClick={handleSaveModel}
-                    className="bg-[#00D287] hover:bg-[#00c07a] text-slate-950 font-bold flex items-center gap-1.5"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-1.5"
                   >
                     <Save className="w-4 h-4" /> Salvar Modelo
                   </Button>
                 </div>
               </div>
             ) : (
-              /* MODELS LIST BY BRAND */
+              /* MODELS LIST */
               <div className="space-y-4 animate-in fade-in duration-200">
-                {/* Brand Selector */}
+                {/* Brand Filter & Search */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-1.5">
                     {BRANDS_LIST.map(brand => (
@@ -342,7 +352,7 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                         onClick={() => setSelectedBrand(brand)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                           selectedBrand === brand
-                            ? 'bg-[#00D287] text-slate-950'
+                            ? 'bg-blue-600 text-white'
                             : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                         }`}
                       >
@@ -354,32 +364,43 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   <Button
                     onClick={openNewModel}
                     size="sm"
-                    className="bg-[#00D287] hover:bg-[#00c07a] text-slate-950 font-bold text-xs flex items-center gap-1.5"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5"
                   >
                     <Plus className="w-4 h-4" /> Adicionar Modelo {selectedBrand}
                   </Button>
                 </div>
 
-                {/* Table / Cards */}
+                {/* Search in Brand */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Input
+                    value={searchModel}
+                    onChange={(e) => setSearchModel(e.target.value)}
+                    placeholder={`Filtrar modelos de ${selectedBrand}...`}
+                    className="bg-slate-950 border-slate-800 pl-8 text-xs text-white rounded-xl h-8"
+                  />
+                </div>
+
+                {/* Table / Cards List */}
                 {loading ? (
-                  <div className="text-center py-8 text-slate-500 text-xs">Carregando modelos...</div>
-                ) : models.length === 0 ? (
-                  <div className="text-center py-10 bg-slate-950 rounded-2xl border border-slate-800 text-slate-500 space-y-2">
-                    <Smartphone className="w-8 h-8 mx-auto opacity-30" />
-                    <p className="text-xs">Nenhum modelo cadastrado para a marca <strong>{selectedBrand}</strong>.</p>
+                  <div className="text-center py-8 text-slate-500 text-xs">Carregando sua tabela...</div>
+                ) : filteredModels.length === 0 ? (
+                  <div className="text-center py-8 bg-slate-950 rounded-2xl border border-slate-800 text-slate-500 space-y-2">
+                    <Smartphone className="w-7 h-7 mx-auto opacity-30" />
+                    <p className="text-xs">Nenhum modelo encontrado para {selectedBrand}.</p>
                     <Button onClick={openNewModel} size="sm" variant="outline" className="text-xs">
-                      Cadastrar Primeiro Modelo
+                      Cadastrar Novo Modelo
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {models.map(m => (
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                    {filteredModels.map(m => (
                       <div
                         key={m.id}
                         className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between gap-3 hover:border-slate-700 transition-all"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 font-bold text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 font-bold text-xs shrink-0">
                             {m.brand === 'Apple' ? '' : m.brand.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
@@ -388,29 +409,29 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4 text-xs">
+                        <div className="flex items-center gap-3 text-xs">
                           <div className="text-right">
                             <span className="text-[10px] text-slate-500 block uppercase">Compra Base</span>
-                            <span className="font-bold text-[#00D287]">R$ {m.buy_price.toLocaleString('pt-BR')}</span>
+                            <span className="font-bold text-emerald-400">R$ {m.buy_price.toLocaleString('pt-BR')}</span>
                           </div>
 
                           <div className="text-right">
                             <span className="text-[10px] text-slate-500 block uppercase">Bônus Troca</span>
-                            <span className="font-bold text-emerald-400">+ R$ {m.trade_bonus.toLocaleString('pt-BR')}</span>
+                            <span className="font-bold text-blue-400">+ R$ {m.trade_bonus.toLocaleString('pt-BR')}</span>
                           </div>
 
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => setEditingModel(m)}
-                              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
-                              title="Editar modelo e avarias"
+                              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 transition-colors"
+                              title="Editar modelo e valores"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeleteModel(m.id, m.model_name)}
-                              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-red-400 hover:text-red-300 hover:border-red-800 transition-colors"
-                              title="Excluir"
+                              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-red-400 hover:text-red-300 transition-colors"
+                              title="Excluir da minha tabela"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -425,20 +446,20 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
           )}
 
           {tab === 'settings' && (
-            /* STORE & LEGAL SETTINGS */
+            /* STORE SETTINGS & LEGAL TERM */
             <div className="space-y-4 animate-in fade-in duration-200">
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#00D287] block">
-                  Identificação da Loja no Termo de Responsabilidade
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-400 block">
+                  Identificação da Sua Loja no Recibo / Termo
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">Nome Fantasia da Loja:</label>
+                    <label className="text-xs text-slate-300 block mb-1">Nome da Loja:</label>
                     <Input
                       value={settings.store_name}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_name: e.target.value }))}
-                      placeholder="Ex: CellHub Loja Centro"
+                      placeholder="Ex: Cell Express Centro"
                       className="bg-slate-900 border-slate-800 text-xs rounded-xl text-white"
                     />
                   </div>
@@ -454,11 +475,11 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-xs text-slate-300 block mb-1">Endereço da Loja (Para o Cabeçalho):</label>
+                    <label className="text-xs text-slate-300 block mb-1">Endereço da Loja:</label>
                     <Input
                       value={settings.store_address}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_address: e.target.value }))}
-                      placeholder="Av. Paulista, 1000 - São Paulo/SP"
+                      placeholder="Rua / Avenida, Número - Bairro, Cidade/UF"
                       className="bg-slate-900 border-slate-800 text-xs rounded-xl text-white"
                     />
                   </div>
@@ -466,27 +487,27 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#00D287] block">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-400 block">
                   Cláusula do Termo Legal de Procedência & Responsabilidade
                 </span>
 
                 <Textarea
                   value={settings.terms_text}
                   onChange={(e) => setSettings(prev => ({ ...prev, terms_text: e.target.value }))}
-                  rows={4}
-                  className="bg-slate-900 border-slate-800 text-xs rounded-xl text-slate-200 leading-relaxed"
+                  rows={6}
+                  className="bg-slate-900 border-slate-800 text-xs rounded-xl text-slate-200 leading-relaxed font-sans"
                 />
                 <span className="text-[11px] text-slate-500 block">
-                  Este texto é exibido no momento da assinatura eletrônica do cliente ao vender o smartphone usado para sua loja.
+                  Texto exibido e assinado pelo vendedor do smartphone para proteger o lojista contra problemas de receptação ou bloqueios posteriores.
                 </span>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-1">
                 <Button
                   onClick={handleSaveSettings}
-                  className="bg-[#00D287] hover:bg-[#00c07a] text-slate-950 font-bold flex items-center gap-1.5"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-1.5"
                 >
-                  <Save className="w-4 h-4" /> Salvar Configurações
+                  <Save className="w-4 h-4" /> Salvar Dados da Loja
                 </Button>
               </div>
             </div>

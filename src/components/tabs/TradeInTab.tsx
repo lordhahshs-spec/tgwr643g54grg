@@ -1,28 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Repeat, 
-  CheckCircle2, 
-  Copy, 
-  Check, 
-  Sparkles,
-  Smartphone,
-  ShieldCheck,
-  History,
-  Settings,
-  AlertTriangle,
-  Plus,
-  ArrowRight,
-  TrendingDown,
-  Gift,
-  Search,
-  DollarSign,
-  Share2,
-  FileSignature,
-  Calculator,
-  ChevronDown
+  Settings, 
+  History, 
+  ChevronDown, 
+  Calculator, 
+  FileSignature
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
   ValuationModel, 
@@ -43,14 +28,17 @@ interface TradeInTabProps {
   onGoToAurusSimulator?: () => void;
 }
 
-export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) => {
-  // Navigation & Data State
+export const TradeInTab: React.FC<TradeInTabProps> = () => {
+  // Current user / lojista
+  const currentUser = leadAuthService.getCurrentUser();
+  const userId = currentUser?.id;
+
+  // Selected Brand & Models
   const [selectedBrand, setSelectedBrand] = useState<DeviceBrand>('Apple');
   const [allModels, setAllModels] = useState<ValuationModel[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
-  const [imei, setImei] = useState<string>('');
   
-  // Custom manual input fallback if model not in table
+  // Custom manual model fallback
   const [isManualModel, setIsManualModel] = useState<boolean>(false);
   const [customModelName, setCustomModelName] = useState<string>('');
   const [customBaseBuyPrice, setCustomBaseBuyPrice] = useState<number>(3040);
@@ -61,7 +49,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
   // Trade Bonus toggle ("Cliente vai levar outro seminovo do nosso estoque")
   const [willBuyFromStock, setWillBuyFromStock] = useState<boolean>(false);
 
-  // Mini Calculo: Valor do celular que a loja vai vender (apenas a caixinha simples de valor)
+  // Mini Calculo: Valor do celular que a loja vai vender (apenas a caixinha com o valor)
   const [sellingPhonePrice, setSellingPhonePrice] = useState<number | ''>('');
 
   // Modals
@@ -70,20 +58,12 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<ValuationSettings | undefined>(undefined);
 
-  // UI helpers
-  const [copiedProposal, setCopiedProposal] = useState<boolean>(false);
-  const [loadingModels, setLoadingModels] = useState<boolean>(false);
-
-  // User role check
-  const currentUser = leadAuthService.getCurrentUser();
-
-  // Load models on brand change
+  // Load models on brand or user change
   const loadModels = async () => {
-    setLoadingModels(true);
     try {
       const [models, st] = await Promise.all([
-        tradeinService.getModels(selectedBrand),
-        tradeinService.getSettings()
+        tradeinService.getModels(selectedBrand, userId),
+        tradeinService.getSettings(userId)
       ]);
       setAllModels(models);
       setSettings(st);
@@ -93,15 +73,13 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoadingModels(false);
     }
   };
 
   useEffect(() => {
     loadModels();
     setSelectedFaults({});
-  }, [selectedBrand]);
+  }, [selectedBrand, userId]);
 
   // Current active model object
   const currentModel = useMemo(() => {
@@ -161,7 +139,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
 
   // Mini cálculo: Diferença a pagar se o lojista vender um celular
   const differenceToPay = useMemo(() => {
-    if (!sellingPhonePrice || sellingPhonePrice <= 0) return 0;
+    if (!sellingPhonePrice || Number(sellingPhonePrice) <= 0) return 0;
     return Math.max(Number(sellingPhonePrice) - finalValuation, 0);
   }, [sellingPhonePrice, finalValuation]);
 
@@ -173,53 +151,21 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
     }));
   };
 
-  // Copy WhatsApp Proposal
-  const handleCopyProposal = () => {
-    if (!currentModel) return;
-
-    let text = `📋 *AVALIAÇÃO DE APARELHO — ${settings?.store_name || 'CELLHUB'}*\n\n`;
-    text += `📱 *Aparelho do Cliente:* ${currentModel.brand} ${currentModel.model_name} ${currentModel.storage}\n`;
-    if (imei) text += `🔢 *IMEI:* ${imei}\n`;
-    text += `💵 *Valor Base de Tabela:* R$ ${baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-
-    if (activeFaultsList.length > 0) {
-      text += `\n🔍 *Avarias & Condições Assinaladas:*\n`;
-      activeFaultsList.forEach(f => {
-        text += ` • ${f.label}: - R$ ${f.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-      });
-      text += `🔻 *Total Descontos:* - R$ ${totalFaultsDiscount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-    } else {
-      text += `✨ *Condição:* 100% Impecável (Sem avarias)\n`;
-    }
-
-    if (willBuyFromStock && tradeBonusAmount > 0) {
-      text += `🎁 *Bônus de Troca na Loja:* + R$ ${tradeBonusAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-    }
-
-    text += `\n💰 *VALOR A PAGAR / CRÉDITO DO APARELHO:* R$ ${finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-
-    if (sellingPhonePrice && Number(sellingPhonePrice) > 0) {
-      text += `\n🎯 *Valor do Celular que está comprando:* R$ ${Number(sellingPhonePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-      text += `(-) *Desconto do seu Usado:* - R$ ${finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-      text += `✨ *DIFERENÇA A PAGAR:* R$ ${differenceToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-    }
-
-    navigator.clipboard.writeText(text);
-    setCopiedProposal(true);
-    toast.success('Proposta formatada copiada com sucesso!');
-    setTimeout(() => setCopiedProposal(false), 2500);
-  };
-
-  // Confirm Save & Generate Term
-  const handleSaveEvaluationWithCustomer = async (customerData: CustomerData, signatureData: string): Promise<TradeInEvaluation | null> => {
+  // Confirm Save & Generate Term with Customer Data & IMEI
+  const handleSaveEvaluationWithCustomer = async (
+    customerData: CustomerData, 
+    signatureData: string, 
+    imeiValue: string
+  ): Promise<TradeInEvaluation | null> => {
     if (!currentModel) return null;
 
     const res = await tradeinService.createEvaluation({
+      userId: userId,
       type: willBuyFromStock ? 'troca' : 'compra',
       brand: currentModel.brand,
       model_name: currentModel.model_name,
       storage: currentModel.storage,
-      imei: imei || undefined,
+      imei: imeiValue || undefined,
       base_value: baseValue,
       faults_selected: activeFaultsList,
       total_faults_discount: totalFaultsDiscount,
@@ -230,7 +176,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
       customer_data: customerData,
       signature_data: signatureData,
       created_by_id: currentUser?.id,
-      created_by_name: currentUser?.name || currentUser?.ownerName || 'Vendedor Balcão'
+      created_by_name: currentUser?.name || currentUser?.ownerName || 'Lojista'
     });
 
     if (res.success && res.evaluation) {
@@ -239,46 +185,17 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
     return null;
   };
 
-  // Quick save without term
-  const handleQuickSaveEvaluation = async () => {
-    if (!currentModel) return;
-    try {
-      const res = await tradeinService.createEvaluation({
-        type: willBuyFromStock ? 'troca' : 'compra',
-        brand: currentModel.brand,
-        model_name: currentModel.model_name,
-        storage: currentModel.storage,
-        imei: imei || undefined,
-        base_value: baseValue,
-        faults_selected: activeFaultsList,
-        total_faults_discount: totalFaultsDiscount,
-        trade_bonus_applied: tradeBonusAmount,
-        final_valuation: finalValuation,
-        exchange_target_price: sellingPhonePrice ? Number(sellingPhonePrice) : 0,
-        exchange_difference_to_pay: differenceToPay,
-        created_by_id: currentUser?.id,
-        created_by_name: currentUser?.name || currentUser?.ownerName || 'Vendedor Balcão'
-      });
-
-      if (res.success) {
-        toast.success(`Avaliação ${res.evaluation?.evaluation_code} salva com sucesso no histórico!`);
-      }
-    } catch (err) {
-      toast.error('Erro ao salvar avaliação.');
-    }
-  };
-
   return (
-    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-3 sm:p-6 space-y-5 pb-24 md:pb-8">
+    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-3 sm:p-6 space-y-4 pb-24 md:pb-8">
       {/* Top Bar with History & Admin Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#080c17] p-3.5 sm:p-4 rounded-2xl border border-slate-800/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#00D287]/10 border border-[#00D287]/30 flex items-center justify-center text-[#00D287]">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
             <Repeat className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-black text-white">
-              Avaliação de Aparelho <span className="text-[#00D287]">(Seminovos & Troca)</span>
+              Avaliação de Aparelho <span className="text-blue-400">(Seminovos & Troca)</span>
             </h1>
             <p className="text-xs text-slate-400">
               Calcule o valor de compra do celular do cliente e abata na venda de outro aparelho
@@ -294,7 +211,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
             className="border-slate-800 bg-slate-900/90 text-slate-200 hover:text-white hover:bg-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5"
           >
             <History className="w-3.5 h-3.5 text-blue-400" />
-            Histórico
+            Histórico de Termos
           </Button>
 
           <Button
@@ -304,12 +221,12 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
             className="border-purple-500/30 bg-purple-500/10 text-purple-300 hover:text-white hover:bg-purple-500/20 text-xs font-bold rounded-xl flex items-center gap-1.5"
           >
             <Settings className="w-3.5 h-3.5 text-purple-400" />
-            Tabela de Preços (Admin)
+            Editar Minha Tabela
           </Button>
         </div>
       </div>
 
-      {/* Main Quotation Window Card (Mac Window Style from Reference) */}
+      {/* Main Quotation Window Card (Layout matching reference image) */}
       <div className="bg-[#0b101e] border border-slate-800/90 rounded-2xl shadow-2xl overflow-hidden">
         {/* Window Topbar */}
         <div className="px-4 py-3 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
@@ -323,14 +240,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
           </div>
 
           <div className="text-[11px] text-slate-400">
-            {allModels.length} modelos cadastrados no sistema
+            {allModels.length} modelos na sua tabela
           </div>
         </div>
 
         {/* Content Container */}
         <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Device Selection & Faults List */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 space-y-4">
             {/* 1. Device Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -408,7 +325,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
               <div className="border border-slate-800/80 rounded-2xl bg-slate-950/70 divide-y divide-slate-800/60 overflow-hidden">
                 {FAULT_DEFINITIONS.map(fault => {
                   const isChecked = !!selectedFaults[fault.id];
-                  // Model specific discount value
                   const discount = currentModel?.fault_discounts?.[fault.id] !== undefined
                     ? currentModel.fault_discounts[fault.id]
                     : fault.defaultDiscount;
@@ -464,18 +380,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
                   </span>
                 </label>
               </div>
-            </div>
-
-            {/* Optional IMEI Input */}
-            <div className="flex items-center gap-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-xs text-slate-400 whitespace-nowrap">IMEI do aparelho:</span>
-              <Input
-                value={imei}
-                onChange={(e) => setImei(e.target.value)}
-                placeholder="Opcional no orçamento / Obrigatório no termo"
-                maxLength={15}
-                className="bg-slate-900 border-slate-800 text-xs font-mono text-white h-8 rounded-lg"
-              />
             </div>
           </div>
 
@@ -573,7 +477,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
               )}
             </div>
 
-            {/* Card "Regras" (Matching Reference Image) */}
+            {/* Card "Regras" */}
             <div className="border border-slate-800/80 rounded-2xl bg-slate-950/60 p-4 space-y-2">
               <span className="text-xs font-bold text-slate-300 block">Regras</span>
               <ul className="text-[11px] text-slate-400 space-y-1 leading-relaxed">
@@ -592,36 +496,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
               </ul>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-2">
-              <Button
-                onClick={() => setIsTermModalOpen(true)}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs sm:text-sm h-11 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
-              >
-                <FileSignature className="w-4 h-4" />
-                Gerar Termo de Compra & Assinatura
-              </Button>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleCopyProposal}
-                  className="border-slate-800 text-slate-200 hover:text-white bg-slate-950 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
-                >
-                  {copiedProposal ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-400" />}
-                  {copiedProposal ? 'Copiado!' : 'Copiar WhatsApp'}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={handleQuickSaveEvaluation}
-                  className="border-slate-800 text-slate-200 hover:text-white bg-slate-950 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
-                >
-                  <History className="w-3.5 h-3.5 text-purple-400" />
-                  Salvar Histórico
-                </Button>
-              </div>
-            </div>
+            {/* Single Prominent Action Button */}
+            <Button
+              onClick={() => setIsTermModalOpen(true)}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-sm h-12 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+            >
+              <FileSignature className="w-4 h-4" />
+              Gerar Termo de Compra & Assinatura
+            </Button>
           </div>
         </div>
       </div>
@@ -635,7 +517,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = ({ onGoToAurusSimulator }) 
           brand: currentModel?.brand || selectedBrand,
           model_name: currentModel?.model_name || '',
           storage: currentModel?.storage || '',
-          imei: imei || undefined,
           base_value: baseValue,
           faults_selected: activeFaultsList,
           total_faults_discount: totalFaultsDiscount,
