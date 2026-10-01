@@ -105,24 +105,37 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     };
   }, [isOpen, currentModel?.id]);
 
-  // Polling para acompanhar o celular conectado e recebimento das fotos
+  // Polling para acompanhar o celular conectado e recebimento das fotos com timeout de segurança
   useEffect(() => {
     if (!isOpen || !session || analysisResult || analyzing || upgradeRequired) return;
 
+    let pollAttempts = 0;
+    const MAX_POLL_ATTEMPTS = 60; // 3 minutos máx
+
     pollingRef.current = setInterval(async () => {
-      const updated = await tradeinAiService.getSession(session.id);
-      if (!updated) return;
-
-      if (updated.status !== session.status) {
-        setSession(updated);
-      }
-
-      // Se o celular terminou de subir as 3 fotos
-      if (updated.status === 'photos_received' && !analyzing) {
+      pollAttempts += 1;
+      if (pollAttempts > MAX_POLL_ATTEMPTS) {
         if (pollingRef.current) clearInterval(pollingRef.current);
-        runAiAnalysis(updated.id);
+        return;
       }
-    }, 2000);
+
+      try {
+        const updated = await tradeinAiService.getSession(session.id);
+        if (!updated) return;
+
+        if (updated.status !== session.status) {
+          setSession(updated);
+        }
+
+        // Se o celular terminou de subir as 3 fotos
+        if (updated.status === 'photos_received' && !analyzing) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          runAiAnalysis(updated.id);
+        }
+      } catch (e) {
+        console.warn('Polling check error', e);
+      }
+    }, 3000);
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
