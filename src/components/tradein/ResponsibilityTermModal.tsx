@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  FileText, 
-  X, 
-  CheckCircle2, 
-  Printer, 
-  PenTool, 
-  RotateCcw, 
-  ShieldCheck, 
-  Smartphone, 
-  User, 
+import {
+  FileText,
+  X,
+  CheckCircle2,
+  Printer,
+  PenTool,
+  RotateCcw,
+  ShieldCheck,
+  Smartphone,
+  User,
   Lock,
   Building2,
   Calendar,
@@ -18,7 +18,8 @@ import {
   Sparkles,
   Camera,
   Layers,
-  DollarSign
+  DollarSign,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -216,34 +217,43 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
   const photosList = evaluation.photos || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-4xl bg-[#060a16] border border-white/10 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col text-slate-100 print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-sm overflow-hidden animate-in fade-in duration-150">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[94vh] md:max-w-4xl bg-[#060a16] md:border md:border-white/10 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0 pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
         
         {/* Modal Top Header (Hidden in Print) */}
-        <div className="p-4 sm:p-5 border-b border-white/10 bg-[#090f1f]/90 flex items-center justify-between shrink-0 print:hidden">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 flex items-center justify-center text-[#00D287] shrink-0">
+        <div className="p-3.5 sm:p-5 border-b border-white/10 bg-[#090f1f]/95 backdrop-blur-md flex items-center justify-between shrink-0 print:hidden">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Botão Voltar no Mobile */}
+            <button
+              onClick={onClose}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 hidden sm:flex items-center justify-center text-[#00D287] shrink-0">
               <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
-                Termo de Compra, Procedência & Responsabilidade
+              <h2 className="text-xs sm:text-base font-black text-white tracking-tight flex items-center gap-2">
+                Termo de Compra & Responsabilidade
               </h2>
-              <p className="text-xs text-slate-400">
-                Respaldo jurídico com assinatura digital, dados da loja e laudo do aparelho
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[240px] sm:max-w-none">
+                Respaldo jurídico com assinatura digital e dados da loja
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors"
+            className="hidden md:flex w-9 h-9 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body Container */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin print:p-0 print:overflow-visible space-y-5">
+        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 scrollbar-thin print:p-0 print:overflow-visible space-y-5 pb-24 md:pb-6">
           
           {step === 'form' && (
             /* STEP 1: COMPLETE CUSTOMER & STORE AUDIT FORM */

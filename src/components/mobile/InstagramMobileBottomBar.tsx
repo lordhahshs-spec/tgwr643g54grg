@@ -25,7 +25,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
   const avatarUrl = currentUser?.avatarUrl;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060a16] border-t border-white/10 h-13 px-1 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.7)] select-none touch-manipulation m-0">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060a16]/95 backdrop-blur-xl border-t border-white/10 px-1 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.7)] select-none touch-manipulation m-0 pb-[max(env(safe-area-inset-bottom,0px),6px)] h-[calc(3.5rem+max(env(safe-area-inset-bottom,0px),6px))]">
       {/* 1. Venda no Boleto (Crediário Próprio) */}
       <button
         type="button"

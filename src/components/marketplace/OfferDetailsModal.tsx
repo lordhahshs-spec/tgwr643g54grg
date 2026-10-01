@@ -9,7 +9,8 @@ import {
   Share2,
   ShoppingBag,
   Zap,
-  ArrowDown
+  ArrowDown,
+  ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -115,23 +116,34 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-md animate-in fade-in duration-150"
       onClick={onClose}
     >
-      <div 
-        className="relative w-full max-w-4xl max-h-[90vh] bg-[#070b14] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+      <div
+        className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-4xl bg-[#070b14] md:border md:border-white/10 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar Minimalista */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-white/5 bg-[#060911]/80">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider flex items-center gap-1">
-              <Zap className="w-3 h-3 fill-[#00D287]" /> {offer.isOfficial ? 'Oficial CellHub' : 'Oferta B2B'}
-            </span>
-            <span className="text-[11px] text-slate-500 font-mono">
-              #{offer.id.slice(0, 8)}
-            </span>
+        {/* Header Bar: Mobile App Header vs Desktop Modal Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5 bg-[#060911]/95 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-2.5">
+            {/* Botão Voltar Estilo App Mercado Livre no Mobile */}
+            <button
+              onClick={onClose}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider flex items-center gap-1">
+                <Zap className="w-3 h-3 fill-[#00D287]" /> {offer.isOfficial ? 'Oficial' : 'Oferta B2B'}
+              </span>
+              <span className="hidden sm:inline text-[11px] text-slate-500 font-mono">
+                #{offer.id.slice(0, 8)}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -155,7 +167,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+              className="hidden md:flex w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 items-center justify-center transition-colors cursor-pointer"
               title="Fechar"
             >
               <X className="w-4 h-4" />
@@ -164,7 +176,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 custom-scrollbar pb-28 md:pb-6">
           
           {/* Coluna Esquerda: Foto Limpa & Galeria (5 cols) */}
           <div className="md:col-span-5 flex flex-col gap-3">
@@ -248,6 +260,37 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 line-through font-normal">
+              <span className="truncate">Garantia técnica de <strong>{offer.warrantyDays || 90} dias</strong> CellHub</span>
+            </div>
+          </div>
+
+          {/* Coluna Direita: Informações & Compra (7 cols) */}
+          <div className="md:col-span-7 flex flex-col justify-between space-y-4">
+            <div className="space-y-3.5">
+              
+              {/* Categoria & Condição Breadcrumb */}
+              <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                <span className="text-[#00D287] font-semibold">{offer.category}</span>
+                <span>•</span>
+                <span>{offer.condition}</span>
+                {offer.salesCount && offer.salesCount > 0 ? (
+                  <>
+                    <span>•</span>
+                    <span className="text-slate-300">+{offer.salesCount} vendidos</span>
+                  </>
+                ) : null}
+              </div>
+
+              {/* Título Principal */}
+              <h1 className="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight">
+                {offer.title}
+              </h1>
+
+              {/* Preço & Parcelamento Minimalista Estilo Mercado Livre */}
+              <div className="pt-2 pb-3 border-y border-white/5 space-y-1">
+                {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 line-through font-normal">
                       {formatBRL(offer.originalPrice)}
                     </span>
                     <span className="text-xs font-black text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30 flex items-center gap-1">
@@ -300,8 +343,8 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
               )}
             </div>
 
-            {/* Ações de Compra */}
-            <div className="pt-3 border-t border-white/5 space-y-2">
+            {/* Ações de Compra (Fixado na base no Mobile estilo Mercado Livre / Shopee) */}
+            <div className="fixed md:static bottom-0 left-0 right-0 bg-[#060911]/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/10 md:border-t md:border-white/5 p-3.5 md:p-0 md:pt-3 z-30 pb-[max(env(safe-area-inset-bottom,0px),12px)] md:pb-0 space-y-2 shadow-[0_-4px_25px_rgba(0,0,0,0.8)] md:shadow-none">
               {isOwner ? (
                 <div className="w-full p-3 text-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
                   Você é o administrador responsável por este produto no catálogo oficial.
@@ -314,15 +357,15 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCheckoutClick}
-                    className="flex-1 py-3 px-5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-md shadow-[#00D287]/20 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
+                    className="flex-1 py-3.5 px-5 rounded-2xl md:rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    <ShoppingBag className="w-4 h-4 text-slate-950" />
+                    <ShoppingBag className="w-4 h-4 text-slate-950 stroke-[2.5]" />
                     <span>Comprar Agora • {formatBRL(offer.price)}</span>
                   </button>
 
                   <button
                     onClick={() => setShowReportDialog(true)}
-                    className="p-3 rounded-xl bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 border border-white/5 transition-colors cursor-pointer"
+                    className="p-3.5 md:p-3 rounded-2xl md:rounded-xl bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 border border-white/5 transition-colors cursor-pointer"
                     title="Denunciar"
                   >
                     <AlertTriangle className="w-4 h-4" />
@@ -330,7 +373,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-[10px] text-slate-500 px-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
                 <span>⚡ Envio imediato em até 24h</span>
                 <span>🔒 Pagamento 100% protegido</span>
               </div>

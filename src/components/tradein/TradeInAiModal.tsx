@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Camera,
   RotateCcw,
-  Check
+  Check,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
@@ -440,33 +441,42 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl bg-[#060a16] border border-white/10 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-sm overflow-hidden animate-in fade-in duration-150">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-2xl bg-[#060a16] md:border md:border-white/10 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
         
         {/* Modal Top Header */}
-        <div className="p-4 sm:p-5 border-b border-white/10 bg-[#090f1f]/90 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center shadow-lg shadow-[#00D287]/20 shrink-0">
+        <div className="p-3.5 sm:p-5 border-b border-white/10 bg-[#090f1f]/95 backdrop-blur-md flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Botão Voltar no Mobile */}
+            <button
+              onClick={handleCancelSession}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 hidden sm:flex items-center justify-center shadow-lg shadow-[#00D287]/20 shrink-0">
               <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-                  Avaliação Visual Automática com IA
+                <h2 className="text-xs sm:text-base font-black text-white tracking-tight">
+                  Avaliação com IA
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 font-black uppercase">
+                <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 font-black uppercase">
                   CellHub IA
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Aparelho: <strong className="text-white font-bold">{currentModel?.brand} {currentModel?.model_name}</strong> ({currentModel?.storage})
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[220px] sm:max-w-none">
+                {currentModel?.brand} {currentModel?.model_name} ({currentModel?.storage})
               </p>
             </div>
           </div>
 
           <button
             onClick={handleCancelSession}
-            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            className="hidden md:flex w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 items-center justify-center text-slate-400 hover:text-white transition-colors"
             title="Fechar e cancelar sessão no celular"
           >
             <X className="w-5 h-5" />
@@ -474,7 +484,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
         </div>
 
         {/* Modal Body Container */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
+        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 pb-24 md:pb-6">
           {loading ? (
             <div className="py-16 text-center space-y-3">
               <RefreshCw className="w-8 h-8 text-[#00D287] animate-spin mx-auto" />

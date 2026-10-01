@@ -332,23 +332,32 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div 
-        className="relative w-full max-w-4xl max-h-[92vh] bg-[#070b16] border border-[#00D287]/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-6 bg-black/90 md:backdrop-blur-md animate-in fade-in duration-200">
+      <div
+        className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-4xl bg-[#070b16] md:border md:border-[#00D287]/30 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#080c17]/90">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/5 bg-[#080c17]/95 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+            {/* Botão Voltar no Mobile */}
+            <button
+              onClick={step === 'preview' ? () => setStep('form') : onClose}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] hidden sm:flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white leading-none">
-                Anunciar Produto no Marketplace
+              <h2 className="text-xs sm:text-base font-bold text-white leading-none">
+                Anunciar no Marketplace
               </h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Venda celulares, peças ou ferramentas para outros lojistas. As ofertas com maior engajamento viram Super Ofertas em Alta!
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate max-w-[220px] sm:max-w-none">
+                Venda celulares, peças ou ferramentas para outros lojistas
               </p>
             </div>
           </div>
@@ -366,7 +375,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="hidden md:flex p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -374,7 +383,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-white text-sm">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6 text-white text-sm pb-24 md:pb-6">
           {step === 'form' ? (
             <form onSubmit={handleGoToPreview} className="space-y-6">
               {/* Fotos (Mínimo 3) */}

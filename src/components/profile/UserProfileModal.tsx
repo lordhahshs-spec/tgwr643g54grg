@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { UserAccount, leadAuthService } from '@/services/leadAuthService';
-import { 
-  X, 
-  Camera, 
-  User, 
-  Building2, 
-  Phone, 
-  Mail, 
-  ShieldCheck, 
-  Smartphone, 
-  Apple, 
-  Download, 
-  Sparkles, 
-  Check, 
+import {
+  X,
+  Camera,
+  User,
+  Building2,
+  Phone,
+  Mail,
+  ShieldCheck,
+  Smartphone,
+  Apple,
+  Download,
+  Sparkles,
+  Check,
   LogOut,
   UploadCloud,
   Share,
-  PlusSquare
+  PlusSquare,
+  ArrowLeft
 } from 'lucide-react';
 import { useMobileDetection } from '@/hooks/useMobileDetection';
 import { toast } from 'sonner';
@@ -107,17 +108,27 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const isDemo = currentUser.role !== 'admin' && currentUser.planStatus !== 'ativo';
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-[#090e1c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[92vh]">
+    <div className="fixed inset-0 z-[120] bg-black/90 md:backdrop-blur-md flex items-center justify-center md:p-4 overflow-hidden animate-in fade-in duration-200">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-md bg-[#090e1c] md:border md:border-white/10 md:rounded-3xl p-4 sm:p-6 space-y-5 shadow-2xl overflow-y-auto overscroll-contain flex flex-col pt-[max(env(safe-area-inset-top,0px),12px)] md:pt-6 pb-[max(env(safe-area-inset-bottom,0px),16px)] md:pb-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+            </button>
             <User className="w-5 h-5 text-[#00D287]" />
             <h3 className="text-base font-bold text-white">Meu Perfil de Lojista</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
           >
             <X className="w-5 h-5" />
           </button>

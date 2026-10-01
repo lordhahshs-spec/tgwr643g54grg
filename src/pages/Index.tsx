@@ -168,7 +168,7 @@ const Index: React.FC = () => {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col h-full min-h-0 overflow-hidden transition-all duration-300 ease-in-out pt-[env(safe-area-inset-top,0px)] lg:pt-0
+        className={`flex-1 flex flex-col h-full min-h-0 overflow-hidden transition-all duration-300 ease-in-out pt-[max(env(safe-area-inset-top,0px),8px)] lg:pt-0
           ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}
         `}
       >
@@ -219,7 +219,7 @@ const Index: React.FC = () => {
         )}
 
         {/* Tab Content Display Area com rolagem touch nativa e sem corte inferior */}
-        <main className="flex-1 h-full min-h-0 relative flex flex-col overflow-hidden pb-16 lg:pb-0">
+        <main className="flex-1 h-full min-h-0 relative flex flex-col overflow-hidden pb-[calc(3.5rem+max(env(safe-area-inset-bottom,0px),6px))] lg:pb-0">
           <div className={activeTab === 'venda-android' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
             <VendaAndroidTab isDemo={isDemo} onUnlock={() => handleOpenUnlockModal('Venda no Boleto (Crediário Próprio) Bloqueada')} />
           </div>

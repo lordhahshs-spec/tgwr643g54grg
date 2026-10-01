@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Settings, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  Save, 
-  X, 
-  Smartphone, 
+import {
+  Settings,
+  Plus,
+  Trash2,
+  Edit3,
+  Save,
+  X,
+  Smartphone,
   Search,
-  Building2
+  Building2,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -176,58 +177,67 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-4xl bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-sm overflow-hidden animate-in fade-in duration-150">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-4xl bg-[#0f172a] md:border md:border-slate-700/90 md:rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-100 pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
         
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-slate-800 bg-[#1e293b]/80 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+        <div className="p-3.5 sm:p-6 border-b border-slate-800 bg-[#1e293b]/95 backdrop-blur-md flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Botão Voltar no Mobile */}
+            <button
+              onClick={onClose}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-blue-400" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 hidden sm:flex items-center justify-center text-purple-400 shrink-0">
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Configuração da Tabela de Preços & Avarias
+              <h2 className="text-xs sm:text-lg font-bold text-white tracking-tight">
+                Tabela de Preços & Avarias
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Edite os valores de compra, adicione novos modelos e configure os dados do recibo
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[240px] sm:max-w-none">
+                Edite valores de compra e configure os dados do recibo
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
+            className="hidden md:flex w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="px-5 pt-3 border-b border-slate-800 bg-[#0f172a] flex gap-2 shrink-0">
+        <div className="px-3 sm:px-5 pt-2 sm:pt-3 border-b border-slate-800 bg-[#0f172a] flex gap-2 shrink-0">
           <button
             onClick={() => { setTab('models'); setEditingModel(null); }}
-            className={`pb-3 px-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-2.5 sm:pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-1.5 ${
               tab === 'models'
                 ? 'border-blue-500 text-blue-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Smartphone className="w-4 h-4" /> Modelos & Preços da Loja
+            <Smartphone className="w-4 h-4" /> Modelos & Preços
           </button>
           <button
             onClick={() => { setTab('settings'); setEditingModel(null); }}
-            className={`pb-3 px-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-2.5 sm:pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-1.5 ${
               tab === 'settings'
                 ? 'border-blue-500 text-blue-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Building2 className="w-4 h-4" /> Dados da Loja & Termo Legal
+            <Building2 className="w-4 h-4" /> Dados da Loja & Termo
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin space-y-5">
+        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 scrollbar-thin space-y-5 pb-24 md:pb-6">
           {tab === 'models' && (
             editingModel ? (
               /* FORM: ADD / EDIT MODEL */

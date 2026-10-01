@@ -26,8 +26,8 @@ export const MissingStoreDataModal: React.FC<MissingStoreDataModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-[#0c1322] border border-amber-500/40 rounded-2xl shadow-2xl overflow-hidden my-auto flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 md:backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="relative w-full max-w-lg max-h-[92vh] bg-[#0c1322] border border-amber-500/40 rounded-2xl md:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto flex flex-col text-slate-100">
         
         {/* Header Alert */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-950/50 via-[#161f32] to-[#0c1322] border-b border-amber-500/20 flex items-start gap-3.5">

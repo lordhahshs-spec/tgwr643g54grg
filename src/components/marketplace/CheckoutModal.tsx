@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  ShieldCheck, 
-  Truck, 
-  CreditCard, 
-  QrCode, 
-  Copy, 
-  Check, 
-  Building2, 
-  Lock, 
+import {
+  X,
+  ShieldCheck,
+  Truck,
+  CreditCard,
+  QrCode,
+  Copy,
+  Check,
+  Building2,
+  Lock,
   ArrowRight,
+  ArrowLeft,
   PackageCheck,
   Receipt,
   Loader2,
@@ -393,24 +394,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center md:p-6 bg-black/90 md:backdrop-blur-md animate-in fade-in duration-200"
       onClick={handleCloseModal}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[92vh] bg-[#070b16] border border-[#00D287]/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+        className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-3xl bg-[#070b16] md:border md:border-[#00D287]/30 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#080c17]/90">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/5 bg-[#080c17]/95 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+            {/* Botão Voltar no Mobile */}
+            <button
+              onClick={handleCloseModal}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] hidden sm:flex items-center justify-center">
               <ShieldCheck className="w-5 h-5 text-[#00D287]" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white leading-none">
+              <h2 className="text-xs sm:text-sm font-bold text-white leading-none">
                 Checkout B2B Seguro • CellHub Custódia
               </h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
                 Logística automatizada via Melhor Envio com rastreamento oficial
               </p>
             </div>
@@ -418,14 +428,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           <button
             onClick={handleCloseModal}
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="hidden md:flex p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar pb-24 md:pb-6">
           {orderCompletedId ? (
             /* Order Success View */
             <div className="text-center py-8 space-y-6">

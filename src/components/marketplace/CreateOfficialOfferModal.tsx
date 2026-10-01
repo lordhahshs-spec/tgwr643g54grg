@@ -373,35 +373,44 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#090e1c] border border-[#00D287]/30 rounded-3xl shadow-2xl overflow-hidden my-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 md:backdrop-blur-sm md:p-4 overflow-hidden">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-2xl bg-[#090e1c] md:border md:border-[#00D287]/30 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center">
+        <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-950/80 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Botão Voltar no Mobile */}
+            <button
+              onClick={step === 'preview' ? () => setStep('form') : onClose}
+              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
+              <span className="text-xs">Voltar</span>
+            </button>
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] hidden sm:flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Cadastrar Produto Oficial</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
+                <h3 className="text-xs sm:text-base font-bold text-white">Cadastrar Produto Oficial</h3>
+                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
                   CELLHUB SHOP
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Catálogo Atacado com 90 dias de garantia e dropshipping</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-none">Catálogo Atacado com 90 dias de garantia</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+            className="hidden md:flex w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 max-h-[75vh] overflow-y-auto space-y-5">
+        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 pb-24 md:pb-6">
           {step === 'form' ? (
             <>
               {/* Informações Básicas */}
