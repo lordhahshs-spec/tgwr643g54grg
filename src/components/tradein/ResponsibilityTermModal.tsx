@@ -40,6 +40,7 @@ interface ResponsibilityTermModalProps {
   settings?: ValuationSettings;
   currentUser?: any;
   onConfirmSave: (customerData: CustomerData, signatureData: string, imei: string) => Promise<TradeInEvaluation | null>;
+  onOpenStoreSettings?: () => void;
 }
 
 export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = ({
@@ -48,7 +49,8 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
   evaluation,
   settings,
   currentUser,
-  onConfirmSave
+  onConfirmSave,
+  onOpenStoreSettings
 }) => {
   const [step, setStep] = useState<'form' | 'sign' | 'complete'>('form');
   const [imei, setImei] = useState<string>('');
@@ -252,9 +254,28 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
                 <div className="flex items-start gap-2.5">
                   <Building2 className="w-4 h-4 text-[#00D287] shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <span className="font-bold text-white block">{storeName}</span>
-                    {storeCnpj && <span className="text-slate-400 block font-mono">CNPJ: {storeCnpj}</span>}
-                    {storeAddress && <span className="text-slate-400 block truncate max-w-xs">{storeAddress}</span>}
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white block">{storeName}</span>
+                      {onOpenStoreSettings && (!storeCnpj || !storeAddress) && (
+                        <button
+                          type="button"
+                          onClick={onOpenStoreSettings}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 underline font-semibold"
+                        >
+                          (Editar dados da loja)
+                        </button>
+                      )}
+                    </div>
+                    {storeCnpj ? (
+                      <span className="text-slate-400 block font-mono">CNPJ: {storeCnpj}</span>
+                    ) : (
+                      <span className="text-amber-400/90 block font-mono text-[11px]">⚠️ CNPJ não configurado</span>
+                    )}
+                    {storeAddress ? (
+                      <span className="text-slate-400 block truncate max-w-xs">{storeAddress}</span>
+                    ) : (
+                      <span className="text-amber-400/90 block text-[11px]">⚠️ Endereço não configurado</span>
+                    )}
                   </div>
                 </div>
 

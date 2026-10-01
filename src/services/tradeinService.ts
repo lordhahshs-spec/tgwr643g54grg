@@ -654,7 +654,7 @@ export const tradeinService = {
           .select('*')
           .eq('user_id', userId)
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (userSettings) {
           return {
@@ -674,7 +674,7 @@ export const tradeinService = {
         .from('valuation_settings')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (data) {
         return {
@@ -707,10 +707,12 @@ export const tradeinService = {
   },
 
   // Salvar Configurações do Lojista
+  // Salvar Configurações do Lojista
   async saveSettings(settings: ValuationSettings, userId?: string): Promise<boolean> {
     try {
+      const targetUserId = userId || settings.user_id || null;
       const payload = {
-        user_id: userId || settings.user_id || null,
+        user_id: targetUserId,
         store_name: settings.store_name,
         store_cnpj: settings.store_cnpj,
         store_address: settings.store_address,
@@ -720,14 +722,36 @@ export const tradeinService = {
       };
 
       if (settings.id) {
-        await supabase
+        const { error } = await supabase
           .from('valuation_settings')
           .update(payload)
           .eq('id', settings.id);
+        if (error) throw error;
+      } else if (targetUserId) {
+        const { data: existing } = await supabase
+          .from('valuation_settings')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .limit(1)
+          .maybeSingle();
+
+        if (existing?.id) {
+          const { error } = await supabase
+            .from('valuation_settings')
+            .update(payload)
+            .eq('id', existing.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('valuation_settings')
+            .insert(payload);
+          if (error) throw error;
+        }
       } else {
-        await supabase
+        const { error } = await supabase
           .from('valuation_settings')
           .insert(payload);
+        if (error) throw error;
       }
       return true;
     } catch (err) {

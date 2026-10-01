@@ -22,14 +22,16 @@ interface TradeInAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
   onModelUpdated: () => void;
+  initialTab?: 'models' | 'settings';
 }
 
 export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
   isOpen,
   onClose,
-  onModelUpdated
+  onModelUpdated,
+  initialTab = 'models'
 }) => {
-  const [tab, setTab] = useState<'models' | 'settings'>('models');
+  const [tab, setTab] = useState<'models' | 'settings'>(initialTab);
   const [models, setModels] = useState<ValuationModel[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string>('Apple');
   const [searchModel, setSearchModel] = useState<string>('');
@@ -46,6 +48,17 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
   const currentUser = leadAuthService.getCurrentUser();
   const userId = currentUser?.id;
 
+  // Montar endereço formatado do perfil se disponível
+  const profileAddress = useMemo(() => {
+    if (!currentUser) return '';
+    const parts = [
+      currentUser.shippingStreet ? `${currentUser.shippingStreet}${currentUser.shippingNumber ? ', ' + currentUser.shippingNumber : ''}` : '',
+      currentUser.shippingNeighborhood ? currentUser.shippingNeighborhood : '',
+      currentUser.shippingCity ? `${currentUser.shippingCity}${currentUser.shippingState ? ' - ' + currentUser.shippingState : ''}` : ''
+    ].filter(Boolean);
+    return parts.join(' - ');
+  }, [currentUser]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -58,7 +71,21 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
         tradeinService.getSettings(userId)
       ]);
       setModels(modelsData);
-      setSettings(settingsData);
+
+      // Auto-preenchimento inteligente caso os dados da loja estejam vazios ou padrão
+      const effectiveStoreName = (settingsData.store_name && settingsData.store_name !== 'Minha Loja de Celulares')
+        ? settingsData.store_name
+        : (currentUser?.tradeName || currentUser?.companyName || settingsData.store_name || '');
+
+      const effectiveStoreCnpj = settingsData.store_cnpj || currentUser?.cnpj || '';
+      const effectiveStoreAddress = settingsData.store_address || profileAddress || '';
+
+      setSettings({
+        ...settingsData,
+        store_name: effectiveStoreName,
+        store_cnpj: effectiveStoreCnpj,
+        store_address: effectiveStoreAddress
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -68,10 +95,11 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setTab(initialTab);
       loadData();
       setEditingModel(null);
     }
-  }, [isOpen, selectedBrand]);
+  }, [isOpen, initialTab, selectedBrand]);
 
   // Presets da marca do modelo em edição
   const editingBrandPresets: FaultDefinition[] = useMemo(() => {
@@ -116,6 +144,7 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
     const ok = await tradeinService.saveSettings(settings, userId);
     if (ok) {
       toast.success('Dados e regras da sua loja salvos com sucesso!');
+      onModelUpdated();
     } else {
       toast.error('Erro ao salvar configurações.');
     }
@@ -470,45 +499,71 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
           {tab === 'settings' && (
             /* STORE & RECEIPT SETTINGS */
             <div className="space-y-5 animate-in fade-in duration-150">
-              <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-800 space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
-                  <Building2 className="w-4 h-4" /> Dados Cadastrais da Loja (Saem no Recibo / Termo)
-                </span>
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#1e293b] border border-slate-800 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/60 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-400">
+                      Dados Cadastrais da Loja (Saem no Recibo / Termo)
+                    </span>
+                  </div>
+                  {currentUser && (
+                    <span className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 self-start sm:self-auto">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Sincronizado com seu perfil CellHub
+                    </span>
+                  )}
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-300 block">Razão Social / Nome Fantasia:</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 block">Razão Social / Nome Fantasia:</label>
+                      {currentUser?.tradeName && (
+                        <span className="text-[10px] text-slate-400">Puxado do perfil</span>
+                      )}
+                    </div>
                     <Input
                       value={settings.store_name}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_name: e.target.value }))}
                       placeholder="Ex: Top Cell Imports & Acessórios"
-                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
+                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10 focus:border-blue-500"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-300 block">CNPJ / CPF da Empresa:</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 block">CNPJ / CPF da Empresa:</label>
+                      {currentUser?.cnpj && (
+                        <span className="text-[10px] text-slate-400">Puxado do perfil</span>
+                      )}
+                    </div>
                     <Input
                       value={settings.store_cnpj}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_cnpj: e.target.value }))}
                       placeholder="Ex: 00.000.000/0001-00"
-                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
+                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10 focus:border-blue-500"
                     />
                   </div>
 
                   <div className="space-y-1 sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-300 block">Endereço Completo da Loja:</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 block">Endereço Completo da Loja:</label>
+                      {profileAddress && (
+                        <span className="text-[10px] text-slate-400">Puxado do endereço cadastrado</span>
+                      )}
+                    </div>
                     <Input
                       value={settings.store_address}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_address: e.target.value }))}
                       placeholder="Ex: Av. Paulista, 1000 - Loja 42 - Bela Vista, São Paulo - SP"
-                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
+                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10 focus:border-blue-500"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-800 space-y-3">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#1e293b] border border-slate-800 space-y-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-2">
                   Cláusulas do Termo de Compra e Procedência Legal
                 </span>
@@ -528,6 +583,9 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                 >
                   <Save className="w-4 h-4" /> Salvar Configurações da Loja
                 </Button>
+              </div>
+            </div>
+          )}
               </div>
             </div>
           )}

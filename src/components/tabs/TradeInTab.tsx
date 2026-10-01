@@ -31,6 +31,7 @@ import { ResponsibilityTermModal } from '@/components/tradein/ResponsibilityTerm
 import { TradeInHistoryModal } from '@/components/tradein/TradeInHistoryModal';
 import { TradeInAdminModal } from '@/components/tradein/TradeInAdminModal';
 import { TradeInAiModal } from '@/components/tradein/TradeInAiModal';
+import { MissingStoreDataModal, MissingStoreField } from '@/components/tradein/MissingStoreDataModal';
 import { leadAuthService } from '@/services/leadAuthService';
 
 interface TradeInTabProps {
@@ -71,7 +72,10 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   const [isTermModalOpen, setIsTermModalOpen] = useState<boolean>(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
+  const [adminModalTab, setAdminModalTab] = useState<'models' | 'settings'>('models');
   const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false);
+  const [isMissingDataModalOpen, setIsMissingDataModalOpen] = useState<boolean>(false);
+  const [missingStoreFields, setMissingStoreFields] = useState<MissingStoreField[]>([]);
   const [settings, setSettings] = useState<ValuationSettings | undefined>(undefined);
 
   // Carregamento consolidado ultra-rápido (carrega todas as marcas de uma só vez na memória)
@@ -239,6 +243,64 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
     return null;
   };
 
+  const handleRequestOpenTerm = () => {
+    if (!currentModel) return;
+
+    // Verificar se faltam dados essenciais da loja
+    const effectiveStoreName = (settings?.store_name && settings.store_name !== 'Minha Loja de Celulares')
+      ? settings.store_name
+      : (currentUser?.tradeName || currentUser?.companyName || '');
+
+    const effectiveStoreCnpj = settings?.store_cnpj?.trim() || currentUser?.cnpj?.trim() || '';
+    const effectiveStoreAddress = settings?.store_address?.trim() || (
+      [currentUser?.shippingStreet, currentUser?.shippingCity].filter(Boolean).join(', ')
+    );
+
+    const missing: MissingStoreField[] = [];
+
+    if (!effectiveStoreName) {
+      missing.push({
+        key: 'name',
+        label: 'Nome Fantasia / Razão Social da Loja',
+        description: 'Identifica qual estabelecimento comercial está realizando a compra do aparelho.'
+      });
+    }
+
+    if (!effectiveStoreCnpj) {
+      missing.push({
+        key: 'cnpj',
+        label: 'CNPJ / CPF da Empresa',
+        description: 'Necessário para a legalidade fiscal e assinatura contratual do termo.'
+      });
+    }
+
+    if (!effectiveStoreAddress) {
+      missing.push({
+        key: 'address',
+        label: 'Endereço Completo do Ponto de Venda',
+        description: 'Localização onde a transação física e vistoria foram efetuadas.'
+      });
+    }
+
+    if (missing.length > 0) {
+      setMissingStoreFields(missing);
+      setIsMissingDataModalOpen(true);
+    } else {
+      setIsTermModalOpen(true);
+    }
+  };
+
+  const handleOpenStoreSettingsFromWarning = () => {
+    setIsMissingDataModalOpen(false);
+    setAdminModalTab('settings');
+    setIsAdminModalOpen(true);
+  };
+
+  const handleProceedToTermAnyway = () => {
+    setIsMissingDataModalOpen(false);
+    setIsTermModalOpen(true);
+  };
+
   return (
     <div className="min-h-full w-full bg-[#040711] text-slate-100 p-3 sm:p-5 space-y-4 flex flex-col justify-start">
       {/* Top Header Card Estilo CellHub Shop */}
@@ -276,7 +338,10 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsAdminModalOpen(true)}
+            onClick={() => {
+              setAdminModalTab('models');
+              setIsAdminModalOpen(true);
+            }}
             className="border-[#00D287]/30 bg-[#00D287]/10 text-[#00D287] hover:text-slate-950 hover:bg-[#00D287] text-xs font-bold rounded-xl flex items-center gap-1.5 h-9 px-3.5 transition-all shadow-sm shadow-[#00D287]/10"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -650,7 +715,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             <div className="space-y-2 shrink-0 pt-1">
               <Button
                 disabled={!currentModel}
-                onClick={() => setIsTermModalOpen(true)}
+                onClick={handleRequestOpenTerm}
                 className="w-full bg-[#00D287] hover:bg-[#00be7a] disabled:bg-[#0c1424] disabled:text-slate-600 text-slate-950 font-black text-xs sm:text-sm h-12 rounded-xl shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
               >
                 <FileSignature className="w-4 h-4 stroke-[2.5]" />
@@ -684,6 +749,19 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
         settings={settings}
         currentUser={currentUser}
         onConfirmSave={handleSaveEvaluationWithCustomer}
+        onOpenStoreSettings={() => {
+          setIsTermModalOpen(false);
+          setAdminModalTab('settings');
+          setIsAdminModalOpen(true);
+        }}
+      />
+
+      <MissingStoreDataModal
+        isOpen={isMissingDataModalOpen}
+        onClose={() => setIsMissingDataModalOpen(false)}
+        missingFields={missingStoreFields}
+        onOpenStoreSettings={handleOpenStoreSettingsFromWarning}
+        onProceedAnyway={handleProceedToTermAnyway}
       />
 
       <TradeInHistoryModal
@@ -693,6 +771,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
 
       <TradeInAdminModal
         isOpen={isAdminModalOpen}
+        initialTab={adminModalTab}
         onClose={() => setIsAdminModalOpen(false)}
         onModelUpdated={loadModels}
       />
