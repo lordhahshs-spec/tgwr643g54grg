@@ -56,7 +56,7 @@ async function invokeEdgeFunction(body: Record<string, any>): Promise<any> {
 }
 
 export const tradeinAiService = {
-  // 1. Criar sessão temporária para leitura via QR Code
+  // 1. Criar sessão temporária e estritamente individual por lojista
   async createSession(params: {
     userId: string;
     brand: string;
@@ -65,7 +65,9 @@ export const tradeinAiService = {
     allowedPresets: FaultDefinition[];
   }): Promise<{ success: boolean; session?: AiEvaluationSession; error?: string }> {
     try {
-      const sessionToken = `ses_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      // Token único isolado por usuário e timestamp
+      const sanitizedUserPrefix = (params.userId || 'usr').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+      const sessionToken = `ses_${sanitizedUserPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos
 
       const payload = {

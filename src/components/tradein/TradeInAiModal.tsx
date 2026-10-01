@@ -122,15 +122,55 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     };
   }, [isOpen, currentModel?.id]);
 
+  // Sincronização Bidirecional Instantânea (Realtime + Polling Rápido)
   useEffect(() => {
-    if (!isOpen || !session || analysisResult || analyzing || upgradeRequired || rejectionData || hasTriggeredRef.current) return;
+    if (!isOpen || !session?.id) return;
 
+    // 1. Inscrição em canal Realtime exclusivo desta sessão e deste lojista
+    const channel = supabase
+      .channel(`modal_session_${session.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ai_evaluation_sessions',
+          filter: `id=eq.${session.id}`
+        },
+        (payload) => {
+          const updated = payload.new as AiEvaluationSession;
+          if (!updated) return;
+
+          setSession(updated);
+
+          // Se o celular clicou para resetar / tirar novas fotos
+          if (
+            ['phone_connected', 'waiting_for_phone', 'retrying'].includes(updated.status) &&
+            (!updated.photos || updated.photos.length === 0)
+          ) {
+            setRejectionData(null);
+            setAnalysisError(null);
+            setAnalysisResult(null);
+            setAnalyzing(false);
+            hasTriggeredRef.current = false;
+          }
+
+          // Se o celular enviou novas fotos
+          if (updated.status === 'photos_received' && !hasTriggeredRef.current) {
+            hasTriggeredRef.current = true;
+            runAiAnalysis(updated.id);
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Polling de fallback a cada 1.2s para garantir mesmo em conexões instáveis
     let pollAttempts = 0;
-    const MAX_POLL_ATTEMPTS = 60;
+    const MAX_POLL_ATTEMPTS = 120;
 
     pollingRef.current = setInterval(async () => {
       pollAttempts += 1;
-      if (pollAttempts > MAX_POLL_ATTEMPTS || hasTriggeredRef.current) {
+      if (pollAttempts > MAX_POLL_ATTEMPTS) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         return;
       }
@@ -143,20 +183,33 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           setSession(updated);
         }
 
+        // Se o celular resetou
+        if (
+          ['phone_connected', 'waiting_for_phone', 'retrying'].includes(updated.status) &&
+          (!updated.photos || updated.photos.length === 0) &&
+          (rejectionData || analysisResult || analysisError)
+        ) {
+          setRejectionData(null);
+          setAnalysisError(null);
+          setAnalysisResult(null);
+          setAnalyzing(false);
+          hasTriggeredRef.current = false;
+        }
+
         if (updated.status === 'photos_received' && !hasTriggeredRef.current) {
           hasTriggeredRef.current = true;
-          if (pollingRef.current) clearInterval(pollingRef.current);
           runAiAnalysis(updated.id);
         }
       } catch (e) {
         // Silenciar
       }
-    }, 1500);
+    }, 1200);
 
     return () => {
+      supabase.removeChannel(channel);
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [isOpen, session?.id, session?.status, analysisResult, analyzing, upgradeRequired, rejectionData]);
+  }, [isOpen, session?.id, rejectionData, analysisResult, analysisError]);
 
   const handleCancelSession = async () => {
     if (pollingRef.current) clearInterval(pollingRef.current);

@@ -398,15 +398,15 @@ export default function TradeInCameraPage() {
           <div className="pt-2">
             <Button
               variant="outline"
-              onClick={() => {
+              onClick={async () => {
                 if (session) {
-                  tradeinAiService.resetSessionForRetry(session.id);
+                  await tradeinAiService.resetSessionForRetry(session.id);
                 }
-                resetLocalCapture('Câmera liberada para novas fotos!');
+                resetLocalCapture('Câmera liberada! Tire as fotos do smartphone.');
               }}
               className="w-full border-white/10 bg-[#060a16] hover:bg-[#0c1424] text-slate-300 text-xs h-10 rounded-2xl flex items-center justify-center gap-2"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5 text-[#00D287]" />
               Tirar Novas Fotos Deste Aparelho
             </Button>
           </div>
