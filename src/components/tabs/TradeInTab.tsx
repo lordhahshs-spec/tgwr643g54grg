@@ -298,6 +298,29 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-emerald-400 font-bold rounded-xl h-11"
                   />
                 </div>
+              ) : allModels.length === 0 ? (
+                <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-700 text-center space-y-2">
+                  <p className="text-xs text-slate-300">
+                    Nenhum modelo cadastrado para <strong>{selectedBrand}</strong> ainda.
+                  </p>
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setIsAdminModalOpen(true)}
+                      className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold h-8 rounded-lg"
+                    >
+                      + Cadastrar em Minha Tabela
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsManualModel(true)}
+                      className="border-slate-600 text-slate-200 text-xs font-bold h-8 rounded-lg"
+                    >
+                      Digitar Manualmente
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="relative">
                   <select
