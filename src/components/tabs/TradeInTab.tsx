@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Repeat, 
-  Settings, 
-  History, 
-  ChevronDown, 
-  Calculator, 
-  FileSignature
+import {
+  Repeat,
+  Settings,
+  History,
+  ChevronDown,
+  Calculator,
+  FileSignature,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  ValuationModel, 
-  SelectedFault, 
-  CustomerData, 
+import {
+  ValuationModel,
+  SelectedFault,
+  CustomerData,
   TradeInEvaluation,
   ValuationSettings,
   DeviceBrand,
@@ -22,6 +23,7 @@ import { tradeinService, getBrandPresets, BRANDS_LIST } from '@/services/tradein
 import { ResponsibilityTermModal } from '@/components/tradein/ResponsibilityTermModal';
 import { TradeInHistoryModal } from '@/components/tradein/TradeInHistoryModal';
 import { TradeInAdminModal } from '@/components/tradein/TradeInAdminModal';
+import { TradeInAiModal } from '@/components/tradein/TradeInAiModal';
 import { leadAuthService } from '@/services/leadAuthService';
 
 interface TradeInTabProps {
@@ -56,6 +58,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   const [isTermModalOpen, setIsTermModalOpen] = useState<boolean>(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<ValuationSettings | undefined>(undefined);
 
   // Load models on brand or user change
@@ -154,6 +157,15 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
       ...prev,
       [faultId]: !prev[faultId]
     }));
+  };
+
+  // Aplicar avarias detectadas pela IA
+  const handleApplyDetectedFaults = (detectedIds: string[]) => {
+    const newFaultsMap: Record<string, boolean> = {};
+    detectedIds.forEach(id => {
+      newFaultsMap[id] = true;
+    });
+    setSelectedFaults(newFaultsMap);
   };
 
   // Confirm Save & Generate Term with Customer Data & IMEI
@@ -350,9 +362,15 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                 <span className="text-xs font-bold text-slate-100 block">
                   Avarias / condições do aparelho ({selectedBrand})
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {brandFaultDefinitions.length} condições avaliadas
-                </span>
+                
+                <Button
+                  size="sm"
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[11px] h-7 px-2.5 rounded-lg shadow-md shadow-blue-600/20 flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-blue-200 animate-pulse" />
+                  Avaliar com IA (QR Code)
+                </Button>
               </div>
 
               <div className="border border-slate-700 rounded-2xl bg-[#1e293b]/70 overflow-hidden shadow-sm flex flex-col flex-1 min-h-0">
@@ -588,6 +606,15 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         onModelUpdated={loadModels}
+      />
+
+      <TradeInAiModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        userId={userId || 'guest'}
+        currentModel={currentModel}
+        brandPresets={brandFaultDefinitions}
+        onApplyDetectedFaults={handleApplyDetectedFaults}
       />
     </div>
   );

@@ -25,7 +25,8 @@ import {
   Flame,
   KeyRound,
   ShieldCheck,
-  MapPin
+  MapPin,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -38,12 +39,13 @@ import { schematicService, ElectricSchematic } from '@/services/schematicService
 import { MarketplaceAdminSection } from '@/components/admin/MarketplaceAdminSection';
 import { CellHubShopAdminSection } from '@/components/admin/CellHubShopAdminSection';
 import { WebhooksAdminSection } from '@/components/admin/WebhooksAdminSection';
+import { AiAdminSection } from '@/components/admin/AiAdminSection';
 import { CellHubLogo } from '@/components/CellHubLogo';
 import { supabase } from '@/integrations/supabase/client';
 
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
-  const [adminTab, setAdminTab] = useState<'users' | 'schematics' | 'catalog' | 'marketplace' | 'webhooks'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'schematics' | 'catalog' | 'marketplace' | 'webhooks' | 'ai'>('users');
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
   const [devices, setDevices] = useState<CatalogDevice[]>([]);
   const [schematics, setSchematics] = useState<ElectricSchematic[]>([]);
@@ -746,6 +748,34 @@ export const AdminPage: React.FC = () => {
                 </div>
               )}
             </button>
+
+            {/* 6. CellHub IA (Diagnóstico Visual & Cotas) */}
+            <button
+              onClick={() => {
+                setAdminTab('ai');
+                setSearchQuery('');
+              }}
+              className={`w-full group relative flex items-center rounded-xl text-xs font-bold transition-all duration-150 outline-none
+                ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
+                ${adminTab === 'ai'
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm shadow-blue-500/20'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04] border border-transparent'
+                }
+              `}
+            >
+              {adminTab === 'ai' && (
+                <span className="absolute left-0 top-2 bottom-2 w-1 bg-blue-500 rounded-r-full shadow-sm shadow-blue-500" />
+              )}
+              <Sparkles className="w-4 h-4 text-blue-400 flex-shrink-0 animate-pulse" />
+              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">CellHub IA</span>
+                  <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    AI Router
+                  </span>
+                </div>
+              )}
+            </button>
           </nav>
         </div>
 
@@ -816,6 +846,12 @@ export const AdminPage: React.FC = () => {
                 <>
                   <RotateCw className="w-4 h-4 text-[#00D287]" />
                   <span>Monitoramento de Webhooks & Integrações</span>
+                </>
+              )}
+              {adminTab === 'ai' && (
+                <>
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <span>CellHub IA (Roteamento Dual, Franquias & Consumo)</span>
                 </>
               )}
             </h1>
@@ -1294,6 +1330,11 @@ export const AdminPage: React.FC = () => {
           {/* TAB 5: WEBHOOKS DO SISTEMA & MONITOR */}
           {adminTab === 'webhooks' && (
             <WebhooksAdminSection />
+          )}
+
+          {/* TAB 6: CELLHUB IA (ROTEAMENTO DUAL, FRANQUIAS & MÉTRICAS) */}
+          {adminTab === 'ai' && (
+            <AiAdminSection users={accounts} />
           )}
         </main>
       </div>

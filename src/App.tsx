@@ -8,6 +8,7 @@ import AdminPage from "./pages/AdminPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import MelhorEnvioCallback from "./pages/MelhorEnvioCallback";
+import TradeInCameraPage from "./pages/TradeInCameraPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,9 @@ const App = () => (
           {/* 4. Integração Melhor Envio OAuth Callback */}
           <Route path="/api/melhor-envio/callback" element={<MelhorEnvioCallback />} />
           <Route path="/melhor-envio/callback" element={<MelhorEnvioCallback />} />
+
+          {/* 5. Fluxo de Captura Mobile via QR Code para CellHub IA */}
+          <Route path="/tradein/camera/:sessionId" element={<TradeInCameraPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
