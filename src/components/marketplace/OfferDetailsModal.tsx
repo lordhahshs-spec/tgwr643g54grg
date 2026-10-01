@@ -260,37 +260,6 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 line-through font-normal">
-              <span className="truncate">Garantia técnica de <strong>{offer.warrantyDays || 90} dias</strong> CellHub</span>
-            </div>
-          </div>
-
-          {/* Coluna Direita: Informações & Compra (7 cols) */}
-          <div className="md:col-span-7 flex flex-col justify-between space-y-4">
-            <div className="space-y-3.5">
-              
-              {/* Categoria & Condição Breadcrumb */}
-              <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                <span className="text-[#00D287] font-semibold">{offer.category}</span>
-                <span>•</span>
-                <span>{offer.condition}</span>
-                {offer.salesCount && offer.salesCount > 0 ? (
-                  <>
-                    <span>•</span>
-                    <span className="text-slate-300">+{offer.salesCount} vendidos</span>
-                  </>
-                ) : null}
-              </div>
-
-              {/* Título Principal */}
-              <h1 className="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight">
-                {offer.title}
-              </h1>
-
-              {/* Preço & Parcelamento Minimalista Estilo Mercado Livre */}
-              <div className="pt-2 pb-3 border-y border-white/5 space-y-1">
-                {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 line-through font-normal">
                       {formatBRL(offer.originalPrice)}
                     </span>
                     <span className="text-xs font-black text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30 flex items-center gap-1">
