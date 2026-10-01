@@ -28,30 +28,15 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// Descobrir modelos disponíveis diretamente na API da Google
-async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
-  const versions = ["v1beta", "v1"];
-  const foundModels: string[] = [];
-
-  for (const ver of versions) {
-    try {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (Array.isArray(data.models)) {
-          const supported = data.models
-            .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
-            .map((m: any) => m.name.replace(/^models\//, ""));
-          foundModels.push(...supported);
-        }
-      }
-    } catch (e) {
-      console.warn(`[cellhub-ai-router] Erro ao listar modelos na versão ${ver}:`, e);
-    }
-  }
-
-  return Array.from(new Set(foundModels));
-}
+// Lista ordenada por velocidade de resposta e suporte multimodal nativo
+const FAST_MODELS_CASCADE = [
+  { ver: "v1beta", model: "gemini-2.0-flash" },
+  { ver: "v1beta", model: "gemini-1.5-flash-8b" },
+  { ver: "v1beta", model: "gemini-1.5-flash" },
+  { ver: "v1", model: "gemini-1.5-flash" },
+  { ver: "v1beta", model: "gemini-2.0-flash-exp" },
+  { ver: "v1beta", model: "gemini-1.5-pro" }
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -97,7 +82,7 @@ serve(async (req) => {
       );
     }
 
-    // 1. Obter configurações de IA do sistema
+    // 1. Obter configurações de IA
     const { data: configRow, error: configError } = await supabase
       .from("ai_configurations")
       .select("*")
@@ -132,7 +117,7 @@ serve(async (req) => {
     const freeLimit = configRow.free_tier_limit || 20;
     const remainingFree = Math.max(0, freeLimit - usedFree);
 
-    // 4. Obter status da assinatura paga do lojista
+    // 4. Obter status da assinatura paga
     const { data: subscription } = await supabase
       .from("ai_subscriptions")
       .select("*")
@@ -145,7 +130,6 @@ serve(async (req) => {
       ["active", "pending"].includes(subscription.subscription_status)
     );
 
-    // Se a ação for apenas verificação de cota
     if (action === "check_quota") {
       return new Response(
         JSON.stringify({
@@ -166,36 +150,14 @@ serve(async (req) => {
     // 5. Roteamento de Tier
     let selectedTier: "free" | "paid" | null = null;
     let apiKey = "";
-    let primaryModel = "";
 
     if (configRow.free_tier_active && remainingFree > 0) {
       selectedTier = "free";
       apiKey = configRow.free_tier_api_key;
-      primaryModel = configRow.free_tier_model || "gemini-1.5-flash-latest";
-      console.log(`[cellhub-ai-router] Roteado para API GRATUITA (Uso: ${usedFree}/${freeLimit}, Restantes: ${remainingFree})`);
     } else if (configRow.paid_tier_active && hasPaidAccess) {
       selectedTier = "paid";
       apiKey = configRow.paid_tier_api_key;
-      primaryModel = configRow.paid_tier_model || "gemini-1.5-pro-latest";
-      console.log(`[cellhub-ai-router] Cota gratuita esgotada. Roteado para API PAGA autorizada.`);
     } else {
-      console.warn(`[cellhub-ai-router] Bloqueio: Cota gratuita esgotada (${usedFree}/${freeLimit}) e sem acesso pago ativo.`);
-      
-      await supabase.from("ai_usage_logs").insert({
-        user_id: userId,
-        session_id: sessionId || null,
-        provider: "gemini",
-        api_tier: "free",
-        model: configRow.free_tier_model,
-        operation: "tradein_visual_evaluation",
-        status: "blocked_quota",
-        tokens_input: 0,
-        tokens_output: 0,
-        estimated_cost: 0,
-        period_key: periodKey,
-        error_message: "Limite de análises gratuitas atingido."
-      });
-
       return new Response(
         JSON.stringify({
           success: false,
@@ -212,7 +174,7 @@ serve(async (req) => {
       );
     }
 
-    // 6. Carregar dados da sessão ou payload
+    // 6. Carregar dados da sessão
     let photosToAnalyze: { type: string; url?: string; name?: string; base64?: string }[] = body.photos || [];
     let allowedPresetsList = body.allowedPresets || [];
     let deviceBrand = body.brand || "Smartphone";
@@ -226,7 +188,6 @@ serve(async (req) => {
         .single();
 
       if (sessionErr || !sessionData) {
-        console.error(`[cellhub-ai-router] Sessão ${sessionId} não encontrada.`);
         return new Response(
           JSON.stringify({ success: false, error: "session_not_found", message: "Sessão de avaliação expirada ou inválida." }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -234,7 +195,6 @@ serve(async (req) => {
       }
 
       if (sessionData.status === "cancelled") {
-        console.warn(`[cellhub-ai-router] Sessão ${sessionId} foi cancelada pelo usuário.`);
         return new Response(
           JSON.stringify({ success: false, error: "session_cancelled", message: "Esta sessão foi cancelada." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -253,14 +213,13 @@ serve(async (req) => {
     }
 
     if (!photosToAnalyze || photosToAnalyze.length === 0) {
-      console.warn("[cellhub-ai-router] Nenhuma fotografia fornecida para análise.");
       return new Response(
         JSON.stringify({ success: false, error: "no_photos", message: "É necessário enviar pelo menos as 3 fotografias do aparelho." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 7. Preparar conteúdo multimodal para o Gemini
+    // 7. Preparar conteúdo multimodal
     const allowedPresetsDescriptions = allowedPresetsList.map(p => `- ID: "${p.id}" | Nome: "${p.label}"`).join("\n");
 
     const systemPrompt = `Você é o módulo de análise visual da CellHub IA.
@@ -285,137 +244,88 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
 
     const contentsParts: any[] = [{ text: systemPrompt }];
 
-    for (const photo of photosToAnalyze) {
+    // Baixar fotos em paralelo para velocidade máxima
+    const photoPromises = photosToAnalyze.map(async (photo) => {
       if (photo.base64) {
         const cleanBase64 = photo.base64.replace(/^data:image\/\w+;base64,/, "");
-        contentsParts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: cleanBase64
-          }
-        });
+        return {
+          inlineData: { mimeType: "image/jpeg", data: cleanBase64 }
+        };
       } else if (photo.name) {
         try {
-          console.log(`[cellhub-ai-router] Baixando do Storage SDK: ${photo.name}`);
-          const { data: fileData, error: downloadErr } = await supabase.storage
+          const { data: fileData } = await supabase.storage
             .from("tradein-photos")
             .download(photo.name);
 
-          if (downloadErr || !fileData) {
-            throw downloadErr || new Error("Falha no download da imagem");
+          if (fileData) {
+            const imgBuffer = await fileData.arrayBuffer();
+            return {
+              inlineData: { mimeType: "image/jpeg", data: arrayBufferToBase64(imgBuffer) }
+            };
           }
-
-          const imgBuffer = await fileData.arrayBuffer();
-          const base64Data = arrayBufferToBase64(imgBuffer);
-          contentsParts.push({
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64Data
-            }
-          });
-        } catch (storageErr) {
-          console.error(`[cellhub-ai-router] Erro no Storage download ${photo.name}:`, storageErr);
+        } catch (e) {
+          console.error(`[cellhub-ai-router] Erro no download do storage:`, e);
         }
       } else if (photo.url) {
         try {
-          console.log(`[cellhub-ai-router] Baixando via URL: ${photo.url}`);
           const imgResp = await fetch(photo.url);
-          if (!imgResp.ok) throw new Error(`HTTP ${imgResp.status}`);
-          
-          const imgBuffer = await imgResp.arrayBuffer();
-          const base64Data = arrayBufferToBase64(imgBuffer);
-          contentsParts.push({
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64Data
-            }
-          });
-        } catch (imgErr) {
-          console.error(`[cellhub-ai-router] Erro ao baixar imagem ${photo.url}:`, imgErr);
+          if (imgResp.ok) {
+            const imgBuffer = await imgResp.arrayBuffer();
+            return {
+              inlineData: { mimeType: imgResp.headers.get("content-type") || "image/jpeg", data: arrayBufferToBase64(imgBuffer) }
+            };
+          }
+        } catch (e) {
+          console.error(`[cellhub-ai-router] Erro no download url:`, e);
         }
       }
-    }
+      return null;
+    });
+
+    const resolvedPhotos = (await Promise.all(photoPromises)).filter(Boolean);
+    resolvedPhotos.forEach(p => contentsParts.push(p));
 
     contentsParts.push({
       text: `Analise as fotografias acima para o aparelho ${deviceBrand} ${deviceModel}. Retorne o JSON com as avarias visíveis identificadas.`
     });
 
-    // 8. Chamar API Gemini: Obter modelos suportados em tempo real na chave
-    const availableModels = await getAvailableGeminiModels(apiKey);
-    console.log(`[cellhub-ai-router] Modelos detectados na chave Google:`, availableModels);
-
-    const preferredList = [
-      primaryModel,
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-flash",
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-exp",
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-pro",
-      "gemini-pro-vision",
-      ...availableModels
-    ];
-
-    const modelsToTry = Array.from(new Set(preferredList));
-    const apiVersions = ["v1beta", "v1"];
-
+    // 8. Chamar API Gemini com Modelos Ultrarrápidos em cascata curta
     let geminiData: any = null;
     let successfulModel = "";
     let lastErrorText = "";
 
-    for (const modelCandidate of modelsToTry) {
-      if (geminiData) break;
+    for (const item of FAST_MODELS_CASCADE) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/${item.ver}/models/${item.model}:generateContent?key=${apiKey}`;
+      console.log(`[cellhub-ai-router] Chamando ${item.ver}/${item.model}...`);
 
-      for (const apiVer of apiVersions) {
-        const geminiUrl = `https://generativelanguage.googleapis.com/${apiVer}/models/${modelCandidate}:generateContent?key=${apiKey}`;
-        console.log(`[cellhub-ai-router] Tentando: ${apiVer}/models/${modelCandidate}...`);
+      try {
+        const geminiResponse = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: contentsParts }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.1
+            }
+          })
+        });
 
-        try {
-          const geminiResponse = await fetch(geminiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: contentsParts }],
-              generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.1
-              }
-            })
-          });
-
-          if (geminiResponse.ok) {
-            geminiData = await geminiResponse.json();
-            successfulModel = `${apiVer}/${modelCandidate}`;
-            console.log(`[cellhub-ai-router] SUCESSO com ${successfulModel}!`);
-            break;
-          } else {
-            lastErrorText = await geminiResponse.text();
-            console.warn(`[cellhub-ai-router] ${apiVer}/${modelCandidate} retornou HTTP ${geminiResponse.status}:`, lastErrorText.slice(0, 150));
-          }
-        } catch (reqErr: any) {
-          lastErrorText = reqErr.message || "Erro de rede";
+        if (geminiResponse.ok) {
+          geminiData = await geminiResponse.json();
+          successfulModel = `${item.ver}/${item.model}`;
+          console.log(`[cellhub-ai-router] Sucesso com ${successfulModel}!`);
+          break;
+        } else {
+          lastErrorText = await geminiResponse.text();
+          console.warn(`[cellhub-ai-router] ${item.model} HTTP ${geminiResponse.status}:`, lastErrorText.slice(0, 150));
         }
+      } catch (reqErr: any) {
+        lastErrorText = reqErr.message || "Erro de rede";
       }
     }
 
     if (!geminiData) {
-      console.error(`[cellhub-ai-router] Todos os modelos falharam. Último erro:`, lastErrorText);
-
-      await supabase.from("ai_usage_logs").insert({
-        user_id: userId,
-        session_id: sessionId || null,
-        provider: "gemini",
-        api_tier: selectedTier,
-        model: primaryModel,
-        operation: "tradein_visual_evaluation",
-        status: "error",
-        tokens_input: 0,
-        tokens_output: 0,
-        estimated_cost: 0,
-        period_key: periodKey,
-        error_message: `Erro Gemini: ${lastErrorText.slice(0, 300)}`
-      });
-
       return new Response(
         JSON.stringify({ success: false, error: "ai_provider_error", message: "Instabilidade momentânea no processamento visual da IA. Tente novamente." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -452,15 +362,13 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     const costPerMillionOutput = selectedTier === "paid" ? 10.50 : 0.30;
     const estimatedCostUsd = ((inputTokens * costPerMillionInput) + (outputTokens * costPerMillionOutput)) / 1_000_000;
 
-    console.log(`[cellhub-ai-router] Análise concluída com sucesso! Presets detectados:`, sanitizedPresetIds);
-
-    // 10. Registrar Log de Consumo com Sucesso
+    // 10. Registrar Log de Consumo
     await supabase.from("ai_usage_logs").insert({
       user_id: userId,
       session_id: sessionId || null,
       provider: "gemini",
       api_tier: selectedTier,
-      model: successfulModel || primaryModel,
+      model: successfulModel,
       operation: "tradein_visual_evaluation",
       status: "success",
       tokens_input: inputTokens,

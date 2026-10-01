@@ -428,6 +428,17 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                   A inteligência artificial está escaneando a tela, bordas e traseira para identificar avarias físicas.
                 </p>
               </div>
+
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelSession}
+                  className="border-slate-800 text-slate-400 hover:text-red-400 text-xs rounded-xl h-8"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" /> Cancelar esta Sessão
+                </Button>
+              </div>
             </div>
           ) : (
             /* Initial QR Code / Upload View */
