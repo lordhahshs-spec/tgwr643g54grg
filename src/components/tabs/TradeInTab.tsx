@@ -227,19 +227,19 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
       </div>
 
       {/* Main Quotation Window Card (Layout matching reference image) */}
-      <div className="bg-[#0b101e] border border-slate-800/90 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden">
         {/* Window Topbar */}
-        <div className="px-4 py-3 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-slate-800 bg-[#1e293b]/70 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
-              <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
-              <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+              <span className="w-3 h-3 rounded-full bg-red-500/90 inline-block"></span>
+              <span className="w-3 h-3 rounded-full bg-amber-500/90 inline-block"></span>
+              <span className="w-3 h-3 rounded-full bg-emerald-500/90 inline-block"></span>
             </div>
-            <span className="text-xs font-bold text-slate-300 ml-2">Nova cotação</span>
+            <span className="text-xs sm:text-sm font-bold text-slate-200 ml-2">Nova cotação</span>
           </div>
 
-          <div className="text-[11px] text-slate-400">
+          <div className="text-xs text-slate-300 font-medium">
             {allModels.length} modelos na sua tabela
           </div>
         </div>
@@ -251,12 +251,12 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             {/* 1. Device Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-200">
+                <label className="text-xs sm:text-sm font-bold text-slate-100">
                   Modelo do aparelho
                 </label>
                 <button
                   onClick={() => setIsManualModel(!isManualModel)}
-                  className="text-[11px] text-blue-400 hover:underline"
+                  className="text-xs text-blue-400 hover:underline font-medium"
                 >
                   {isManualModel ? '← Escolher da lista' : 'Digitar modelo manualmente'}
                 </button>
@@ -271,10 +271,10 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       setSelectedBrand(brand);
                       setIsManualModel(false);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                       selectedBrand === brand
                         ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        : 'bg-[#1e293b] text-slate-300 hover:text-white border border-slate-700'
                     }`}
                   >
                     {brand === 'Apple' ? ' Apple' : brand}
@@ -288,14 +288,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     value={customModelName}
                     onChange={(e) => setCustomModelName(e.target.value)}
                     placeholder="Nome do modelo (Ex: iPhone 14 Pro Max 512GB)"
-                    className="bg-slate-950 border-slate-800 text-xs text-white rounded-xl focus:border-blue-500"
+                    className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-white rounded-xl focus:border-blue-500 h-11"
                   />
                   <Input
                     type="number"
                     value={customBaseBuyPrice}
                     onChange={(e) => setCustomBaseBuyPrice(Number(e.target.value) || 0)}
                     placeholder="Valor base de compra (R$)"
-                    className="bg-slate-950 border-slate-800 text-xs text-emerald-400 font-bold rounded-xl"
+                    className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-emerald-400 font-bold rounded-xl h-11"
                   />
                 </div>
               ) : (
@@ -303,7 +303,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   <select
                     value={selectedModelId}
                     onChange={(e) => setSelectedModelId(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 text-xs sm:text-sm font-semibold rounded-xl p-3 text-white focus:border-blue-500 outline-none appearance-none pr-10 cursor-pointer"
+                    className="w-full bg-[#1e293b] border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl p-3.5 text-white focus:border-blue-500 outline-none appearance-none pr-10 cursor-pointer h-12 shadow-sm"
                   >
                     {allModels.map(m => (
                       <option key={m.id} value={m.id}>
@@ -311,18 +311,18 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               )}
             </div>
 
             {/* 2. Faults Checklist (Matching Reference Image) */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-200 block">
+              <span className="text-xs sm:text-sm font-bold text-slate-100 block">
                 Avarias / condições do aparelho
               </span>
 
-              <div className="border border-slate-800/80 rounded-2xl bg-slate-950/70 divide-y divide-slate-800/60 overflow-hidden">
+              <div className="border border-slate-700 rounded-2xl bg-[#1e293b]/70 divide-y divide-slate-700/80 overflow-hidden shadow-sm">
                 {FAULT_DEFINITIONS.map(fault => {
                   const isChecked = !!selectedFaults[fault.id];
                   const discount = currentModel?.fault_discounts?.[fault.id] !== undefined
@@ -333,23 +333,23 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     <label
                       key={fault.id}
                       onClick={() => toggleFault(fault.id)}
-                      className={`flex items-center justify-between p-3 sm:py-2.5 sm:px-3.5 cursor-pointer transition-colors ${
-                        isChecked ? 'bg-red-950/20' : 'hover:bg-slate-900/50'
+                      className={`flex items-center justify-between p-3 sm:py-2.5 sm:px-4 cursor-pointer transition-colors ${
+                        isChecked ? 'bg-red-950/30' : 'hover:bg-[#1e293b]'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => {}}
                           className="w-4 h-4 rounded accent-blue-600 cursor-pointer pointer-events-none"
                         />
-                        <span className={`text-xs font-medium ${isChecked ? 'text-white font-semibold' : 'text-slate-300'}`}>
+                        <span className={`text-xs sm:text-sm font-medium ${isChecked ? 'text-white font-semibold' : 'text-slate-200'}`}>
                           {fault.label}
                         </span>
                       </div>
 
-                      <span className="text-xs font-bold text-red-400 shrink-0">
+                      <span className="text-xs sm:text-sm font-bold text-red-400 shrink-0">
                         – R$ {discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </label>
@@ -359,23 +359,23 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                 {/* Trade Bonus Row (At bottom of checklist, as in screenshot) */}
                 <label
                   onClick={() => setWillBuyFromStock(!willBuyFromStock)}
-                  className={`flex items-center justify-between p-3 sm:py-3 sm:px-3.5 cursor-pointer transition-colors border-t-2 border-slate-800 ${
-                    willBuyFromStock ? 'bg-blue-950/30' : 'hover:bg-slate-900/50'
+                  className={`flex items-center justify-between p-3 sm:py-3 sm:px-4 cursor-pointer transition-colors border-t-2 border-slate-700 ${
+                    willBuyFromStock ? 'bg-blue-950/40' : 'hover:bg-[#1e293b]'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={willBuyFromStock}
                       onChange={() => {}}
                       className="w-4 h-4 rounded accent-blue-600 cursor-pointer pointer-events-none"
                     />
-                    <span className={`text-xs ${willBuyFromStock ? 'text-blue-300 font-bold' : 'text-slate-300 font-medium'}`}>
+                    <span className={`text-xs sm:text-sm ${willBuyFromStock ? 'text-blue-300 font-bold' : 'text-slate-200 font-medium'}`}>
                       Cliente vai levar outro seminovo do nosso estoque (+ R$ {(currentModel?.trade_bonus || 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
                     </span>
                   </div>
 
-                  <span className="text-xs font-bold text-emerald-400 shrink-0">
+                  <span className="text-xs sm:text-sm font-bold text-emerald-400 shrink-0">
                     + R$ {(currentModel?.trade_bonus || 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </label>
@@ -386,21 +386,21 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
           {/* Right Column: Pricing Result & Mini Trade Calculation */}
           <div className="lg:col-span-5 space-y-4">
             {/* Card "Valor a pagar" */}
-            <div className="border border-slate-800 rounded-2xl bg-slate-950/90 p-5 space-y-4 shadow-xl">
+            <div className="border border-slate-700 rounded-2xl bg-[#1e293b] p-5 space-y-4 shadow-xl">
               <div>
-                <span className="text-xs font-medium text-slate-400 block">
+                <span className="text-xs sm:text-sm font-semibold text-slate-300 block">
                   Valor a pagar pelo aparelho do cliente
                 </span>
-                <div className="text-3xl sm:text-4xl font-black text-blue-500 tracking-tight mt-1">
+                <div className="text-3xl sm:text-4xl font-black text-blue-400 tracking-tight mt-1">
                   R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
               </div>
 
               {/* Breakdown Table */}
-              <div className="space-y-1.5 text-xs border-t border-slate-800/80 pt-3">
+              <div className="space-y-2 text-xs sm:text-sm border-t border-slate-700 pt-3.5">
                 <div className="flex justify-between text-slate-300">
                   <span>Valor na compra / base</span>
-                  <strong className="text-white">
+                  <strong className="text-white font-bold">
                     R$ {baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </strong>
                 </div>
@@ -408,20 +408,20 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                 {activeFaultsList.map(f => (
                   <div key={f.id} className="flex justify-between text-red-400 font-medium">
                     <span>{f.label}</span>
-                    <strong>– R$ {f.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    <strong className="font-bold">– R$ {f.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                   </div>
                 ))}
 
                 {willBuyFromStock && tradeBonusAmount > 0 && (
                   <div className="flex justify-between text-emerald-400 font-medium">
                     <span>Bônus na troca</span>
-                    <strong>+ R$ {tradeBonusAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    <strong className="font-bold">+ R$ {tradeBonusAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                   </div>
                 )}
 
-                <div className="flex justify-between text-white font-bold border-t border-slate-800 pt-2 text-sm">
+                <div className="flex justify-between text-white font-black border-t border-slate-700 pt-2.5 text-sm sm:text-base">
                   <span>Total</span>
-                  <span className="text-blue-400">
+                  <span className="text-blue-400 font-black">
                     R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -429,7 +429,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             </div>
 
             {/* Mini Cálculo: Vender celular da loja abatendo o seminovo */}
-            <div className="border border-blue-500/30 rounded-2xl bg-gradient-to-b from-blue-950/20 to-slate-950/80 p-4 space-y-3">
+            <div className="border border-blue-500/40 rounded-2xl bg-gradient-to-b from-blue-950/40 to-[#1e293b] p-4 sm:p-5 space-y-3 shadow-lg">
               <div className="flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-blue-400" />
                 <span className="text-xs font-bold uppercase tracking-wider text-blue-300">
@@ -437,60 +437,60 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                 </span>
               </div>
 
-              <div>
-                <label className="text-xs text-slate-300 block mb-1">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-200 block">
                   Valor do celular que a loja vai vender (R$):
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">R$</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">R$</span>
                   <Input
                     type="number"
                     value={sellingPhonePrice}
                     onChange={(e) => setSellingPhonePrice(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="Ex: 4500"
-                    className="bg-slate-900 border-slate-700 pl-9 text-xs text-white font-bold rounded-xl focus:border-blue-500"
+                    className="bg-[#0f172a] border-slate-700 pl-10 text-xs sm:text-sm text-white font-bold rounded-xl focus:border-blue-500 h-11"
                   />
                 </div>
               </div>
 
               {sellingPhonePrice && Number(sellingPhonePrice) > 0 ? (
-                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5 text-xs animate-in fade-in duration-200">
-                  <div className="flex justify-between text-slate-400">
+                <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-700 space-y-1.5 text-xs sm:text-sm animate-in fade-in duration-200">
+                  <div className="flex justify-between text-slate-300">
                     <span>Aparelho vendido:</span>
                     <span>R$ {Number(sellingPhonePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-emerald-400">
+                  <div className="flex justify-between text-emerald-400 font-semibold">
                     <span>(-) Avaliação do usado:</span>
                     <span>- R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-white font-black border-t border-slate-800 pt-1.5 text-sm">
+                  <div className="flex justify-between text-white font-black border-t border-slate-700 pt-2 text-sm sm:text-base">
                     <span className="text-blue-300">Cliente paga apenas:</span>
-                    <span className="text-[#00D287]">
+                    <span className="text-emerald-400 font-black">
                       R$ {differenceToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">
+                <p className="text-xs text-slate-400 italic">
                   Digite o valor do celular da loja para calcular automaticamente o saldo a pagar pelo cliente.
                 </p>
               )}
             </div>
 
             {/* Card "Regras" */}
-            <div className="border border-slate-800/80 rounded-2xl bg-slate-950/60 p-4 space-y-2">
-              <span className="text-xs font-bold text-slate-300 block">Regras</span>
-              <ul className="text-[11px] text-slate-400 space-y-1 leading-relaxed">
-                <li className="flex items-start gap-1.5">
-                  <span className="text-slate-600">•</span>
+            <div className="border border-slate-700/80 rounded-2xl bg-[#1e293b]/80 p-4 space-y-2">
+              <span className="text-xs sm:text-sm font-bold text-slate-200 block">Regras do Balcão</span>
+              <ul className="text-xs text-slate-300 space-y-1.5 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold">•</span>
                   <span><strong>Doc de carga:</strong> só o técnico da loja diagnostica.</span>
                 </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-slate-600">•</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold">•</span>
                   <span><strong>Notificação de peça</strong> (peça ok, sem troca): descontar o valor da notificação.</span>
                 </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-slate-600">•</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold">•</span>
                   <span><strong>Bônus na troca:</strong> aplicado automaticamente ao comprar outro aparelho da loja.</span>
                 </li>
               </ul>
@@ -499,7 +499,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             {/* Single Prominent Action Button */}
             <Button
               onClick={() => setIsTermModalOpen(true)}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-sm h-12 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-sm sm:text-base h-12 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
             >
               <FileSignature className="w-4 h-4" />
               Gerar Termo de Compra & Assinatura

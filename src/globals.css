@@ -73,16 +73,30 @@
   touch-action: pan-y;
 }
 
-/* Hide scrollbars completely across the app for minimal aesthetics */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+/* Custom Styled Scrollbar for popups and scrollable containers */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent;
 }
 
-*::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-  width: 0px;
-  height: 0px;
+.scrollbar-thin::-webkit-scrollbar {
+  display: block !important;
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .glow-aurus {
@@ -98,26 +112,4 @@
 @keyframes shimmerEffect {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
-}
-
-@keyframes slideUpMobile {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.mobile-animate-in {
-  animation: slideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.touch-spring {
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
-}
-
-.touch-spring:active {
-  transform: scale(0.96);
-  opacity: 0.9;
-}
-
-.glow-aurus-sm {
-  box-shadow: 0 0 10px -2px rgba(0, 210, 135, 0.45);
 }
