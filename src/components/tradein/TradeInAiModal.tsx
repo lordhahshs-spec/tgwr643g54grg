@@ -14,7 +14,7 @@ import {
   Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
 import { ValuationModel, FaultDefinition } from '@/types/tradein';
 import { tradeinAiService } from '@/services/tradeinAiService';
 import { AiEvaluationSession, AiQuotaStatus } from '@/types/tradeinAi';
@@ -398,14 +398,12 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               {activeTab === 'qr' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
                   {/* QR Code Container */}
-                  <div className="sm:col-span-6 flex flex-col items-center justify-center p-5 rounded-2xl bg-white text-black shadow-xl mx-auto">
-                    <QRCodeSVG
+                  <div className="sm:col-span-6 flex flex-col items-center justify-center p-4 rounded-2xl bg-white text-black shadow-xl mx-auto">
+                    <QRCodeDisplay
                       value={mobileCaptureUrl}
                       size={180}
-                      level="M"
-                      includeMargin={false}
                     />
-                    <span className="text-[11px] font-bold text-slate-700 mt-2.5 text-center">
+                    <span className="text-[11px] font-bold text-slate-700 mt-2 text-center">
                       Aponte a câmera do seu smartphone
                     </span>
                   </div>
