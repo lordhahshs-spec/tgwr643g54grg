@@ -297,12 +297,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   <span className="w-5 h-5 rounded-lg bg-[#00D287] text-slate-950 font-black text-[10px] flex items-center justify-center">1</span>
                   Marca e Modelo do Aparelho
                 </label>
-                <button
-                  onClick={() => setIsManualModel(!isManualModel)}
-                  className="text-[11px] text-[#00D287] hover:underline font-semibold"
-                >
-                  {isManualModel ? '← Escolher da lista' : 'Outro modelo (manual)'}
-                </button>
               </div>
 
               {/* Brand Pills Estilo CellHub Shop */}
@@ -331,22 +325,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00D287]" />
                   <span>Carregando modelos de {selectedBrand}...</span>
                 </div>
-              ) : isManualModel ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  <Input
-                    value={customModelName}
-                    onChange={(e) => setCustomModelName(e.target.value)}
-                    placeholder="Nome do modelo (Ex: Galaxy S24 Ultra 256GB)"
-                    className="bg-[#040711] border-white/10 text-xs text-white rounded-xl focus:border-[#00D287] h-10"
-                  />
-                  <Input
-                    type="number"
-                    value={customBaseBuyPrice}
-                    onChange={(e) => setCustomBaseBuyPrice(Number(e.target.value) || 0)}
-                    placeholder="Valor base de compra (R$)"
-                    className="bg-[#040711] border-white/10 text-xs text-[#00D287] font-bold rounded-xl h-10"
-                  />
-                </div>
               ) : modelsForBrand.length === 0 ? (
                 <div className="p-4 rounded-xl bg-[#0c1424] border border-white/10 text-center space-y-2">
                   <p className="text-xs text-slate-300">
@@ -359,14 +337,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 text-xs font-black h-8 rounded-xl"
                     >
                       + Cadastrar em Minha Tabela
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setIsManualModel(true)}
-                      className="border-white/10 text-slate-300 text-xs font-bold h-8 rounded-xl"
-                    >
-                      Digitar Manualmente
                     </Button>
                   </div>
                 </div>
