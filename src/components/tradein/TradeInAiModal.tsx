@@ -29,7 +29,7 @@ interface TradeInAiModalProps {
   userId: string;
   currentModel: ValuationModel | null;
   brandPresets: FaultDefinition[];
-  onApplyDetectedFaults: (faultIds: string[]) => void;
+  onApplyDetectedFaults: (faultIds: string[], photos?: AiEvaluationPhoto[], visualSummary?: string[]) => void;
 }
 
 export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
@@ -356,8 +356,12 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   const handleApply = () => {
     if (!analysisResult) return;
-    onApplyDetectedFaults(analysisResult.detectedPresetIds);
-    toast.success(`${analysisResult.detectedPresetIds.length} avarias aplicadas à cotação!`);
+    onApplyDetectedFaults(
+      analysisResult.detectedPresetIds,
+      session?.photos || [],
+      analysisResult.visualSummary
+    );
+    toast.success(`${analysisResult.detectedPresetIds.length} avarias aplicadas à cotação com base na tabela da loja!`);
     onClose();
   };
 
@@ -563,6 +567,11 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                   <div className="border border-white/10 rounded-2xl divide-y divide-white/5 bg-[#040711] max-h-48 overflow-y-auto scrollbar-thin">
                     {analysisResult.detectedPresetIds.map(id => {
                       const preset = brandPresets.find(p => p.id === id);
+                      // Prioriza o valor cadastrado na tabela do modelo específico do lojista
+                      const discountVal = currentModel?.fault_discounts?.[id] !== undefined
+                        ? Number(currentModel.fault_discounts[id])
+                        : Number(preset?.defaultDiscount || 0);
+
                       return (
                         <div key={id} className="p-2.5 px-3 flex items-center justify-between text-xs">
                           <span className="text-white font-medium flex items-center gap-2">
@@ -570,7 +579,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                             {preset?.label || id}
                           </span>
                           <span className="text-red-400 font-bold">
-                            - R$ {preset?.defaultDiscount || 0}
+                            - R$ {discountVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       );

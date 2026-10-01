@@ -25,6 +25,7 @@ import {
   DeviceBrand,
   FaultDefinition
 } from '@/types/tradein';
+import { AiEvaluationPhoto } from '@/types/tradeinAi';
 import { tradeinService, getBrandPresets, BRANDS_LIST } from '@/services/tradeinService';
 import { ResponsibilityTermModal } from '@/components/tradein/ResponsibilityTermModal';
 import { TradeInHistoryModal } from '@/components/tradein/TradeInHistoryModal';
@@ -57,6 +58,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   // IA evaluation feedback
   const [aiEvaluated, setAiEvaluated] = useState<boolean>(false);
   const [aiDetectedCount, setAiDetectedCount] = useState<number>(0);
+  const [aiPhotos, setAiPhotos] = useState<AiEvaluationPhoto[]>([]);
+  const [aiVisualSummary, setAiVisualSummary] = useState<string[]>([]);
 
   // Trade Bonus toggle
   const [willBuyFromStock, setWillBuyFromStock] = useState<boolean>(false);
@@ -107,6 +110,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
     setSelectedFaults({});
     setAiEvaluated(false);
     setAiDetectedCount(0);
+    setAiPhotos([]);
+    setAiVisualSummary([]);
     setIsManualModel(false);
   };
 
@@ -181,7 +186,11 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
     }));
   };
 
-  const handleApplyDetectedFaults = (detectedIds: string[]) => {
+  const handleApplyDetectedFaults = (
+    detectedIds: string[],
+    photos?: AiEvaluationPhoto[],
+    visualSummary?: string[]
+  ) => {
     const newFaultsMap: Record<string, boolean> = {};
     detectedIds.forEach(id => {
       newFaultsMap[id] = true;
@@ -189,6 +198,12 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
     setSelectedFaults(newFaultsMap);
     setAiEvaluated(true);
     setAiDetectedCount(detectedIds.length);
+    if (photos && photos.length > 0) {
+      setAiPhotos(photos);
+    }
+    if (visualSummary && visualSummary.length > 0) {
+      setAiVisualSummary(visualSummary);
+    }
   };
 
   const handleSaveEvaluationWithCustomer = async (
@@ -655,14 +670,19 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
           model_name: currentModel?.model_name || '',
           storage: currentModel?.storage || '',
           base_value: baseValue,
+          faults_selected: activeFaultsList,
           total_faults_discount: totalFaultsDiscount,
           trade_bonus_applied: tradeBonusAmount,
           final_valuation: finalValuation,
           type: willBuyFromStock ? 'troca' : 'compra',
           exchange_target_price: sellingPhonePrice ? Number(sellingPhonePrice) : 0,
-          exchange_difference_to_pay: differenceToPay
+          exchange_difference_to_pay: differenceToPay,
+          photos: aiPhotos,
+          visual_summary: aiVisualSummary,
+          ai_evaluated: aiEvaluated
         }}
         settings={settings}
+        currentUser={currentUser}
         onConfirmSave={handleSaveEvaluationWithCustomer}
       />
 
