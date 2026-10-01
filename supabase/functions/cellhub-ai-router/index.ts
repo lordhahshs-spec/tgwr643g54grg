@@ -16,7 +16,6 @@ interface EvaluationRequest {
   photos?: { type: string; url?: string; name?: string; base64?: string }[];
 }
 
-// Conversor seguro de ArrayBuffer para Base64 em chunks (sem dependência externa e sem estouro de pilha)
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
   const bytes = new Uint8Array(buffer);
@@ -29,14 +28,30 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// Modelos Gemini suportados em cascata de resiliência
-const FALLBACK_MODELS = [
-  "gemini-1.5-flash-latest",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro-latest",
-  "gemini-1.5-pro"
-];
+// Descobrir modelos disponíveis diretamente na API da Google
+async function getAvailableGeminiModels(apiKey: string): Promise<string[]> {
+  const versions = ["v1beta", "v1"];
+  const foundModels: string[] = [];
+
+  for (const ver of versions) {
+    try {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (Array.isArray(data.models)) {
+          const supported = data.models
+            .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+            .map((m: any) => m.name.replace(/^models\//, ""));
+          foundModels.push(...supported);
+        }
+      }
+    } catch (e) {
+      console.warn(`[cellhub-ai-router] Erro ao listar modelos na versão ${ver}:`, e);
+    }
+  }
+
+  return Array.from(new Set(foundModels));
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -70,7 +85,6 @@ serve(async (req) => {
 
     console.log(`[cellhub-ai-router] Ação recebida: ${action} para usuário: ${userId}, sessão: ${sessionId || "n/a"}`);
 
-    // Cancelar Sessão
     if (action === "cancel_session" && sessionId) {
       await supabase
         .from("ai_evaluation_sessions")
@@ -281,7 +295,6 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
           }
         });
       } else if (photo.name) {
-        // Baixar diretamente via Storage SDK (mais seguro e rápido)
         try {
           console.log(`[cellhub-ai-router] Baixando do Storage SDK: ${photo.name}`);
           const { data: fileData, error: downloadErr } = await supabase.storage
@@ -327,41 +340,61 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       text: `Analise as fotografias acima para o aparelho ${deviceBrand} ${deviceModel}. Retorne o JSON com as avarias visíveis identificadas.`
     });
 
-    // 8. Chamar API Gemini com Cascata de Modelos (Resiliência Total)
-    const modelsToTry = [primaryModel, ...FALLBACK_MODELS.filter(m => m !== primaryModel)];
+    // 8. Chamar API Gemini: Obter modelos suportados em tempo real na chave
+    const availableModels = await getAvailableGeminiModels(apiKey);
+    console.log(`[cellhub-ai-router] Modelos detectados na chave Google:`, availableModels);
+
+    const preferredList = [
+      primaryModel,
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-exp",
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-pro",
+      "gemini-pro-vision",
+      ...availableModels
+    ];
+
+    const modelsToTry = Array.from(new Set(preferredList));
+    const apiVersions = ["v1beta", "v1"];
+
     let geminiData: any = null;
     let successfulModel = "";
     let lastErrorText = "";
 
     for (const modelCandidate of modelsToTry) {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelCandidate}:generateContent?key=${apiKey}`;
-      console.log(`[cellhub-ai-router] Tentando Gemini Model: ${modelCandidate}...`);
+      if (geminiData) break;
 
-      try {
-        const geminiResponse = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: contentsParts }],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.1
-            }
-          })
-        });
+      for (const apiVer of apiVersions) {
+        const geminiUrl = `https://generativelanguage.googleapis.com/${apiVer}/models/${modelCandidate}:generateContent?key=${apiKey}`;
+        console.log(`[cellhub-ai-router] Tentando: ${apiVer}/models/${modelCandidate}...`);
 
-        if (geminiResponse.ok) {
-          geminiData = await geminiResponse.json();
-          successfulModel = modelCandidate;
-          console.log(`[cellhub-ai-router] Sucesso com o modelo: ${modelCandidate}!`);
-          break;
-        } else {
-          lastErrorText = await geminiResponse.text();
-          console.warn(`[cellhub-ai-router] Modelo ${modelCandidate} retornou HTTP ${geminiResponse.status}:`, lastErrorText);
+        try {
+          const geminiResponse = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: contentsParts }],
+              generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.1
+              }
+            })
+          });
+
+          if (geminiResponse.ok) {
+            geminiData = await geminiResponse.json();
+            successfulModel = `${apiVer}/${modelCandidate}`;
+            console.log(`[cellhub-ai-router] SUCESSO com ${successfulModel}!`);
+            break;
+          } else {
+            lastErrorText = await geminiResponse.text();
+            console.warn(`[cellhub-ai-router] ${apiVer}/${modelCandidate} retornou HTTP ${geminiResponse.status}:`, lastErrorText.slice(0, 150));
+          }
+        } catch (reqErr: any) {
+          lastErrorText = reqErr.message || "Erro de rede";
         }
-      } catch (reqErr: any) {
-        lastErrorText = reqErr.message || "Erro de rede";
-        console.warn(`[cellhub-ai-router] Falha ao consultar ${modelCandidate}:`, reqErr);
       }
     }
 

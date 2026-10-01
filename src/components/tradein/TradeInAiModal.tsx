@@ -43,6 +43,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   const [quota, setQuota] = useState<AiQuotaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
     detectedPresetIds: string[];
     visualSummary: string[];
@@ -66,6 +67,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     if (!currentModel) return;
     setLoading(true);
     setAnalysisResult(null);
+    setAnalysisError(null);
     setUpgradeRequired(false);
     hasTriggeredRef.current = false;
 
@@ -100,6 +102,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
       if (pollingRef.current) clearInterval(pollingRef.current);
       setSession(null);
       setAnalysisResult(null);
+      setAnalysisError(null);
       hasTriggeredRef.current = false;
     }
 
@@ -137,7 +140,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           runAiAnalysis(updated.id);
         }
       } catch (e) {
-        // Silenciar erros transitórios de rede no polling
+        // Silenciar erros transitórios de polling
       }
     }, 2000);
 
@@ -152,13 +155,15 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
     if (session?.id) {
       await tradeinAiService.cancelSession(session.id);
-      toast.info('Sessão cancelada no computador e no celular.');
+      toast.info('Sessão cancelada.');
     }
     onClose();
   };
 
   const runAiAnalysis = async (sessionId?: string) => {
     setAnalyzing(true);
+    setAnalysisError(null);
+
     try {
       const res = await tradeinAiService.triggerEvaluation({
         sessionId: sessionId || session?.id,
@@ -179,10 +184,10 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
       } else if (res.requiresUpgrade) {
         setUpgradeRequired(true);
       } else {
-        toast.error(res.message || 'Não foi possível analisar as fotos.', { id: 'ai-error' });
+        setAnalysisError(res.message || 'Instabilidade momentânea no processamento visual.');
       }
-    } catch (err) {
-      toast.error('Instabilidade de conexão com o servidor de IA.', { id: 'ai-conn-error' });
+    } catch (err: any) {
+      setAnalysisError('Instabilidade momentânea no processamento da IA.');
     } finally {
       setAnalyzing(false);
     }
@@ -196,6 +201,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     }
 
     setAnalyzing(true);
+    setAnalysisError(null);
+
     try {
       const itemsToUpload = [
         { type: 'front' as const, file: desktopFiles.front },
@@ -212,7 +219,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
       await runAiAnalysis(session.id);
     } catch (err) {
-      toast.error('Erro no upload manual.');
+      setAnalysisError('Erro no upload das imagens.');
       setAnalyzing(false);
     }
   };
@@ -313,6 +320,39 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               >
                 Ativar CellHub IA (Pagamento em Breve)
               </Button>
+            </div>
+          ) : analysisError ? (
+            /* Error with direct Retry Button without losing photos */
+            <div className="p-6 rounded-3xl bg-[#1e293b] border border-amber-500/40 text-center space-y-4 animate-in fade-in duration-200">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                <AlertCircle className="w-7 h-7" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-base font-bold text-white">Instabilidade Momentânea na IA</h3>
+                <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                  {analysisError}. As fotos já estão salvas com segurança no sistema. Clique abaixo para reprocessar o laudo.
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-3 pt-2">
+                <Button
+                  onClick={() => runAiAnalysis(session?.id)}
+                  disabled={analyzing}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 px-6 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
+                  {analyzing ? 'Reprocessando...' : 'Tentar Processar Novamente'}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={initSession}
+                  className="border-slate-700 bg-slate-800 text-slate-300 text-xs h-11 rounded-2xl"
+                >
+                  Gerar Novo QR Code
+                </Button>
+              </div>
             </div>
           ) : analysisResult ? (
             /* Result Screen */
