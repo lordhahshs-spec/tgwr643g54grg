@@ -71,6 +71,36 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredRef = useRef<boolean>(false);
+  const currentSessionIdRef = useRef<string | null>(null);
+  const isSessionCompletedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    currentSessionIdRef.current = session?.id || null;
+    isSessionCompletedRef.current = Boolean(analysisResult);
+  }, [session?.id, analysisResult]);
+
+  // Cancelar sessão ativa automaticamente se o lojista fechar o modal, mudar de aba ou sair da página
+  useEffect(() => {
+    const handleUnload = () => {
+      const activeId = currentSessionIdRef.current;
+      if (activeId && !isSessionCompletedRef.current) {
+        tradeinAiService.cancelSession(activeId);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+      
+      const activeId = currentSessionIdRef.current;
+      if (activeId && !isSessionCompletedRef.current) {
+        tradeinAiService.cancelSession(activeId);
+      }
+    };
+  }, []);
 
   const initSession = async () => {
     if (!currentModel) return;
@@ -361,6 +391,14 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               </p>
             </div>
           </div>
+
+          <button
+            onClick={handleCancelSession}
+            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            title="Fechar e cancelar sessão no celular"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Modal Body Container */}
