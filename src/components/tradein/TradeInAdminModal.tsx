@@ -365,7 +365,7 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                             : 'bg-[#1e293b] text-slate-300 hover:text-white border border-slate-700'
                         }`}
                       >
-                        {brand === 'Apple' ? ' Apple' : brand}
+                        {brand}
                       </button>
                     ))}
                   </div>
