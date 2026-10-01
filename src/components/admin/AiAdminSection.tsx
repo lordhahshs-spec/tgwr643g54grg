@@ -112,11 +112,21 @@ export const AiAdminSection: React.FC<AiAdminSectionProps> = ({ users }) => {
   };
 
   // Metrics
-  const totalAnalyses = logs.filter(l => l.status === 'success').length;
-  const freeAnalyses = logs.filter(l => l.status === 'success' && l.api_tier === 'free').length;
-  const paidAnalyses = logs.filter(l => l.status === 'success' && l.api_tier === 'paid').length;
+  const totalAnalyses = logs.filter(l => ['success', 'rejected', 'rejected_non_phone'].includes(l.status)).length;
+  const freeAnalyses = logs.filter(l => l.api_tier === 'free' && ['success', 'rejected', 'rejected_non_phone'].includes(l.status)).length;
+  const paidAnalyses = logs.filter(l => l.api_tier === 'paid' && ['success', 'rejected', 'rejected_non_phone'].includes(l.status)).length;
   const blockedQuotaCount = logs.filter(l => l.status === 'blocked_quota').length;
-  const totalCostUsd = logs.reduce((acc, l) => acc + (Number(l.estimated_cost) || 0), 0);
+
+  // Custos Separados por Tier de API
+  const freeCostUsd = logs
+    .filter(l => l.api_tier === 'free')
+    .reduce((acc, l) => acc + (Number(l.estimated_cost) || 0), 0);
+
+  const paidCostUsd = logs
+    .filter(l => l.api_tier === 'paid')
+    .reduce((acc, l) => acc + (Number(l.estimated_cost) || 0), 0);
+
+  const totalCostUsd = freeCostUsd + paidCostUsd;
 
   // Filtered Logs
   const filteredLogs = logs.filter(log => {
@@ -135,47 +145,85 @@ export const AiAdminSection: React.FC<AiAdminSectionProps> = ({ users }) => {
 
   return (
     <div className="space-y-6">
-      {/* Top Metrics Cards */}
+      {/* Top Metrics Cards - Custos Separados por API */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center gap-3.5 shadow-lg">
-          <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-            <Sparkles className="w-5 h-5" />
+        {/* Card 1: Total de Análises */}
+        <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex flex-col justify-between shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400 font-medium">Volume Total de Análises</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <Sparkles className="w-4 h-4" />
+            </div>
           </div>
-          <div>
-            <span className="text-xs text-slate-400 font-medium">Total de Análises</span>
-            <div className="text-xl sm:text-2xl font-black text-white">{totalAnalyses}</div>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center gap-3.5 shadow-lg">
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-            <Zap className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-400 font-medium">API Gratuita (Consumo)</span>
-            <div className="text-xl sm:text-2xl font-black text-emerald-400">{freeAnalyses}</div>
+          <div className="pt-2">
+            <div className="text-2xl font-black text-white">{totalAnalyses}</div>
+            <span className="text-[11px] text-slate-400">
+              {freeAnalyses} gratuitas • {paidAnalyses} pagas
+            </span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center gap-3.5 shadow-lg">
-          <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-            <DollarSign className="w-5 h-5" />
+        {/* Card 2: Custo da API Gratuita */}
+        <div className="p-4 rounded-2xl bg-[#0f172a] border border-emerald-500/30 flex flex-col justify-between shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-emerald-300 font-bold">Custo API Gratuita</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black">
+                FREE TIER
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Zap className="w-4 h-4" />
+            </div>
           </div>
-          <div>
-            <span className="text-xs text-slate-400 font-medium">API Paga (Assinantes)</span>
-            <div className="text-xl sm:text-2xl font-black text-purple-400">{paidAnalyses}</div>
+          <div className="pt-2">
+            <div className="text-2xl font-black text-emerald-400">
+              ${freeCostUsd.toFixed(4)} <span className="text-xs text-slate-400 font-normal">USD</span>
+            </div>
+            <span className="text-[11px] text-slate-400">
+              {freeAnalyses} chamadas • ≈ R$ {(freeCostUsd * 5.7).toFixed(3)}
+            </span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center gap-3.5 shadow-lg">
-          <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-            <Activity className="w-5 h-5" />
+        {/* Card 3: Custo da API Paga */}
+        <div className="p-4 rounded-2xl bg-[#0f172a] border border-purple-500/30 flex flex-col justify-between shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-purple-300 font-bold">Custo API Paga</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-black">
+                PAID TIER
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <DollarSign className="w-4 h-4" />
+            </div>
           </div>
-          <div>
-            <span className="text-xs text-slate-400 font-medium">Custo Estimado IA</span>
-            <div className="text-xl sm:text-2xl font-black text-amber-400">
+          <div className="pt-2">
+            <div className="text-2xl font-black text-purple-400">
+              ${paidCostUsd.toFixed(4)} <span className="text-xs text-slate-400 font-normal">USD</span>
+            </div>
+            <span className="text-[11px] text-slate-400">
+              {paidAnalyses} chamadas • ≈ R$ {(paidCostUsd * 5.7).toFixed(3)}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Custo Total Acumulado */}
+        <div className="p-4 rounded-2xl bg-[#0f172a] border border-amber-500/30 flex flex-col justify-between shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-amber-300 font-bold">Custo Total Acumulado</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="pt-2">
+            <div className="text-2xl font-black text-amber-400">
               ${totalCostUsd.toFixed(4)} <span className="text-xs text-slate-400 font-normal">USD</span>
             </div>
+            <span className="text-[11px] text-slate-400">
+              Somatório geral • ≈ R$ {(totalCostUsd * 5.7).toFixed(2)}
+            </span>
           </div>
         </div>
       </div>
@@ -435,6 +483,7 @@ export const AiAdminSection: React.FC<AiAdminSectionProps> = ({ users }) => {
               >
                 <option value="all">Todos os Status</option>
                 <option value="success">Sucesso</option>
+                <option value="rejected_non_phone">Fotos Rejeitadas (Não-Celular)</option>
                 <option value="blocked_quota">Bloqueio de Quota</option>
                 <option value="error">Erro Técnico</option>
               </select>
