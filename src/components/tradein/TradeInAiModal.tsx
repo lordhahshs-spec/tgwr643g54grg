@@ -952,7 +952,6 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               )}
             </div>
           )}
-          )}
         </div>
       </div>
     </div>
