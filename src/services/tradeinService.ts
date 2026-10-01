@@ -316,29 +316,26 @@ export const tradeinService = {
     return getBrandPresets(brand, modelName);
   },
 
-  // Obter modelos da tabela do lojista (com fallback para os modelos padrão)
-  async getModels(brand?: string, userId?: string, includeInactive = false): Promise<ValuationModel[]> {
+  // Obter todos os modelos de forma consolidada e ultra-rápida (com fallback para marcas não customizadas)
+  async getAllModels(userId?: string, includeInactive = false): Promise<ValuationModel[]> {
     try {
-      // 1. Se o usuário tem modelos personalizados com o seu user_id
+      // 1. Buscar modelos personalizados do usuário (se logado)
+      let userModels: ValuationModel[] = [];
       if (userId) {
-        let userQuery = supabase
+        let uQuery = supabase
           .from('valuation_models')
           .select('*')
           .eq('user_id', userId)
           .order('display_order', { ascending: true })
           .order('model_name', { ascending: true });
 
-        if (brand && brand !== 'Todos' && brand !== 'Outros') {
-          userQuery = userQuery.ilike('brand', brand);
-        }
         if (!includeInactive) {
-          userQuery = userQuery.eq('is_active', true);
+          uQuery = uQuery.eq('is_active', true);
         }
 
-        const { data: userData, error: userError } = await userQuery;
-
-        if (!userError && userData && userData.length > 0) {
-          return userData.map((row: any) => ({
+        const { data: uData } = await uQuery;
+        if (uData && uData.length > 0) {
+          userModels = uData.map((row: any) => ({
             id: row.id,
             user_id: row.user_id,
             brand: row.brand,
@@ -356,28 +353,24 @@ export const tradeinService = {
         }
       }
 
-      // 2. Se não tem dados personalizados ainda, buscar modelos padrão (user_id IS NULL)
-      let defaultQuery = supabase
+      // 2. Buscar modelos padrão globais (user_id IS NULL)
+      let dQuery = supabase
         .from('valuation_models')
         .select('*')
         .is('user_id', null)
         .order('display_order', { ascending: true })
         .order('model_name', { ascending: true });
 
-      if (brand && brand !== 'Todos' && brand !== 'Outros') {
-        defaultQuery = defaultQuery.ilike('brand', brand);
-      }
       if (!includeInactive) {
-        defaultQuery = defaultQuery.eq('is_active', true);
+        dQuery = dQuery.eq('is_active', true);
       }
 
-      const { data, error } = await defaultQuery;
-      if (error) {
-        console.error('Erro ao buscar modelos padrão:', error);
-        return [];
+      const { data: dData, error: dError } = await dQuery;
+      if (dError) {
+        console.error('Erro ao buscar modelos padrão:', dError);
       }
 
-      return (data || []).map((row: any) => ({
+      const defaultModels: ValuationModel[] = (dData || []).map((row: any) => ({
         id: row.id,
         user_id: row.user_id,
         brand: row.brand,
@@ -392,10 +385,33 @@ export const tradeinService = {
         created_at: row.created_at,
         updated_at: row.updated_at
       }));
+
+      if (userModels.length === 0) {
+        return defaultModels;
+      }
+
+      // Mesclar modelos do lojista com modelos padrão para marcas que ele ainda não customizou
+      const userModelKeys = new Set(
+        userModels.map(m => `${(m.brand || '').toLowerCase().trim()}_${(m.model_name || '').toLowerCase().trim()}_${(m.storage || '').toLowerCase().trim()}`)
+      );
+
+      const nonOverriddenDefaults = defaultModels.filter(
+        m => !userModelKeys.has(`${(m.brand || '').toLowerCase().trim()}_${(m.model_name || '').toLowerCase().trim()}_${(m.storage || '').toLowerCase().trim()}`)
+      );
+
+      return [...userModels, ...nonOverriddenDefaults];
     } catch (err) {
-      console.error('Erro em getModels:', err);
+      console.error('Erro em getAllModels:', err);
       return [];
     }
+  },
+
+  // Obter modelos da tabela do lojista (com fallback para os modelos padrão)
+  async getModels(brand?: string, userId?: string, includeInactive = false): Promise<ValuationModel[]> {
+    const all = await this.getAllModels(userId, includeInactive);
+    if (!brand || brand === 'Todos') return all;
+    const bLower = brand.toLowerCase().trim();
+    return all.filter(m => (m.brand || '').toLowerCase().trim() === bLower);
   },
 
   // Salvar / Atualizar modelo do lojista

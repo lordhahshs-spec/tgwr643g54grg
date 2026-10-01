@@ -42,7 +42,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
 
   // Selected Brand & Models
   const [selectedBrand, setSelectedBrand] = useState<DeviceBrand>('Apple');
-  const [allModels, setAllModels] = useState<ValuationModel[]>([]);
+  const [allLoadedModels, setAllLoadedModels] = useState<ValuationModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState<boolean>(true);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
   
   // Custom manual model fallback
@@ -70,26 +71,44 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false);
   const [settings, setSettings] = useState<ValuationSettings | undefined>(undefined);
 
+  // Carregamento consolidado ultra-rápido (carrega todas as marcas de uma só vez na memória)
   const loadModels = async () => {
+    setIsLoadingModels(true);
     try {
       const [models, st] = await Promise.all([
-        tradeinService.getModels(selectedBrand, userId),
+        tradeinService.getAllModels(userId),
         tradeinService.getSettings(userId)
       ]);
-      setAllModels(models);
+      setAllLoadedModels(models);
       setSettings(st);
-      setSelectedModelId('');
-      setAiEvaluated(false);
-      setAiDetectedCount(0);
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao carregar modelos de trade-in:', err);
+    } finally {
+      setIsLoadingModels(false);
     }
   };
 
   useEffect(() => {
     loadModels();
+  }, [userId]);
+
+  // Filtragem síncrona 0ms por marca selecionada (sem requisições lentas ou race conditions)
+  const modelsForBrand = useMemo(() => {
+    const brandLower = selectedBrand.toLowerCase().trim();
+    return allLoadedModels.filter(m => {
+      const mBrand = (m.brand || '').toLowerCase().trim();
+      return mBrand === brandLower || mBrand.includes(brandLower) || brandLower.includes(mBrand);
+    });
+  }, [allLoadedModels, selectedBrand]);
+
+  const handleSelectBrand = (brand: DeviceBrand) => {
+    setSelectedBrand(brand);
+    setSelectedModelId('');
     setSelectedFaults({});
-  }, [selectedBrand, userId]);
+    setAiEvaluated(false);
+    setAiDetectedCount(0);
+    setIsManualModel(false);
+  };
 
   const currentModel = useMemo(() => {
     if (isManualModel) {
@@ -108,8 +127,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
       } as ValuationModel;
     }
     if (!selectedModelId) return null;
-    return allModels.find(m => m.id === selectedModelId) || null;
-  }, [allModels, selectedModelId, isManualModel, customModelName, customBaseBuyPrice, selectedBrand]);
+    return modelsForBrand.find(m => m.id === selectedModelId) || null;
+  }, [modelsForBrand, selectedModelId, isManualModel, customModelName, customBaseBuyPrice, selectedBrand]);
 
   const brandFaultDefinitions: FaultDefinition[] = useMemo(() => {
     return getBrandPresets(selectedBrand, currentModel?.model_name);
@@ -263,7 +282,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
           </div>
 
           <div className="text-[11px] text-slate-400 font-semibold bg-[#0c1424] px-2.5 py-1 rounded-lg border border-white/5">
-            {allModels.length} modelos cadastrados ({selectedBrand})
+            {modelsForBrand.length} modelos cadastrados ({selectedBrand})
           </div>
         </div>
 
@@ -293,10 +312,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   return (
                     <button
                       key={brand}
-                      onClick={() => {
-                        setSelectedBrand(brand);
-                        setIsManualModel(false);
-                      }}
+                      onClick={() => handleSelectBrand(brand)}
                       className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
                         isSelected
                           ? 'bg-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/25 scale-105'
@@ -309,7 +325,13 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                 })}
               </div>
 
-              {isManualModel ? (
+              {isLoadingModels ? (
+                /* Skeleton / Loading suave enquanto carrega os modelos */
+                <div className="h-11 rounded-xl bg-[#040711] border border-white/10 flex items-center gap-2.5 px-4 text-xs text-slate-400">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00D287]" />
+                  <span>Carregando modelos de {selectedBrand}...</span>
+                </div>
+              ) : isManualModel ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <Input
                     value={customModelName}
@@ -325,7 +347,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     className="bg-[#040711] border-white/10 text-xs text-[#00D287] font-bold rounded-xl h-10"
                   />
                 </div>
-              ) : allModels.length === 0 ? (
+              ) : modelsForBrand.length === 0 ? (
                 <div className="p-4 rounded-xl bg-[#0c1424] border border-white/10 text-center space-y-2">
                   <p className="text-xs text-slate-300">
                     Nenhum modelo cadastrado para <strong>{selectedBrand}</strong> ainda.
@@ -365,7 +387,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     <option value="" disabled>
                       👉 Escolha o modelo ({selectedBrand})...
                     </option>
-                    {allModels.map(m => (
+                    {modelsForBrand.map(m => (
                       <option key={m.id} value={m.id} className="text-white bg-[#060a16]">
                         {m.model_name} {m.storage} — Base: R$ {m.buy_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </option>
