@@ -6,7 +6,12 @@ import {
   ChevronDown,
   Calculator,
   FileSignature,
-  Sparkles
+  Sparkles,
+  Camera,
+  CheckCircle2,
+  Smartphone,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +40,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   const currentUser = leadAuthService.getCurrentUser();
   const userId = currentUser?.id;
 
-  // Selected Brand & Models
+  // Selected Brand & Models (Starts with NO model pre-selected)
   const [selectedBrand, setSelectedBrand] = useState<DeviceBrand>('Apple');
   const [allModels, setAllModels] = useState<ValuationModel[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
@@ -43,10 +48,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   // Custom manual model fallback
   const [isManualModel, setIsManualModel] = useState<boolean>(false);
   const [customModelName, setCustomModelName] = useState<string>('');
-  const [customBaseBuyPrice, setCustomBaseBuyPrice] = useState<number>(3040);
+  const [customBaseBuyPrice, setCustomBaseBuyPrice] = useState<number>(3000);
 
   // Selected faults checklist
   const [selectedFaults, setSelectedFaults] = useState<Record<string, boolean>>({});
+
+  // IA evaluation state feedback
+  const [aiEvaluated, setAiEvaluated] = useState<boolean>(false);
+  const [aiDetectedCount, setAiDetectedCount] = useState<number>(0);
 
   // Trade Bonus toggle ("Cliente vai levar outro seminovo do nosso estoque")
   const [willBuyFromStock, setWillBuyFromStock] = useState<boolean>(false);
@@ -70,10 +79,10 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
       ]);
       setAllModels(models);
       setSettings(st);
-
-      if (models.length > 0 && !isManualModel) {
-        setSelectedModelId(models[0].id);
-      }
+      // Keep model unselected when switching brand so lojista selects explicitly
+      setSelectedModelId('');
+      setAiEvaluated(false);
+      setAiDetectedCount(0);
     } catch (err) {
       console.error(err);
     }
@@ -87,10 +96,11 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   // Current active model object
   const currentModel = useMemo(() => {
     if (isManualModel) {
+      if (!customModelName.trim()) return null;
       return {
         id: 'manual',
         brand: selectedBrand,
-        model_name: customModelName || `Smartphone ${selectedBrand}`,
+        model_name: customModelName,
         storage: '128GB',
         base_price: Number(customBaseBuyPrice) * 1.3,
         buy_price: Number(customBaseBuyPrice),
@@ -100,7 +110,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
         display_order: 0
       } as ValuationModel;
     }
-    return allModels.find(m => m.id === selectedModelId) || allModels[0] || null;
+    if (!selectedModelId) return null;
+    return allModels.find(m => m.id === selectedModelId) || null;
   }, [allModels, selectedModelId, isManualModel, customModelName, customBaseBuyPrice, selectedBrand]);
 
   // Presets específicos do fabricante atual (filtrados por modelo se necessário, ex: S Pen)
@@ -141,15 +152,16 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
 
   // Final Valuation Calculation
   const finalValuation = useMemo(() => {
+    if (!currentModel) return 0;
     const raw = baseValue - totalFaultsDiscount + tradeBonusAmount;
     return Math.max(Math.round(raw / 10) * 10, 50);
-  }, [baseValue, totalFaultsDiscount, tradeBonusAmount]);
+  }, [currentModel, baseValue, totalFaultsDiscount, tradeBonusAmount]);
 
   // Mini cálculo: Diferença a pagar se o lojista vender um celular
   const differenceToPay = useMemo(() => {
-    if (!sellingPhonePrice || Number(sellingPhonePrice) <= 0) return 0;
+    if (!sellingPhonePrice || Number(sellingPhonePrice) <= 0 || !currentModel) return 0;
     return Math.max(Number(sellingPhonePrice) - finalValuation, 0);
-  }, [sellingPhonePrice, finalValuation]);
+  }, [sellingPhonePrice, finalValuation, currentModel]);
 
   // Toggle fault checkbox
   const toggleFault = (faultId: string) => {
@@ -166,6 +178,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
       newFaultsMap[id] = true;
     });
     setSelectedFaults(newFaultsMap);
+    setAiEvaluated(true);
+    setAiDetectedCount(detectedIds.length);
   };
 
   // Confirm Save & Generate Term with Customer Data & IMEI
@@ -215,7 +229,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
               Avaliação de Aparelho <span className="text-blue-400">(Seminovos & Troca)</span>
             </h1>
             <p className="text-[11px] text-slate-400">
-              Calcule o valor de compra do celular do cliente e abata na venda de outro aparelho
+              Processo guiado: Selecione o modelo, fotografe com a IA e feche o contrato com precisão
             </p>
           </div>
         </div>
@@ -243,6 +257,77 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
         </div>
       </div>
 
+      {/* Workflow Step Indicator */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+        <div className={`p-2 rounded-xl border flex items-center gap-2 transition-all ${
+          !currentModel 
+            ? 'bg-blue-600/15 border-blue-500 text-blue-300 shadow-sm shadow-blue-500/20' 
+            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+        }`}>
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+            !currentModel ? 'bg-blue-500 text-white' : 'bg-emerald-500 text-slate-950'
+          }`}>
+            {currentModel ? '✓' : '1'}
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-wider font-bold block opacity-80">Etapa 1</span>
+            <span className="text-xs font-bold truncate block">
+              {currentModel ? currentModel.model_name : 'Escolher Modelo'}
+            </span>
+          </div>
+        </div>
+
+        <div className={`p-2 rounded-xl border flex items-center gap-2 transition-all ${
+          currentModel && !aiEvaluated
+            ? 'bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/50'
+            : aiEvaluated
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            : 'bg-[#0f172a] border-slate-800 text-slate-500 opacity-60'
+        }`}>
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+            aiEvaluated ? 'bg-emerald-500 text-slate-950' : currentModel ? 'bg-amber-400 text-slate-950 animate-pulse' : 'bg-slate-800 text-slate-400'
+          }`}>
+            {aiEvaluated ? '✓' : '2'}
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-wider font-bold block opacity-80">Etapa 2 (Essencial)</span>
+            <span className="text-xs font-bold truncate block">
+              {aiEvaluated ? `IA: ${aiDetectedCount} detectada(s)` : 'Fotos para IA'}
+            </span>
+          </div>
+        </div>
+
+        <div className={`p-2 rounded-xl border flex items-center gap-2 transition-all ${
+          currentModel && aiEvaluated
+            ? 'bg-blue-600/15 border-blue-500 text-blue-300'
+            : 'bg-[#0f172a] border-slate-800 text-slate-500 opacity-60'
+        }`}>
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+            currentModel && aiEvaluated ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'
+          }`}>
+            3
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-wider font-bold block opacity-80">Etapa 3</span>
+            <span className="text-xs font-bold truncate block">Revisar Avarias</span>
+          </div>
+        </div>
+
+        <div className={`p-2 rounded-xl border flex items-center gap-2 transition-all ${
+          currentModel
+            ? 'bg-slate-800/80 border-slate-700 text-slate-300'
+            : 'bg-[#0f172a] border-slate-800 text-slate-500 opacity-60'
+        }`}>
+          <div className="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-[10px] font-black shrink-0 text-slate-400">
+            4
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-wider font-bold block opacity-80">Etapa 4</span>
+            <span className="text-xs font-bold truncate block">Termo & Assinatura</span>
+          </div>
+        </div>
+      </div>
+
       {/* Main Quotation Window Card */}
       <div className="bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Window Topbar */}
@@ -253,11 +338,11 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500/90 inline-block"></span>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/90 inline-block"></span>
             </div>
-            <span className="text-xs font-bold text-slate-200 ml-2">Nova cotação</span>
+            <span className="text-xs font-bold text-slate-200 ml-2">Mesa de Avaliação Trade-In</span>
           </div>
 
           <div className="text-[11px] text-slate-300 font-medium">
-            {allModels.length} modelos na sua tabela ({selectedBrand})
+            {allModels.length} modelos cadastrados ({selectedBrand})
           </div>
         </div>
 
@@ -265,22 +350,25 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
         <div className="p-3.5 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
           {/* Left Column: Device Selection & Faults List */}
           <div className="lg:col-span-7 flex flex-col space-y-2.5 min-h-0">
-            {/* 1. Device Selection Header & Brand Chips */}
-            <div className="space-y-1.5 shrink-0">
+            {/* ETAPA 1: Marca & Modelo do Aparelho */}
+            <div className="space-y-1.5 shrink-0 bg-[#141e33] p-3 rounded-2xl border border-blue-500/30">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-100">
-                  Modelo do aparelho
-                </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-md bg-blue-500 text-white font-black text-[10px] flex items-center justify-center">1</span>
+                  <label className="text-xs font-bold text-white">
+                    Selecione a Marca e o Modelo do Aparelho
+                  </label>
+                </div>
                 <button
                   onClick={() => setIsManualModel(!isManualModel)}
-                  className="text-xs text-blue-400 hover:underline font-medium"
+                  className="text-[11px] text-blue-400 hover:underline font-semibold"
                 >
-                  {isManualModel ? '← Escolher da lista' : 'Digitar modelo manualmente'}
+                  {isManualModel ? '← Escolher da lista' : 'Outro modelo (manual)'}
                 </button>
               </div>
 
-              {/* Brand Chips (Wrapping naturally without horizontal scrollbar) */}
-              <div className="flex flex-wrap gap-1.5">
+              {/* Brand Chips */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {BRANDS_LIST.map((brand) => (
                   <button
                     key={brand}
@@ -290,7 +378,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     }}
                     className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                       selectedBrand === brand
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 scale-105'
                         : 'bg-[#1e293b] text-slate-300 hover:text-white border border-slate-700'
                     }`}
                   >
@@ -300,19 +388,19 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
               </div>
 
               {isManualModel ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <Input
                     value={customModelName}
                     onChange={(e) => setCustomModelName(e.target.value)}
                     placeholder="Nome do modelo (Ex: Galaxy S24 Ultra 256GB)"
-                    className="bg-[#1e293b] border-slate-700 text-xs text-white rounded-xl focus:border-blue-500 h-9"
+                    className="bg-[#0f172a] border-slate-700 text-xs text-white rounded-xl focus:border-blue-500 h-9"
                   />
                   <Input
                     type="number"
                     value={customBaseBuyPrice}
                     onChange={(e) => setCustomBaseBuyPrice(Number(e.target.value) || 0)}
                     placeholder="Valor base de compra (R$)"
-                    className="bg-[#1e293b] border-slate-700 text-xs text-emerald-400 font-bold rounded-xl h-9"
+                    className="bg-[#0f172a] border-slate-700 text-xs text-emerald-400 font-bold rounded-xl h-9"
                   />
                 </div>
               ) : allModels.length === 0 ? (
@@ -339,130 +427,188 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   </div>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="relative pt-0.5">
                   <select
                     value={selectedModelId}
-                    onChange={(e) => setSelectedModelId(e.target.value)}
-                    className="w-full bg-[#1e293b] border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 text-white focus:border-blue-500 outline-none appearance-none pr-10 cursor-pointer h-10 shadow-sm"
+                    onChange={(e) => {
+                      setSelectedModelId(e.target.value);
+                      setAiEvaluated(false);
+                      setAiDetectedCount(0);
+                      setSelectedFaults({});
+                    }}
+                    className={`w-full bg-[#0f172a] border text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 text-white outline-none appearance-none pr-10 cursor-pointer h-10 shadow-sm transition-all ${
+                      !selectedModelId ? 'border-amber-500/80 ring-2 ring-amber-500/20 text-slate-400' : 'border-slate-700 focus:border-blue-500'
+                    }`}
                   >
+                    <option value="" disabled>
+                      👉 Escolha o modelo ({selectedBrand})...
+                    </option>
                     {allModels.map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.model_name} {m.storage}
+                      <option key={m.id} value={m.id} className="text-white bg-slate-900">
+                        {m.model_name} {m.storage} — Base: R$ {m.buy_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-[calc(50%+2px)] -translate-y-1/2 pointer-events-none" />
                 </div>
               )}
             </div>
 
-            {/* 2. Specific Brand Faults Checklist with Internal Dedicated Scrollbar */}
-            <div className="flex flex-col flex-1 min-h-0 space-y-1.5">
-              <div className="flex items-center justify-between shrink-0">
-                <span className="text-xs font-bold text-slate-100 block">
-                  Avarias / condições do aparelho ({selectedBrand})
-                </span>
-                
-                <Button
-                  size="sm"
-                  onClick={() => setIsAiModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[11px] h-7 px-2.5 rounded-lg shadow-md shadow-blue-600/20 flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-blue-200 animate-pulse" />
-                  Avaliar com IA (QR Code)
-                </Button>
-              </div>
-
-              <div className="border border-slate-700 rounded-2xl bg-[#1e293b]/70 overflow-hidden shadow-sm flex flex-col flex-1 min-h-0">
-                {/* Scrollable list of faults only */}
-                <div className="overflow-y-auto max-h-[220px] sm:max-h-[260px] lg:max-h-none lg:flex-1 divide-y divide-slate-700/80 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent pr-0.5">
-                  {brandFaultDefinitions.map(fault => {
-                    const isChecked = !!selectedFaults[fault.id];
-                    const discount = currentModel?.fault_discounts?.[fault.id] !== undefined
-                      ? currentModel.fault_discounts[fault.id]
-                      : fault.defaultDiscount;
-
-                    return (
-                      <div
-                        key={fault.id}
-                        onClick={() => toggleFault(fault.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === ' ' || e.key === 'Enter') {
-                            e.preventDefault();
-                            toggleFault(fault.id);
-                          }
-                        }}
-                        role="checkbox"
-                        aria-checked={isChecked}
-                        tabIndex={0}
-                        className={`flex items-center justify-between py-2 px-3 sm:px-3.5 cursor-pointer select-none transition-colors ${
-                          isChecked ? 'bg-red-950/40' : 'hover:bg-[#1e293b]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
-                            isChecked
-                              ? 'bg-red-600 border-red-600 text-white'
-                              : 'border-slate-600 bg-slate-800/90'
-                          }`}>
-                            {isChecked && (
-                              <svg className="w-3 h-3 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            )}
-                          </div>
-                          <span className={`text-xs font-medium ${isChecked ? 'text-white font-semibold' : 'text-slate-200'}`}>
-                            {fault.label}
-                          </span>
-                        </div>
-
-                        <span className="text-xs font-bold text-red-400 shrink-0">
-                          – R$ {discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            {/* ETAPA 2: BANNER HERO DE AVALIAÇÃO COM IA (ESSENCIAL) */}
+            {currentModel ? (
+              <div className={`p-3.5 rounded-2xl border transition-all shrink-0 ${
+                aiEvaluated
+                  ? 'bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/40'
+                  : 'bg-gradient-to-r from-indigo-950/70 via-blue-950/50 to-slate-900 border-indigo-500/60 shadow-lg shadow-indigo-950/40'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px] flex items-center justify-center">2</span>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Etapa Essencial: Fotos com IA
+                      </span>
+                      {aiEvaluated && (
+                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Laudo IA Concluído
                         </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Fixed Trade Bonus Row at bottom */}
-                <div
-                  onClick={() => setWillBuyFromStock(prev => !prev)}
-                  onKeyDown={(e) => {
-                    if (e.key === ' ' || e.key === 'Enter') {
-                      e.preventDefault();
-                      setWillBuyFromStock(prev => !prev);
-                    }
-                  }}
-                  role="checkbox"
-                  aria-checked={willBuyFromStock}
-                  tabIndex={0}
-                  className={`flex items-center justify-between py-2.5 px-3 sm:px-3.5 cursor-pointer select-none transition-colors border-t border-slate-700 shrink-0 ${
-                    willBuyFromStock ? 'bg-blue-950/50' : 'bg-[#182338]/90 hover:bg-[#1e293b]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
-                      willBuyFromStock
-                        ? 'bg-blue-600 border-blue-600 text-white'
-                        : 'border-slate-600 bg-slate-800/90'
-                    }`}>
-                      {willBuyFromStock && (
-                        <svg className="w-3 h-3 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
                       )}
                     </div>
-                    <span className={`text-xs ${willBuyFromStock ? 'text-blue-300 font-bold' : 'text-slate-200 font-medium'}`}>
-                      Cliente vai levar outro seminovo (+ R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
-                    </span>
+                    <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                      {aiEvaluated
+                        ? `A IA analisou as fotos e detectou ${aiDetectedCount} avaria(s). Você pode revisar a lista abaixo.`
+                        : `Escaneie as fotos (Frente, Traseira e Lateral) via QR Code no celular para identificar riscos, trincos e burn-in automaticamente.`}
+                    </p>
                   </div>
 
-                  <span className="text-xs font-bold text-emerald-400 shrink-0">
-                    + R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
+                  <Button
+                    size="default"
+                    onClick={() => setIsAiModalOpen(true)}
+                    className={`font-black text-xs h-10 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 shrink-0 transition-all ${
+                      aiEvaluated
+                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                        : 'bg-gradient-to-r from-amber-400 via-orange-500 to-indigo-600 hover:from-amber-300 hover:to-indigo-500 text-slate-950 font-black ring-2 ring-amber-400/50 scale-105 shadow-amber-500/20'
+                    }`}
+                  >
+                    <Camera className="w-4 h-4 text-slate-950" />
+                    {aiEvaluated ? 'Reavaliar com IA' : 'Abrir Câmera IA (QR Code)'}
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
+                  </Button>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3 rounded-2xl bg-[#1e293b]/40 border border-dashed border-slate-700 text-center text-slate-400 text-xs">
+                Selecione o modelo do aparelho no Passo 1 para desbloquear a Avaliação com IA e o checklist.
+              </div>
+            )}
+
+            {/* ETAPA 3: Checklist de Avarias com Scroll Interno */}
+            {currentModel && (
+              <div className="flex flex-col flex-1 min-h-0 space-y-1.5">
+                <div className="flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-md bg-slate-700 text-white font-black text-[10px] flex items-center justify-center">3</span>
+                    <span className="text-xs font-bold text-slate-100 block">
+                      Revisão de Avarias / Testes Funcionais ({selectedBrand})
+                    </span>
+                  </div>
+                  
+                  <span className="text-[11px] text-slate-400">
+                    {activeFaultsList.length} avaria(s) marcada(s)
+                  </span>
+                </div>
+
+                <div className="border border-slate-700 rounded-2xl bg-[#1e293b]/70 overflow-hidden shadow-sm flex flex-col flex-1 min-h-0">
+                  {/* Scrollable list of faults only */}
+                  <div className="overflow-y-auto max-h-[180px] sm:max-h-[220px] lg:max-h-none lg:flex-1 divide-y divide-slate-700/80 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent pr-0.5">
+                    {brandFaultDefinitions.map(fault => {
+                      const isChecked = !!selectedFaults[fault.id];
+                      const discount = currentModel?.fault_discounts?.[fault.id] !== undefined
+                        ? currentModel.fault_discounts[fault.id]
+                        : fault.defaultDiscount;
+
+                      return (
+                        <div
+                          key={fault.id}
+                          onClick={() => toggleFault(fault.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === ' ' || e.key === 'Enter') {
+                              e.preventDefault();
+                              toggleFault(fault.id);
+                            }
+                          }}
+                          role="checkbox"
+                          aria-checked={isChecked}
+                          tabIndex={0}
+                          className={`flex items-center justify-between py-2 px-3 sm:px-3.5 cursor-pointer select-none transition-colors ${
+                            isChecked ? 'bg-red-950/40' : 'hover:bg-[#1e293b]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                              isChecked
+                                ? 'bg-red-600 border-red-600 text-white'
+                                : 'border-slate-600 bg-slate-800/90'
+                            }`}>
+                              {isChecked && (
+                                <svg className="w-3 h-3 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs font-medium ${isChecked ? 'text-white font-semibold' : 'text-slate-200'}`}>
+                              {fault.label}
+                            </span>
+                          </div>
+
+                          <span className="text-xs font-bold text-red-400 shrink-0">
+                            – R$ {discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Fixed Trade Bonus Row at bottom */}
+                  <div
+                    onClick={() => setWillBuyFromStock(prev => !prev)}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        setWillBuyFromStock(prev => !prev);
+                      }
+                    }}
+                    role="checkbox"
+                    aria-checked={willBuyFromStock}
+                    tabIndex={0}
+                    className={`flex items-center justify-between py-2.5 px-3 sm:px-3.5 cursor-pointer select-none transition-colors border-t border-slate-700 shrink-0 ${
+                      willBuyFromStock ? 'bg-blue-950/50' : 'bg-[#182338]/90 hover:bg-[#1e293b]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                        willBuyFromStock
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'border-slate-600 bg-slate-800/90'
+                      }`}>
+                        {willBuyFromStock && (
+                          <svg className="w-3 h-3 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-xs ${willBuyFromStock ? 'text-blue-300 font-bold' : 'text-slate-200 font-medium'}`}>
+                        Cliente vai levar outro seminovo (+ R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                      </span>
+                    </div>
+
+                    <span className="text-xs font-bold text-emerald-400 shrink-0">
+                      + R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Pricing Result & Mini Trade Calculation */}
@@ -471,18 +617,25 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
               {/* Card "Valor a pagar" */}
               <div className="border border-slate-700 rounded-2xl bg-[#1e293b] p-4 space-y-3 shadow-xl">
                 <div>
-                  <span className="text-xs font-semibold text-slate-300 block">
-                    Valor a pagar pelo aparelho do cliente
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-300 block">
+                      Valor final de compra do aparelho
+                    </span>
+                    {currentModel && (
+                      <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+                        {currentModel.model_name}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-2xl sm:text-3xl font-black text-blue-400 tracking-tight mt-0.5">
                     R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                 </div>
 
-                {/* Breakdown Table with internal scroll if many faults */}
+                {/* Breakdown Table */}
                 <div className="space-y-1.5 text-xs border-t border-slate-700 pt-2.5">
                   <div className="flex justify-between text-slate-300">
-                    <span>Valor na compra / base ({selectedBrand})</span>
+                    <span>Valor na compra / base</span>
                     <strong className="text-white font-bold">
                       R$ {baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </strong>
@@ -507,7 +660,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   )}
 
                   <div className="flex justify-between text-white font-black border-t border-slate-700 pt-2 text-xs sm:text-sm">
-                    <span>Total</span>
+                    <span>Total Avaliado</span>
                     <span className="text-blue-400 font-black">
                       R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
@@ -565,14 +718,21 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
               </div>
             </div>
 
-            {/* Single Prominent Action Button */}
-            <Button
-              onClick={() => setIsTermModalOpen(true)}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs sm:text-sm h-11 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shrink-0"
-            >
-              <FileSignature className="w-4 h-4" />
-              Gerar Termo de Compra & Assinatura
-            </Button>
+            {/* Step 4 Action Button */}
+            <div className="space-y-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 px-1">
+                <span className="w-4 h-4 rounded bg-blue-500 text-white font-black text-[9px] flex items-center justify-center">4</span>
+                <span className="text-[11px] font-bold text-slate-300">Fechamento do Negócio</span>
+              </div>
+              <Button
+                disabled={!currentModel}
+                onClick={() => setIsTermModalOpen(true)}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black text-xs sm:text-sm h-11 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+              >
+                <FileSignature className="w-4 h-4" />
+                {currentModel ? 'Gerar Termo de Compra & Assinatura' : 'Selecione um Modelo Primeiro'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
