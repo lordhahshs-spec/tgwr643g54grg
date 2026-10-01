@@ -12,7 +12,8 @@ import {
   UploadCloud,
   Check,
   Ban,
-  XCircle
+  XCircle,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { tradeinAiService } from '@/services/tradeinAiService';
@@ -107,6 +108,14 @@ export default function TradeInCameraPage() {
         return;
       }
 
+      // Checar trava de segurança no navegador
+      const localSubmitted = sessionStorage.getItem(`submitted_${sessionId}`);
+      if (localSubmitted) {
+        setIsCompleted(true);
+        setLoading(false);
+        return;
+      }
+
       const s = await tradeinAiService.getSession(sessionId);
       if (!s) {
         setErrorMsg('Sessão expirada ou não encontrada. Por favor, gere um novo QR Code no computador.');
@@ -120,6 +129,13 @@ export default function TradeInCameraPage() {
         return;
       }
 
+      // Se as fotos já foram enviadas, bloquear reenvio mesmo recarregando
+      if (['photos_received', 'analyzing', 'completed'].includes(s.status) || (s.photos && s.photos.length > 0)) {
+        setIsCompleted(true);
+        setLoading(false);
+        return;
+      }
+
       if (new Date(s.expires_at).getTime() < Date.now()) {
         setErrorMsg('Esta sessão expirou. Gere um novo QR Code na tela da loja.');
         setLoading(false);
@@ -129,7 +145,6 @@ export default function TradeInCameraPage() {
       setSession(s);
       setLoading(false);
 
-      // Notificar PC que o celular conectou
       if (s.status === 'waiting_for_phone') {
         tradeinAiService.updateSessionStatus(s.id, 'phone_connected');
       }
@@ -150,7 +165,7 @@ export default function TradeInCameraPage() {
         if (s.status === 'cancelled') {
           setIsCancelled(true);
           if (statusPollingRef.current) clearInterval(statusPollingRef.current);
-        } else if (s.status === 'completed') {
+        } else if (['photos_received', 'analyzing', 'completed'].includes(s.status)) {
           setIsCompleted(true);
           if (statusPollingRef.current) clearInterval(statusPollingRef.current);
         }
@@ -202,7 +217,6 @@ export default function TradeInCameraPage() {
         }
       }));
 
-      // Avançar para próximo passo
       const next = stepMeta[currentStep].next;
       if (next) {
         setCurrentStep(next);
@@ -220,8 +234,8 @@ export default function TradeInCameraPage() {
       return;
     }
 
-    if (isCancelled) {
-      toast.error('Esta sessão foi cancelada no computador.');
+    if (isCancelled || isCompleted) {
+      toast.error('Esta sessão já foi concluída ou cancelada.');
       return;
     }
 
@@ -238,6 +252,8 @@ export default function TradeInCameraPage() {
       const res = await tradeinAiService.uploadPhotosForSession(session.id, itemsToUpload);
 
       if (res.success) {
+        // Travar sessão permanentemente para não permitir reenvio
+        sessionStorage.setItem(`submitted_${sessionId}`, 'true');
         setIsCompleted(true);
         if (statusPollingRef.current) clearInterval(statusPollingRef.current);
         toast.success('Fotos enviadas com sucesso!');
@@ -301,6 +317,7 @@ export default function TradeInCameraPage() {
     );
   }
 
+  // TELA DE CONCLUSÃO / BLOQUEIO DE REENVIO
   if (isCompleted) {
     return (
       <div className="min-h-screen bg-[#050811] flex items-center justify-center p-5 text-white">
@@ -312,13 +329,18 @@ export default function TradeInCameraPage() {
           <div className="space-y-1.5">
             <h2 className="text-lg font-black text-white">Fotos Enviadas com Sucesso!</h2>
             <p className="text-xs text-slate-300 leading-relaxed">
-              As 3 fotos já foram transferidas para o sistema. A <strong>CellHub IA</strong> está realizando o diagnóstico no computador.
+              As fotos deste aparelho já foram enviadas e processadas pelo sistema da loja.
             </p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-[#1e293b] border border-slate-800 text-xs space-y-1">
-            <span className="text-emerald-400 font-bold block">✓ Transferência Concluída</span>
-            <span className="text-[11px] text-slate-400">Você já pode acompanhar o laudo e valor na tela principal do lojista.</span>
+            <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Sessão Concluída & Bloqueada</span>
+            </div>
+            <span className="text-[11px] text-slate-400 block pt-1">
+              Para avaliar outro smartphone, gere um novo QR Code na tela da loja.
+            </span>
           </div>
         </div>
       </div>

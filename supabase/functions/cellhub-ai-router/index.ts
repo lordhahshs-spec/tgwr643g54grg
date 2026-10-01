@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +16,19 @@ interface EvaluationRequest {
   photos?: { type: string; url?: string; base64?: string }[];
 }
 
+// Conversor seguro de ArrayBuffer para Base64 em chunks (sem dependência externa e sem estouro de pilha)
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  const chunkSize = 8192;
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,11 +40,19 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body: EvaluationRequest = await req.json();
+    let body: EvaluationRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ success: false, error: "invalid_json", message: "Corpo da requisição inválido." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { action, sessionId, userId } = body;
 
     if (!userId) {
-      console.error("[cellhub-ai-router] Erro: userId ausente no payload");
       return new Response(
         JSON.stringify({ success: false, error: "userId_required", message: "Identificação do lojista ausente." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -41,7 +61,7 @@ serve(async (req) => {
 
     console.log(`[cellhub-ai-router] Ação recebida: ${action} para usuário: ${userId}, sessão: ${sessionId || "n/a"}`);
 
-    // Cancelar Sessão explicitamente
+    // Cancelar Sessão
     if (action === "cancel_session" && sessionId) {
       await supabase
         .from("ai_evaluation_sessions")
@@ -49,7 +69,7 @@ serve(async (req) => {
         .eq("id", sessionId);
 
       return new Response(
-        JSON.stringify({ success: true, message: "Sessão cancelada com sucesso." }),
+        JSON.stringify({ success: true, message: "Sessão cancelada." }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -240,7 +260,6 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
   "confidence": "high" | "medium" | "low"
 }`;
 
-    // Montar partes das imagens com codificação segura base64
     const contentsParts: any[] = [{ text: systemPrompt }];
 
     for (const photo of photosToAnalyze) {
@@ -259,7 +278,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
           if (!imgResp.ok) throw new Error(`HTTP ${imgResp.status}`);
           
           const imgBuffer = await imgResp.arrayBuffer();
-          const base64Data = encodeBase64(new Uint8Array(imgBuffer));
+          const base64Data = arrayBufferToBase64(imgBuffer);
           
           contentsParts.push({
             inlineData: {
@@ -330,7 +349,6 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
 
     try {
       if (candidateText) {
-        // Remover tags de bloco se presentes
         const cleanJson = candidateText.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
         parsedResult = JSON.parse(cleanJson);
       }
