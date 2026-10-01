@@ -9,35 +9,19 @@ import {
 } from '@/types/tradein';
 
 export const FAULT_DEFINITIONS: FaultDefinition[] = [
-  // 1. Estética & Carcaça
-  { id: 'marcas_leves', category: 'estetica', label: 'Marcas Leves de Uso', description: 'Micro-riscos normais de uso no aro ou traseira', defaultDiscount: 60 },
-  { id: 'marcas_moderadas', category: 'estetica', label: 'Marcas Moderadas / Riscos Visíveis', description: 'Arranhões perceptíveis na carcaça ou bordas', defaultDiscount: 150 },
-  { id: 'traseira_danificada', category: 'estetica', label: 'Traseira Trincada / Quebrada', description: 'Vidro traseiro trincado ou muito riscado', defaultDiscount: 450 },
-  { id: 'carcaca_danificada', category: 'estetica', label: 'Carcaça Amassada / Empenada', description: 'Aro torto ou com batidas profundas', defaultDiscount: 350 },
-
-  // 2. Tela & Display
-  { id: 'tela_quebrada', category: 'tela', label: 'Tela / Vidro Trincado', description: 'Vidro frontal trincado mas com touch funcionando', defaultDiscount: 750 },
-  { id: 'tela_trocada', category: 'tela', label: 'Tela Já Trocada / Paralela', description: 'Tela substituída anteriormente por outra não genuína', defaultDiscount: 400 },
-  { id: 'tela_com_defeito', category: 'tela', label: 'Display com Linhas / Manchas / Touch Falhando', description: 'Falha no LCD/OLED ou pontos pretos/linhas coloridas', defaultDiscount: 850 },
-
-  // 3. Bateria & Carga
-  { id: 'bateria_baixa', category: 'bateria', label: 'Saúde da Bateria Baixa (< 80%)', description: 'Bateria com degradação química acentuada', defaultDiscount: 250 },
-  { id: 'bateria_trocada', category: 'bateria', label: 'Bateria Trocada / Aviso de Peça Desconhecida', description: 'Bateria trocada ou com mensagem de aviso no sistema', defaultDiscount: 180 },
-  { id: 'conector_carga', category: 'bateria', label: 'Conector de Carga com Mau Contato', description: 'Porta Lightning / USB-C folgada ou não carrega', defaultDiscount: 180 },
-
-  // 4. Câmeras, Áudio & Biometria
-  { id: 'camera_traseira', category: 'cameras_sensores', label: 'Câmera Traseira com Falha / Vidro Quebrado', description: 'Lente trincada, foco tremendo ou mancha', defaultDiscount: 550 },
-  { id: 'camera_frontal', category: 'cameras_sensores', label: 'Câmera Frontal Embaçada / Defeituosa', description: 'Falha na câmera de selfie', defaultDiscount: 250 },
-  { id: 'face_id', category: 'cameras_sensores', label: 'Face ID / TrueDepth Inoperante', description: 'Reconhecimento facial desativado por hardware', defaultDiscount: 600 },
-  { id: 'biometria', category: 'cameras_sensores', label: 'Biometria / Touch ID com Falha', description: 'Leitor de digital não reconhece', defaultDiscount: 220 },
-  { id: 'alto_falante', category: 'cameras_sensores', label: 'Alto-falante Chiando / Baixo', description: 'Áudio distorcido no viva-voz ou auricular', defaultDiscount: 150 },
-  { id: 'microfone', category: 'cameras_sensores', label: 'Microfone com Ruído / Não Capta', description: 'Áudio não é gravado com clareza em chamadas', defaultDiscount: 150 },
-
-  // 5. Placa, Conexões & Sistema
-  { id: 'wifi_bluetooth', category: 'placa_sistema', label: 'Falha em Wi-Fi / Bluetooth', description: 'Não localiza redes ou não conecta', defaultDiscount: 450 },
-  { id: 'sinais_oxidacao', category: 'placa_sistema', label: 'Sinais de Oxidação / Contato com Líquido', description: 'Sensores de umidade ativados ou placa oxidada', defaultDiscount: 1200 },
-  { id: 'peca_nao_original', category: 'placa_sistema', label: 'Notificação de Peça Não Genuína', description: 'Mensagem persistente de peças no sistema', defaultDiscount: 300 },
-  { id: 'outros_problemas', category: 'placa_sistema', label: 'Outras Pequenas Avarias Identificadas', description: 'Outros detalhes observados no balcão', defaultDiscount: 150 },
+  { id: 'marcas_leves', category: 'estetica', label: 'Marcas leves', description: 'Micro-riscos normais de uso no aro ou traseira', defaultDiscount: 150 },
+  { id: 'marcas_moderadas', category: 'estetica', label: 'Marcas moderadas', description: 'Arranhões perceptíveis na carcaça ou bordas', defaultDiscount: 350 },
+  { id: 'bateria_baixa', category: 'bateria', label: 'Bateria (saúde baixa)', description: 'Bateria com degradação química acentuada (< 80%)', defaultDiscount: 300 },
+  { id: 'tela_quebrada', category: 'tela', label: 'Troca de tela', description: 'Vidro trincado ou necessidade de substituição do display', defaultDiscount: 850 },
+  { id: 'traseira_danificada', category: 'estetica', label: 'Traseira', description: 'Vidro traseiro trincado ou carcaça danificada', defaultDiscount: 400 },
+  { id: 'face_id', category: 'cameras_sensores', label: 'Face ID / Biometria', description: 'Reconhecimento facial ou leitor biométrico inoperante', defaultDiscount: 600 },
+  { id: 'conector_carga', category: 'bateria', label: 'Doc de carga', description: 'Conector de carga com mau contato ou sem carregar', defaultDiscount: 250 },
+  { id: 'camera_traseira', category: 'cameras_sensores', label: 'Câmera traseira', description: 'Lente com avaria, manchas ou vibração no foco', defaultDiscount: 650 },
+  { id: 'camera_frontal', category: 'cameras_sensores', label: 'Câmera frontal', description: 'Câmera frontal embaçada ou defeituosa', defaultDiscount: 300 },
+  { id: 'notif_camera', category: 'placa_sistema', label: 'Notif. peça — câmera', description: 'Aviso de peça desconhecida / não genuína da câmera', defaultDiscount: 500 },
+  { id: 'notif_bateria', category: 'placa_sistema', label: 'Notif. peça — bateria', description: 'Aviso de peça desconhecida / não genuína da bateria', defaultDiscount: 350 },
+  { id: 'notif_tela', category: 'placa_sistema', label: 'Notif. peça — tela', description: 'Aviso de peça desconhecida / não genuína do display', defaultDiscount: 450 },
+  { id: 'sinais_oxidacao', category: 'placa_sistema', label: 'Sinais de oxidação', description: 'Contato com líquido ou sensores de umidade ativados', defaultDiscount: 1000 },
 ];
 
 export const BRANDS_LIST: DeviceBrand[] = [
