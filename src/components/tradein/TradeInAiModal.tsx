@@ -11,7 +11,9 @@ import {
   Layers, 
   ShieldCheck,
   Zap,
-  Lock
+  Lock,
+  XCircle,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
@@ -66,11 +68,9 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     setUpgradeRequired(false);
 
     try {
-      // 1. Checar cota do lojista
       const q = await tradeinAiService.checkQuota(userId);
       setQuota(q);
 
-      // 2. Criar nova sessão para o QR Code
       const res = await tradeinAiService.createSession({
         userId,
         brand: currentModel.brand,
@@ -105,12 +105,12 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     };
   }, [isOpen, currentModel?.id]);
 
-  // Polling para acompanhar o celular conectado e recebimento das fotos com timeout de segurança
+  // Polling para acompanhar o celular conectado e recebimento das fotos
   useEffect(() => {
     if (!isOpen || !session || analysisResult || analyzing || upgradeRequired) return;
 
     let pollAttempts = 0;
-    const MAX_POLL_ATTEMPTS = 60; // 3 minutos máx
+    const MAX_POLL_ATTEMPTS = 60; // 3 minutos
 
     pollingRef.current = setInterval(async () => {
       pollAttempts += 1;
@@ -133,14 +133,23 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           runAiAnalysis(updated.id);
         }
       } catch (e) {
-        console.warn('Polling check error', e);
+        console.warn('Polling error:', e);
       }
-    }, 3000);
+    }, 2000);
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [isOpen, session?.id, session?.status, analysisResult, analyzing, upgradeRequired]);
+
+  const handleCancelSession = async () => {
+    if (session?.id) {
+      await tradeinAiService.cancelSession(session.id, userId);
+      toast.info('Sessão cancelada no computador e no celular conectado.');
+    }
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    onClose();
+  };
 
   const runAiAnalysis = async (sessionId?: string) => {
     setAnalyzing(true);
@@ -216,13 +225,13 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
+      <div className="relative w-full max-w-2xl bg-[#0f172a] border border-slate-700/90 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
         
         {/* Modal Top Header */}
         <div className="p-4 sm:p-5 border-b border-slate-800 bg-[#1e293b]/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-md shadow-blue-600/20 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-md shadow-blue-600/20 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -240,12 +249,24 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancelSession}
+              className="border-red-500/30 bg-red-500/10 text-red-300 hover:text-white hover:bg-red-500/20 text-xs font-bold rounded-xl h-8 px-2.5 flex items-center gap-1"
+            >
+              <XCircle className="w-3.5 h-3.5 text-red-400" />
+              Cancelar Sessão
+            </Button>
+
+            <button
+              onClick={handleCancelSession}
+              className="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body Container */}
@@ -384,11 +405,11 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           ) : (
             /* Initial QR Code / Upload View */
             <div className="space-y-4">
-              {/* Tab selector between QR Code and Desktop Upload */}
-              <div className="grid grid-cols-2 gap-2 bg-[#0a0f1d] p-1 rounded-xl border border-slate-800">
+              {/* Tab selector */}
+              <div className="grid grid-cols-2 gap-2 bg-[#0a0f1d] p-1 rounded-2xl border border-slate-800">
                 <button
                   onClick={() => setActiveTab('qr')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'qr'
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-slate-200'
@@ -398,7 +419,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 </button>
                 <button
                   onClick={() => setActiveTab('upload')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'upload'
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-slate-200'
@@ -411,7 +432,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               {activeTab === 'qr' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
                   {/* QR Code Container */}
-                  <div className="sm:col-span-6 flex flex-col items-center justify-center p-4 rounded-2xl bg-white text-black shadow-xl mx-auto">
+                  <div className="sm:col-span-6 flex flex-col items-center justify-center p-4 rounded-3xl bg-white text-black shadow-xl mx-auto">
                     <QRCodeDisplay
                       value={mobileCaptureUrl}
                       size={180}
@@ -435,7 +456,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                     </div>
 
                     {/* Status Live Indicator */}
-                    <div className="p-3 rounded-xl bg-[#1e293b] border border-slate-800 flex items-center gap-2.5">
+                    <div className="p-3 rounded-2xl bg-[#1e293b] border border-slate-800 flex items-center gap-2.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></div>
                       <span className="text-xs font-bold text-slate-200">
                         {session?.status === 'phone_connected' 
@@ -449,6 +470,16 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                         Franquia gratuita: <strong className="text-blue-400">{quota.remainingFree} restantes</strong> hoje (limite de {quota.freeLimit}).
                       </p>
                     )}
+
+                    {/* Cancel button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelSession}
+                      className="w-full border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/40 text-xs font-semibold rounded-xl h-8"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1 text-slate-500" /> Cancelar esta Sessão
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -462,7 +493,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                     {(['front', 'side', 'back'] as const).map(type => (
                       <label 
                         key={type}
-                        className="p-3 rounded-xl border border-dashed border-slate-700 bg-[#1e293b]/70 hover:bg-[#1e293b] text-center cursor-pointer flex flex-col items-center justify-center space-y-1 text-xs"
+                        className="p-3 rounded-2xl border border-dashed border-slate-700 bg-[#1e293b]/70 hover:bg-[#1e293b] text-center cursor-pointer flex flex-col items-center justify-center space-y-1 text-xs"
                       >
                         <input
                           type="file"
@@ -485,7 +516,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                   <Button
                     onClick={handleManualUploadSubmit}
                     disabled={!desktopFiles.front || !desktopFiles.side || !desktopFiles.back || analyzing}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 rounded-xl shadow-lg shadow-blue-600/30"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 rounded-2xl shadow-lg shadow-blue-600/30"
                   >
                     <Sparkles className="w-4 h-4 mr-1.5" /> Analisar Fotos com CellHub IA
                   </Button>

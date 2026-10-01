@@ -95,7 +95,30 @@ export const tradeinAiService = {
     }
   },
 
-  // 4. Upload de fotos do celular para o Supabase Storage e registro na sessão
+  // 4. Cancelar sessão no banco e notificar Edge Function / Celular
+  async cancelSession(sessionId: string, userId?: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('ai_evaluation_sessions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', sessionId);
+
+      if (userId) {
+        fetch(EDGE_FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'cancel_session', sessionId, userId })
+        }).catch(() => {});
+      }
+
+      return !error;
+    } catch (err) {
+      console.error('Erro ao cancelar sessão:', err);
+      return false;
+    }
+  },
+
+  // 5. Upload de fotos do celular para o Supabase Storage e registro na sessão
   async uploadPhotosForSession(
     sessionId: string, 
     photos: { type: 'front' | 'side' | 'back'; file: Blob | File }[]
@@ -103,7 +126,8 @@ export const tradeinAiService = {
     try {
       const uploadedPhotos: AiEvaluationPhoto[] = [];
 
-      for (const item of photos) {
+      // Executar uploads em paralelo para máxima velocidade
+      const uploadPromises = photos.map(async (item) => {
         const fileExt = 'jpg';
         const fileName = `${sessionId}/${item.type}_${Date.now()}.${fileExt}`;
         
@@ -116,22 +140,27 @@ export const tradeinAiService = {
 
         if (uploadErr) {
           console.error(`Erro ao subir foto ${item.type}:`, uploadErr);
-          continue;
+          return null;
         }
 
         const { data: publicUrlData } = supabase.storage
           .from('tradein-photos')
           .getPublicUrl(uploadData.path);
 
-        uploadedPhotos.push({
+        return {
           type: item.type,
           url: publicUrlData.publicUrl,
           name: fileName
-        });
-      }
+        } as AiEvaluationPhoto;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      results.forEach(r => {
+        if (r) uploadedPhotos.push(r);
+      });
 
       if (uploadedPhotos.length === 0) {
-        return { success: false, error: 'Falha no upload das fotografias.' };
+        return { success: false, error: 'Falha no envio das fotografias.' };
       }
 
       // Atualizar sessão com as fotos enviadas
@@ -153,7 +182,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 5. Acionar o roteamento seguro de IA no backend
+  // 6. Acionar o roteamento seguro de IA no backend
   async triggerEvaluation(params: {
     sessionId?: string;
     userId: string;
@@ -215,7 +244,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 6. Consultar cotas e status atual da franquia do lojista
+  // 7. Consultar cotas e status atual da franquia do lojista
   async checkQuota(userId: string): Promise<AiQuotaStatus | null> {
     try {
       const response = await fetch(EDGE_FUNCTION_URL, {
@@ -232,7 +261,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 7. Obter configurações administrativas (para Master Admin)
+  // 8. Obter configurações administrativas (para Master Admin)
   async getAdminConfig(): Promise<AiConfiguration | null> {
     try {
       const { data, error } = await supabase
@@ -249,7 +278,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 8. Salvar configurações administrativas
+  // 9. Salvar configurações administrativas
   async saveAdminConfig(config: Partial<AiConfiguration>): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -267,7 +296,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 9. Obter logs de uso para o Master Admin
+  // 10. Obter logs de uso para o Master Admin
   async getUsageLogs(limit = 100): Promise<AiUsageLog[]> {
     try {
       const { data, error } = await supabase
@@ -284,7 +313,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 10. Obter ou alternar assinatura paga de teste do lojista (Master Admin)
+  // 11. Obter ou alternar assinatura paga de teste do lojista (Master Admin)
   async toggleUserPaidAccess(userId: string, enabled: boolean): Promise<boolean> {
     try {
       const { error } = await supabase

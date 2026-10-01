@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 interface EvaluationRequest {
-  action: "evaluate_session" | "check_quota" | "manual_evaluate";
+  action: "evaluate_session" | "check_quota" | "manual_evaluate" | "cancel_session";
   sessionId?: string;
   userId: string;
   brand?: string;
@@ -38,7 +39,20 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[cellhub-ai-router] Ação recebida: ${action} para usuário: ${userId}`);
+    console.log(`[cellhub-ai-router] Ação recebida: ${action} para usuário: ${userId}, sessão: ${sessionId || "n/a"}`);
+
+    // Cancelar Sessão explicitamente
+    if (action === "cancel_session" && sessionId) {
+      await supabase
+        .from("ai_evaluation_sessions")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", sessionId);
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Sessão cancelada com sucesso." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 1. Obter configurações de IA do sistema
     const { data: configRow, error: configError } = await supabase
@@ -63,7 +77,7 @@ serve(async (req) => {
       : `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
 
     // 3. Contar uso gratuito do lojista no período
-    const { count: usedFreeCount, error: countError } = await supabase
+    const { count: usedFreeCount } = await supabase
       .from("ai_usage_logs")
       .select("*", { count: "exact", head: true })
       .eq("user_id", userId)
@@ -124,7 +138,6 @@ serve(async (req) => {
     } else {
       console.warn(`[cellhub-ai-router] Bloqueio: Cota gratuita esgotada (${usedFree}/${freeLimit}) e sem acesso pago ativo.`);
       
-      // Registrar log de bloqueio
       await supabase.from("ai_usage_logs").insert({
         user_id: userId,
         session_id: sessionId || null,
@@ -177,12 +190,19 @@ serve(async (req) => {
         );
       }
 
+      if (sessionData.status === "cancelled") {
+        console.warn(`[cellhub-ai-router] Sessão ${sessionId} foi cancelada pelo usuário.`);
+        return new Response(
+          JSON.stringify({ success: false, error: "session_cancelled", message: "Esta sessão foi cancelada." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       photosToAnalyze = sessionData.photos || [];
       allowedPresetsList = sessionData.allowed_presets || [];
       deviceBrand = sessionData.brand || deviceBrand;
       deviceModel = sessionData.model_name || deviceModel;
 
-      // Atualizar status para analyzing
       await supabase
         .from("ai_evaluation_sessions")
         .update({ status: "analyzing", updated_at: new Date().toISOString() })
@@ -220,7 +240,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
   "confidence": "high" | "medium" | "low"
 }`;
 
-    // Montar partes das imagens (suporta download de URL ou base64)
+    // Montar partes das imagens com codificação segura base64
     const contentsParts: any[] = [{ text: systemPrompt }];
 
     for (const photo of photosToAnalyze) {
@@ -236,8 +256,11 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
         try {
           console.log(`[cellhub-ai-router] Baixando imagem: ${photo.url}`);
           const imgResp = await fetch(photo.url);
+          if (!imgResp.ok) throw new Error(`HTTP ${imgResp.status}`);
+          
           const imgBuffer = await imgResp.arrayBuffer();
-          const base64Data = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+          const base64Data = encodeBase64(new Uint8Array(imgBuffer));
+          
           contentsParts.push({
             inlineData: {
               mimeType: imgResp.headers.get("content-type") || "image/jpeg",
@@ -275,7 +298,6 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       const errText = await geminiResponse.text();
       console.error(`[cellhub-ai-router] Erro retornado pela API Gemini (${geminiResponse.status}):`, errText);
 
-      // Registrar falha técnica sem alternar de tier de forma arbitrária
       await supabase.from("ai_usage_logs").insert({
         user_id: userId,
         session_id: sessionId || null,
@@ -308,7 +330,9 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
 
     try {
       if (candidateText) {
-        parsedResult = JSON.parse(candidateText);
+        // Remover tags de bloco se presentes
+        const cleanJson = candidateText.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+        parsedResult = JSON.parse(cleanJson);
       }
     } catch (parseErr) {
       console.error("[cellhub-ai-router] Erro ao fazer parse do JSON do Gemini:", parseErr, candidateText);
@@ -317,15 +341,12 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     // 9. Validação e Sanitização Estrita de Presets
     const validPresetIdsSet = new Set(allowedPresetsList.map(p => p.id));
     const rawIds = Array.isArray(parsedResult.selected_preset_ids) ? parsedResult.selected_preset_ids : [];
-    
-    // Filtrar apenas IDs válidos e únicos
     const sanitizedPresetIds = Array.from(new Set(rawIds.filter(id => validPresetIdsSet.has(id))));
 
     const usageMetadata = geminiData.usageMetadata || {};
     const inputTokens = usageMetadata.promptTokenCount || 0;
     const outputTokens = usageMetadata.candidatesTokenCount || 0;
 
-    // Custo estimado em dólares (referência para Master Admin)
     const costPerMillionInput = selectedTier === "paid" ? 3.50 : 0.075;
     const costPerMillionOutput = selectedTier === "paid" ? 10.50 : 0.30;
     const estimatedCostUsd = ((inputTokens * costPerMillionInput) + (outputTokens * costPerMillionOutput)) / 1_000_000;
