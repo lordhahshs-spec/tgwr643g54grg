@@ -498,6 +498,10 @@ export const AiAdminSection: React.FC<AiAdminSectionProps> = ({ users }) => {
                           <td className="p-3 whitespace-nowrap">
                             {log.status === 'success' ? (
                               <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Sucesso</Badge>
+                            ) : log.status === 'rejected' || log.status === 'rejected_non_phone' ? (
+                              <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20" title={log.error_message || 'Foto rejeitada pela IA'}>
+                                Foto Rejeitada
+                              </Badge>
                             ) : log.status === 'blocked_quota' ? (
                               <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">Cota Excedida</Badge>
                             ) : (

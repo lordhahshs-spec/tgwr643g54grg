@@ -28,7 +28,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// Descobrir dinamicamente os modelos disponíveis na chave
+// Descobrir dinamicamente os modelos REAIS DE VISÃO MULTIMODAL disponíveis na chave
 async function getWorkingVisionModels(apiKey: string): Promise<{ ver: string; model: string }[]> {
   const versions = ["v1beta", "v1"];
   const list: { ver: string; model: string }[] = [];
@@ -40,8 +40,15 @@ async function getWorkingVisionModels(apiKey: string): Promise<{ ver: string; mo
         const data = await resp.json();
         if (Array.isArray(data.models)) {
           for (const m of data.models) {
-            if (m.supportedGenerationMethods?.includes("generateContent")) {
-              const cleanName = m.name.replace(/^models\//, "");
+            const cleanName = m.name.replace(/^models\//, "");
+            // FILTRO CRÍTICO: Selecionar EXCLUSIVAMENTE modelos Gemini Multimodais (Visão Computacional)
+            // Modelos 'gemma' ou embeddings são texto-puro e NÃO processam fotos.
+            const isGeminiMultimodal = cleanName.startsWith("gemini-") &&
+              !cleanName.includes("embedding") &&
+              !cleanName.includes("aqa") &&
+              !cleanName.includes("text");
+
+            if (isGeminiMultimodal && m.supportedGenerationMethods?.includes("generateContent")) {
               list.push({ ver, model: cleanName });
             }
           }
@@ -52,15 +59,16 @@ async function getWorkingVisionModels(apiKey: string): Promise<{ ver: string; mo
     }
   }
 
-  // Priorizar modelos mais rápidos de visão
+  // Priorizar modelos visuais de ponta da Google (Gemini 2.0 Flash e 1.5 Flash)
   list.sort((a, b) => {
     const score = (m: string) => {
-      if (m.includes("2.0-flash")) return 1;
-      if (m.includes("1.5-flash-8b")) return 2;
-      if (m.includes("1.5-flash")) return 3;
-      if (m.includes("1.5-pro")) return 4;
-      if (m.includes("gemma")) return 5;
-      return 6;
+      if (m === "gemini-2.0-flash") return 1;
+      if (m.includes("2.0-flash")) return 2;
+      if (m === "gemini-1.5-flash") return 3;
+      if (m.includes("1.5-flash")) return 4;
+      if (m === "gemini-1.5-pro") return 5;
+      if (m.includes("1.5-pro")) return 6;
+      return 10;
     };
     return score(a.model) - score(b.model);
   });
@@ -442,7 +450,7 @@ RETORNE EXCLUSIVAMENTE O JSON NO SEGUINTE FORMATO:
     const costPerMillionOutput = selectedTier === "paid" ? 10.50 : 0.30;
     const estimatedCostUsd = ((inputTokens * costPerMillionInput) + (outputTokens * costPerMillionOutput)) / 1_000_000;
 
-    await supabase.from("ai_usage_logs").insert({
+    const { error: logError } = await supabase.from("ai_usage_logs").insert({
       user_id: userId,
       session_id: sessionId || null,
       provider: "gemini",
@@ -456,6 +464,10 @@ RETORNE EXCLUSIVAMENTE O JSON NO SEGUINTE FORMATO:
       period_key: periodKey,
       error_message: isValidSmartphone ? null : rejectionReason
     });
+
+    if (logError) {
+      console.error("[cellhub-ai-router] Erro ao registrar log de consumo:", logError);
+    }
 
     if (sessionId) {
       await supabase
