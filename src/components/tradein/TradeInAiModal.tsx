@@ -122,7 +122,6 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     };
   }, [isOpen, currentModel?.id]);
 
-  // Polling para acompanhar o celular conectado e recebimento das fotos
   useEffect(() => {
     if (!isOpen || !session || analysisResult || analyzing || upgradeRequired || rejectionData || hasTriggeredRef.current) return;
 
@@ -150,7 +149,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           runAiAnalysis(updated.id);
         }
       } catch (e) {
-        // Silenciar erros de rede no polling
+        // Silenciar
       }
     }, 1500);
 
@@ -185,7 +184,6 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
       });
 
       if (res.success) {
-        // Checar se a IA rejeitou por não ser um smartphone
         if (res.isValidSmartphone === false) {
           setRejectionData({
             detectedObject: res.detectedObjectDescription || 'Objeto não reconhecido / Imagem inválida',
@@ -214,7 +212,6 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     }
   };
 
-  // Upload Manual pelo Computador
   const handleManualUploadSubmit = async () => {
     if (!desktopFiles.front || !desktopFiles.side || !desktopFiles.back || !session) {
       toast.error('Por favor, selecione as 3 fotos (Frontal, Lateral e Traseira).');
@@ -261,25 +258,25 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl bg-[#0f172a] border border-slate-700/90 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
+      <div className="relative w-full max-w-2xl bg-[#060a16] border border-white/10 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
         
         {/* Modal Top Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 bg-[#1e293b]/80 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-5 border-b border-white/10 bg-[#090f1f]/90 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-md shadow-blue-600/20 shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center shadow-lg shadow-[#00D287]/20 shrink-0">
+              <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
                   Avaliação Visual Automática com IA
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold uppercase">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 font-black uppercase">
                   CellHub IA
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Aparelho: <strong className="text-slate-200">{currentModel?.brand} {currentModel?.model_name}</strong> ({currentModel?.storage})
+                Aparelho: <strong className="text-white font-bold">{currentModel?.brand} {currentModel?.model_name}</strong> ({currentModel?.storage})
               </p>
             </div>
           </div>
@@ -289,12 +286,11 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
           {loading ? (
             <div className="py-16 text-center space-y-3">
-              <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
+              <RefreshCw className="w-8 h-8 text-[#00D287] animate-spin mx-auto" />
               <p className="text-xs text-slate-300 font-bold">Iniciando sessão segura da CellHub IA...</p>
             </div>
           ) : upgradeRequired ? (
-            /* Quota Exceeded Block */
-            <div className="p-6 rounded-2xl bg-[#1e293b] border border-amber-500/30 text-center space-y-4 animate-in fade-in duration-200">
+            <div className="p-6 rounded-2xl bg-[#090f1f] border border-amber-500/30 text-center space-y-4 animate-in fade-in duration-200">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
                 <Lock className="w-7 h-7" />
               </div>
@@ -306,7 +302,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#0a0f1d] border border-slate-800 max-w-xs mx-auto text-xs space-y-1">
+              <div className="p-3.5 rounded-xl bg-[#040711] border border-white/10 max-w-xs mx-auto text-xs space-y-1">
                 <div className="flex justify-between text-slate-400">
                   <span>Plano IA Ilimitada:</span>
                   <strong className="text-white font-bold">R$ 9,90 / mês</strong>
@@ -326,7 +322,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
             </div>
           ) : rejectionData ? (
             /* Rejection Screen (Not a Smartphone) */
-            <div className="p-6 rounded-3xl bg-[#1e293b] border-2 border-red-500/50 text-center space-y-4 animate-in zoom-in-95">
+            <div className="p-6 rounded-3xl bg-[#090f1f] border-2 border-red-500/50 text-center space-y-4 animate-in zoom-in-95">
               <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto">
                 <AlertTriangle className="w-8 h-8" />
               </div>
@@ -338,7 +334,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[#0a0f1d] border border-slate-800 text-xs space-y-1.5 text-left max-w-md mx-auto">
+              <div className="p-3.5 rounded-2xl bg-[#040711] border border-white/10 text-xs space-y-1.5 text-left max-w-md mx-auto">
                 <div className="flex items-start gap-2">
                   <span className="text-slate-400 shrink-0">Objeto Detectado:</span>
                   <strong className="text-amber-400">{rejectionData.detectedObject}</strong>
@@ -356,7 +352,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               <div className="flex justify-center gap-3 pt-2">
                 <Button
                   onClick={initSession}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 px-6 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                  className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-6 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center gap-2"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Fotografar Celular Novamente
@@ -364,8 +360,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               </div>
             </div>
           ) : analysisError ? (
-            /* Error with direct Retry Button */
-            <div className="p-6 rounded-3xl bg-[#1e293b] border border-amber-500/40 text-center space-y-4 animate-in fade-in duration-200">
+            <div className="p-6 rounded-3xl bg-[#090f1f] border border-amber-500/40 text-center space-y-4 animate-in fade-in duration-200">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
                 <AlertCircle className="w-7 h-7" />
               </div>
@@ -381,7 +376,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 <Button
                   onClick={() => runAiAnalysis(session?.id)}
                   disabled={analyzing}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 px-6 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                  className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-6 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
                   {analyzing ? 'Reprocessando...' : 'Tentar Processar Novamente'}
@@ -390,7 +385,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 <Button
                   variant="outline"
                   onClick={initSession}
-                  className="border-slate-700 bg-slate-800 text-slate-300 text-xs h-11 rounded-2xl"
+                  className="border-white/10 bg-[#0c1424] text-slate-300 text-xs h-11 rounded-2xl"
                 >
                   Gerar Novo QR Code
                 </Button>
@@ -399,8 +394,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           ) : analysisResult ? (
             /* Result Screen */
             <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="p-4 rounded-2xl bg-[#00D287]/10 border border-[#00D287]/30 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#00D287]/20 border border-[#00D287]/40 flex items-center justify-center text-[#00D287] shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -415,8 +410,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
               {/* Visual Summary */}
               {analysisResult.visualSummary.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-[#1e293b] border border-slate-800 space-y-1.5 text-xs text-slate-300">
-                  <span className="text-[11px] font-bold uppercase text-blue-400 tracking-wider block">
+                <div className="p-3.5 rounded-xl bg-[#090f1f] border border-white/10 space-y-1.5 text-xs text-slate-300">
+                  <span className="text-[11px] font-bold uppercase text-[#00D287] tracking-wider block">
                     Observações da IA:
                   </span>
                   <ul className="list-disc list-inside space-y-1 text-slate-300">
@@ -434,11 +429,11 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 </span>
 
                 {analysisResult.detectedPresetIds.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-800 text-center text-xs text-emerald-400 font-medium">
+                  <div className="p-4 rounded-xl bg-[#090f1f] border border-[#00D287]/20 text-center text-xs text-[#00D287] font-semibold">
                     ✨ Nenhuma avaria ou trinco visual significativo detectado nas fotos! O aparelho aparenta excelente estado de conservação.
                   </div>
                 ) : (
-                  <div className="border border-slate-800 rounded-xl divide-y divide-slate-800 bg-[#0a0f1d] max-h-48 overflow-y-auto scrollbar-thin">
+                  <div className="border border-white/10 rounded-2xl divide-y divide-white/5 bg-[#040711] max-h-48 overflow-y-auto scrollbar-thin">
                     {analysisResult.detectedPresetIds.map(id => {
                       const preset = brandPresets.find(p => p.id === id);
                       return (
@@ -458,27 +453,26 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-white/10">
                 <Button
                   variant="outline"
                   onClick={initSession}
-                  className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs h-10"
+                  className="border-white/10 bg-[#0c1424] text-slate-300 hover:text-white rounded-xl text-xs h-10"
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1" /> Tirar Novas Fotos
                 </Button>
                 <Button
                   onClick={handleApply}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-lg shadow-blue-600/30"
+                  className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs sm:text-sm h-10 px-5 rounded-xl shadow-lg shadow-[#00D287]/25"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Aplicar Avarias na Cotação
+                  <CheckCircle2 className="w-4 h-4 mr-1.5 stroke-[2.5]" /> Aplicar Avarias na Cotação
                 </Button>
               </div>
             </div>
           ) : analyzing ? (
-            /* Analyzing Loader */
             <div className="py-14 text-center space-y-4 animate-in fade-in duration-200">
               <div className="relative w-16 h-16 mx-auto">
-                <div className="w-16 h-16 rounded-3xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 animate-pulse">
+                <div className="w-16 h-16 rounded-3xl bg-[#00D287]/15 border border-[#00D287]/30 flex items-center justify-center text-[#00D287] animate-pulse">
                   <Sparkles className="w-8 h-8 animate-spin" />
                 </div>
               </div>
@@ -495,7 +489,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={handleCancelSession}
-                  className="border-slate-800 text-slate-400 hover:text-red-400 text-xs rounded-xl h-8"
+                  className="border-white/10 text-slate-400 hover:text-red-400 text-xs rounded-xl h-8"
                 >
                   <Trash2 className="w-3.5 h-3.5 mr-1" /> Cancelar esta Sessão
                 </Button>
@@ -504,13 +498,12 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           ) : (
             /* Initial QR Code / Upload View */
             <div className="space-y-4">
-              {/* Tab selector */}
-              <div className="grid grid-cols-2 gap-2 bg-[#0a0f1d] p-1 rounded-2xl border border-slate-800">
+              <div className="grid grid-cols-2 gap-2 bg-[#040711] p-1 rounded-2xl border border-white/10">
                 <button
                   onClick={() => setActiveTab('qr')}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'qr'
-                      ? 'bg-blue-600 text-white shadow-md'
+                      ? 'bg-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/20'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -520,7 +513,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                   onClick={() => setActiveTab('upload')}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'upload'
-                      ? 'bg-blue-600 text-white shadow-md'
+                      ? 'bg-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/20'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -530,7 +523,6 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
               {activeTab === 'qr' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
-                  {/* QR Code Container */}
                   <div className="sm:col-span-6 flex flex-col items-center justify-center p-4 rounded-3xl bg-white text-black shadow-xl mx-auto">
                     <QRCodeDisplay
                       value={mobileCaptureUrl}
@@ -541,10 +533,9 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                     </span>
                   </div>
 
-                  {/* Instructions & Status */}
                   <div className="sm:col-span-6 space-y-3">
                     <div className="space-y-1">
-                      <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#00D287] flex items-center gap-1.5">
                         <Smartphone className="w-3.5 h-3.5" /> Como Funciona:
                       </span>
                       <ol className="text-xs text-slate-300 space-y-2 list-decimal list-inside leading-relaxed">
@@ -554,9 +545,8 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                       </ol>
                     </div>
 
-                    {/* Status Live Indicator */}
-                    <div className="p-3 rounded-2xl bg-[#1e293b] border border-slate-800 flex items-center gap-2.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></div>
+                    <div className="p-3 rounded-2xl bg-[#090f1f] border border-white/10 flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#00D287] animate-ping"></div>
                       <span className="text-xs font-bold text-slate-200">
                         {session?.status === 'phone_connected' 
                           ? 'Celular conectado! Aguardando envio das fotos...' 
@@ -566,23 +556,21 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
                     {quota && (
                       <p className="text-[11px] text-slate-400">
-                        Franquia gratuita: <strong className="text-blue-400">{quota.remainingFree} restantes</strong> hoje (limite de {quota.freeLimit}).
+                        Franquia gratuita: <strong className="text-[#00D287]">{quota.remainingFree} restantes</strong> hoje (limite de {quota.freeLimit}).
                       </p>
                     )}
 
-                    {/* Cancel button */}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleCancelSession}
-                      className="w-full border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/40 text-xs font-semibold rounded-xl h-8"
+                      className="w-full border-white/10 text-slate-400 hover:text-red-400 hover:border-red-500/40 text-xs font-semibold rounded-xl h-8"
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1 text-slate-500" /> Cancelar esta Sessão
                     </Button>
                   </div>
                 </div>
               ) : (
-                /* Desktop Upload Form */
                 <div className="space-y-3">
                   <p className="text-xs text-slate-300">
                     Selecione as 3 fotos do aparelho salvas no computador:
@@ -592,7 +580,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                     {(['front', 'side', 'back'] as const).map(type => (
                       <label 
                         key={type}
-                        className="p-3 rounded-2xl border border-dashed border-slate-700 bg-[#1e293b]/70 hover:bg-[#1e293b] text-center cursor-pointer flex flex-col items-center justify-center space-y-1 text-xs"
+                        className="p-3 rounded-2xl border border-dashed border-white/15 bg-[#090f1f] hover:bg-[#0c1424] text-center cursor-pointer flex flex-col items-center justify-center space-y-1 text-xs"
                       >
                         <input
                           type="file"
@@ -603,7 +591,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                           }}
                           className="hidden"
                         />
-                        <Upload className="w-4 h-4 text-blue-400" />
+                        <Upload className="w-4 h-4 text-[#00D287]" />
                         <span className="font-bold text-white capitalize">{type === 'front' ? 'Tela' : type === 'side' ? 'Lateral' : 'Traseira'}</span>
                         <span className="text-[10px] text-slate-400 truncate max-w-full">
                           {desktopFiles[type] ? desktopFiles[type]!.name : 'Selecionar'}
@@ -615,7 +603,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                   <Button
                     onClick={handleManualUploadSubmit}
                     disabled={!desktopFiles.front || !desktopFiles.side || !desktopFiles.back || analyzing}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 rounded-2xl shadow-lg shadow-blue-600/30"
+                    className="w-full bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 rounded-2xl shadow-lg shadow-[#00D287]/25"
                   >
                     <Sparkles className="w-4 h-4 mr-1.5" /> Analisar Fotos com CellHub IA
                   </Button>

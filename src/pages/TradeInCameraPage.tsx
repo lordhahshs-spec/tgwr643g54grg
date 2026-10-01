@@ -8,12 +8,12 @@ import {
   AlertCircle, 
   RefreshCw, 
   ShieldCheck, 
-  ArrowRight,
-  UploadCloud,
-  Check,
-  Ban,
-  XCircle,
-  Lock
+  ArrowRight, 
+  UploadCloud, 
+  Check, 
+  Ban, 
+  XCircle, 
+  Lock 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { tradeinAiService } from '@/services/tradeinAiService';
@@ -108,7 +108,6 @@ export default function TradeInCameraPage() {
         return;
       }
 
-      // Checar trava de segurança no navegador
       const localSubmitted = sessionStorage.getItem(`submitted_${sessionId}`);
       if (localSubmitted) {
         setIsCompleted(true);
@@ -118,7 +117,7 @@ export default function TradeInCameraPage() {
 
       const s = await tradeinAiService.getSession(sessionId);
       if (!s) {
-        setErrorMsg('Sessão expirada ou não encontrada. Por favor, gere um novo QR Code no computador.');
+        setErrorMsg('Sessão expirada ou não encontrada. Gere um novo QR Code na tela da loja.');
         setLoading(false);
         return;
       }
@@ -129,7 +128,6 @@ export default function TradeInCameraPage() {
         return;
       }
 
-      // Se as fotos já foram enviadas, bloquear reenvio mesmo recarregando
       if (['photos_received', 'analyzing', 'completed'].includes(s.status) || (s.photos && s.photos.length > 0)) {
         setIsCompleted(true);
         setLoading(false);
@@ -153,7 +151,6 @@ export default function TradeInCameraPage() {
     loadSession();
   }, [sessionId]);
 
-  // Polling para checar cancelamento pelo PC em tempo real
   useEffect(() => {
     if (!sessionId || isCompleted || isCancelled) return;
 
@@ -170,7 +167,7 @@ export default function TradeInCameraPage() {
           if (statusPollingRef.current) clearInterval(statusPollingRef.current);
         }
       } catch (err) {
-        // Silently ignore minor network blips
+        // Silenciar
       }
     }, 1500);
 
@@ -181,21 +178,21 @@ export default function TradeInCameraPage() {
 
   const stepMeta: Record<PhotoStep, { title: string; desc: string; tip: string; next: PhotoStep | null }> = {
     front: {
-      title: '1. Foto Frontal (Tela Ligada)',
-      desc: 'Fotografe a tela inteira do aparelho de frente.',
-      tip: 'Dica: Se o aparelho ligar, mostre a tela com fundo claro para checar riscos e burn-in.',
+      title: '1. Foto Frontal (Tela do Celular)',
+      desc: 'Fotografe a tela inteira do smartphone de frente.',
+      tip: 'Atenção: Aponte apenas para o smartphone com a tela enquadrada.',
       next: 'side'
     },
     side: {
       title: '2. Foto das Laterais / Bordas',
       desc: 'Fotografe as quinas e bordas de alumínio/vidro.',
-      tip: 'Dica: Mostre marcas de queda, amassados ou arranhões nas laterais.',
+      tip: 'Mostre marcas de queda, amassados ou arranhões nas laterais.',
       next: 'back'
     },
     back: {
       title: '3. Foto da Traseira e Câmeras',
       desc: 'Fotografe a tampa traseira e o bloco de câmeras.',
-      tip: 'Dica: Enquadre bem a tampa e as lentes de câmera para verificar trincos.',
+      tip: 'Enquadre bem a tampa e as lentes de câmera do smartphone.',
       next: null
     }
   };
@@ -230,7 +227,7 @@ export default function TradeInCameraPage() {
 
   const handleFinishAndUpload = async () => {
     if (!photos.front || !photos.side || !photos.back || !session) {
-      toast.error('Por favor, tire as 3 fotografias antes de enviar.');
+      toast.error('Por favor, tire as 3 fotografias do smartphone.');
       return;
     }
 
@@ -252,7 +249,6 @@ export default function TradeInCameraPage() {
       const res = await tradeinAiService.uploadPhotosForSession(session.id, itemsToUpload);
 
       if (res.success) {
-        // Travar sessão permanentemente para não permitir reenvio
         sessionStorage.setItem(`submitted_${sessionId}`, 'true');
         setIsCompleted(true);
         if (statusPollingRef.current) clearInterval(statusPollingRef.current);
@@ -270,20 +266,19 @@ export default function TradeInCameraPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050811] flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen bg-[#040711] flex items-center justify-center p-4 text-white">
         <div className="text-center space-y-3">
-          <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
+          <RefreshCw className="w-8 h-8 text-[#00D287] animate-spin mx-auto" />
           <p className="text-xs text-slate-400">Conectando à sessão da loja...</p>
         </div>
       </div>
     );
   }
 
-  // TELA DE CANCELAMENTO EM TEMPO REAL
   if (isCancelled) {
     return (
-      <div className="min-h-screen bg-[#050811] flex items-center justify-center p-5 text-white">
-        <div className="max-w-sm w-full bg-[#0f172a] border border-red-500/40 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
+      <div className="min-h-screen bg-[#040711] flex items-center justify-center p-5 text-white">
+        <div className="max-w-sm w-full bg-[#060a16] border border-red-500/40 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
           <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto">
             <XCircle className="w-8 h-8" />
           </div>
@@ -294,7 +289,7 @@ export default function TradeInCameraPage() {
             </p>
           </div>
           <div className="pt-2">
-            <span className="text-[11px] text-slate-400 block bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+            <span className="text-[11px] text-slate-400 block bg-[#0c1424] p-2.5 rounded-xl border border-white/5">
               Gere um novo QR Code na tela da loja para realizar uma nova avaliação.
             </span>
           </div>
@@ -305,8 +300,8 @@ export default function TradeInCameraPage() {
 
   if (errorMsg) {
     return (
-      <div className="min-h-screen bg-[#050811] flex items-center justify-center p-5 text-white">
-        <div className="max-w-sm w-full bg-[#0f172a] border border-red-500/30 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+      <div className="min-h-screen bg-[#040711] flex items-center justify-center p-5 text-white">
+        <div className="max-w-sm w-full bg-[#060a16] border border-red-500/30 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
           <div className="space-y-1">
             <h2 className="text-base font-bold text-white">Atenção</h2>
@@ -317,24 +312,23 @@ export default function TradeInCameraPage() {
     );
   }
 
-  // TELA DE CONCLUSÃO / BLOQUEIO DE REENVIO
   if (isCompleted) {
     return (
-      <div className="min-h-screen bg-[#050811] flex items-center justify-center p-5 text-white">
-        <div className="max-w-sm w-full bg-[#0f172a] border border-emerald-500/40 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+      <div className="min-h-screen bg-[#040711] flex items-center justify-center p-5 text-white">
+        <div className="max-w-sm w-full bg-[#060a16] border border-[#00D287]/40 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
+          <div className="w-16 h-16 rounded-full bg-[#00D287]/15 border border-[#00D287]/30 flex items-center justify-center text-[#00D287] mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
           <div className="space-y-1.5">
             <h2 className="text-lg font-black text-white">Fotos Enviadas com Sucesso!</h2>
             <p className="text-xs text-slate-300 leading-relaxed">
-              As fotos deste aparelho já foram enviadas e processadas pelo sistema da loja.
+              As fotos deste smartphone já foram enviadas e processadas pelo sistema da loja.
             </p>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-[#1e293b] border border-slate-800 text-xs space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold">
+          <div className="p-3.5 rounded-2xl bg-[#0c1424] border border-white/10 text-xs space-y-1">
+            <div className="flex items-center justify-center gap-1.5 text-[#00D287] font-bold">
               <Lock className="w-3.5 h-3.5" />
               <span>Sessão Concluída & Bloqueada</span>
             </div>
@@ -350,23 +344,23 @@ export default function TradeInCameraPage() {
   const allPhotosCaptured = Boolean(photos.front && photos.side && photos.back);
 
   return (
-    <div className="min-h-screen bg-[#050811] text-slate-100 flex flex-col justify-between p-4 max-w-md mx-auto">
+    <div className="min-h-screen bg-[#040711] text-slate-100 flex flex-col justify-between p-4 max-w-md mx-auto">
       {/* Top Header */}
       <div className="space-y-2 pt-2">
-        <div className="flex items-center justify-between bg-[#0f172a] p-3 rounded-2xl border border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
-              <Sparkles className="w-4 h-4" />
+        <div className="flex items-center justify-between bg-[#060a16] p-3.5 rounded-2xl border border-white/10 shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center font-black shrink-0">
+              <Sparkles className="w-4 h-4 stroke-[2.5]" />
             </div>
             <div>
               <span className="text-xs font-black text-white block">CellHub IA • Câmera</span>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-slate-400 font-semibold">
                 {session?.brand} {session?.model_name}
               </span>
             </div>
           </div>
 
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 font-black">
             Sessão Ativa
           </span>
         </div>
@@ -381,15 +375,15 @@ export default function TradeInCameraPage() {
               <button
                 key={step}
                 onClick={() => setCurrentStep(step)}
-                className={`py-1.5 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${
+                className={`py-2 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${
                   hasPhoto
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                    ? 'bg-[#00D287]/15 border-[#00D287]/40 text-[#00D287]'
                     : isCurrent
-                    ? 'bg-blue-600 border-blue-500 text-white shadow-md'
-                    : 'bg-[#0f172a] border-slate-800 text-slate-500'
+                    ? 'bg-[#00D287] border-[#00D287] text-slate-950 font-black shadow-md shadow-[#00D287]/20'
+                    : 'bg-[#060a16] border-white/10 text-slate-400'
                 }`}
               >
-                {hasPhoto ? <Check className="w-3 h-3" /> : idx + 1}
+                {hasPhoto ? <Check className="w-3 h-3 stroke-[3]" /> : idx + 1}
                 <span>{step === 'front' ? 'Frente' : step === 'side' ? 'Laterais' : 'Traseira'}</span>
               </button>
             );
@@ -398,14 +392,14 @@ export default function TradeInCameraPage() {
       </div>
 
       {/* Main Capture Frame */}
-      <div className="my-4 bg-[#0f172a] border border-slate-800 rounded-3xl p-5 text-center space-y-4 shadow-xl flex-1 flex flex-col justify-center">
+      <div className="my-4 bg-[#060a16] border border-white/10 rounded-3xl p-5 text-center space-y-4 shadow-xl flex-1 flex flex-col justify-center">
         <div className="space-y-1">
           <h3 className="text-sm font-black text-white">{stepMeta[currentStep].title}</h3>
           <p className="text-xs text-slate-300">{stepMeta[currentStep].desc}</p>
         </div>
 
         {/* Photo Preview / Placeholder Box */}
-        <div className="relative aspect-[4/3] rounded-2xl bg-[#050811] border-2 border-dashed border-slate-700 flex flex-col items-center justify-center overflow-hidden">
+        <div className="relative aspect-[4/3] rounded-2xl bg-[#040711] border-2 border-dashed border-white/15 flex flex-col items-center justify-center overflow-hidden">
           {photos[currentStep] ? (
             <>
               <img
@@ -417,7 +411,7 @@ export default function TradeInCameraPage() {
                 <Button
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-slate-900/90 text-white font-bold text-xs rounded-xl border border-slate-600 shadow-lg"
+                  className="bg-[#060a16]/95 text-white font-bold text-xs rounded-xl border border-white/20 shadow-lg"
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1" /> Tirar Novamente
                 </Button>
@@ -425,7 +419,7 @@ export default function TradeInCameraPage() {
             </>
           ) : (
             <div className="space-y-2 p-4 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 flex items-center justify-center text-[#00D287] mx-auto">
                 <Camera className="w-6 h-6" />
               </div>
               <p className="text-[11px] text-slate-400">{stepMeta[currentStep].tip}</p>
@@ -447,10 +441,10 @@ export default function TradeInCameraPage() {
         {!photos[currentStep] && (
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs h-12 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-12 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 text-sm"
           >
-            <Camera className="w-4 h-4" />
-            Tirar Foto com a Câmera
+            <Camera className="w-4 h-4 stroke-[2.5]" />
+            Tirar Foto do Aparelho
           </Button>
         )}
       </div>
@@ -458,7 +452,7 @@ export default function TradeInCameraPage() {
       {/* Bottom Finish Button */}
       <div className="space-y-2 pb-2">
         {uploadProgressText && (
-          <p className="text-[11px] text-amber-400 text-center font-bold animate-pulse">
+          <p className="text-[11px] text-[#00D287] text-center font-bold animate-pulse">
             {uploadProgressText}
           </p>
         )}
@@ -468,18 +462,18 @@ export default function TradeInCameraPage() {
           disabled={!allPhotosCaptured || isUploading}
           className={`w-full font-black text-xs sm:text-sm h-12 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all ${
             allPhotosCaptured
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black scale-[1.02]'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              ? 'bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black scale-[1.02] shadow-[#00D287]/30'
+              : 'bg-[#0c1424] text-slate-500 cursor-not-allowed border border-white/5'
           }`}
         >
           {isUploading ? (
             <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
+              <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
               Enviando Fotos com IA...
             </>
           ) : (
             <>
-              <UploadCloud className="w-4 h-4" />
+              <UploadCloud className="w-4 h-4 stroke-[2.5]" />
               {allPhotosCaptured ? 'Enviar Fotos para Avaliação' : 'Tire as 3 fotos para concluir'}
             </>
           )}
