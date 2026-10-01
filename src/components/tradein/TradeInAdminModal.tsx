@@ -586,9 +586,6 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
               </div>
             </div>
           )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
