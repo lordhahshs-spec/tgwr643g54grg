@@ -29,11 +29,11 @@ export const BRANDS_LIST: DeviceBrand[] = [
   'Samsung',
   'Motorola',
   'Xiaomi',
-  'Redmi',
-  'POCO',
   'Realme',
   'Infinix',
   'Tecno',
+  'Itel',
+  'Hotway',
   'Outros'
 ];
 

@@ -1,13 +1,13 @@
-export type DeviceBrand = 
+export type DeviceBrand =
   | 'Apple'
   | 'Samsung'
   | 'Motorola'
   | 'Xiaomi'
-  | 'Redmi'
-  | 'POCO'
   | 'Realme'
   | 'Infinix'
   | 'Tecno'
+  | 'Itel'
+  | 'Hotway'
   | 'Outros';
 
 export interface FaultDefinition {
