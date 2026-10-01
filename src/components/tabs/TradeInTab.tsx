@@ -365,20 +365,34 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       : fault.defaultDiscount;
 
                     return (
-                      <label
+                      <div
                         key={fault.id}
                         onClick={() => toggleFault(fault.id)}
-                        className={`flex items-center justify-between py-2 px-3 sm:px-3.5 cursor-pointer transition-colors ${
-                          isChecked ? 'bg-red-950/30' : 'hover:bg-[#1e293b]'
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            toggleFault(fault.id);
+                          }
+                        }}
+                        role="checkbox"
+                        aria-checked={isChecked}
+                        tabIndex={0}
+                        className={`flex items-center justify-between py-2 px-3 sm:px-3.5 cursor-pointer select-none transition-colors ${
+                          isChecked ? 'bg-red-950/40' : 'hover:bg-[#1e293b]'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}}
-                            className="w-4 h-4 rounded accent-blue-600 cursor-pointer pointer-events-none"
-                          />
+                          <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                            isChecked
+                              ? 'bg-red-600 border-red-600 text-white'
+                              : 'border-slate-600 bg-slate-800/90'
+                          }`}>
+                            {isChecked && (
+                              <svg className="w-3 h-3 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </div>
                           <span className={`text-xs font-medium ${isChecked ? 'text-white font-semibold' : 'text-slate-200'}`}>
                             {fault.label}
                           </span>
@@ -387,25 +401,39 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                         <span className="text-xs font-bold text-red-400 shrink-0">
                           – R$ {discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
-                      </label>
+                      </div>
                     );
                   })}
                 </div>
 
                 {/* Fixed Trade Bonus Row at bottom */}
-                <label
-                  onClick={() => setWillBuyFromStock(!willBuyFromStock)}
-                  className={`flex items-center justify-between py-2.5 px-3 sm:px-3.5 cursor-pointer transition-colors border-t border-slate-700 shrink-0 ${
-                    willBuyFromStock ? 'bg-blue-950/40' : 'bg-[#182338]/90 hover:bg-[#1e293b]'
+                <div
+                  onClick={() => setWillBuyFromStock(prev => !prev)}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      setWillBuyFromStock(prev => !prev);
+                    }
+                  }}
+                  role="checkbox"
+                  aria-checked={willBuyFromStock}
+                  tabIndex={0}
+                  className={`flex items-center justify-between py-2.5 px-3 sm:px-3.5 cursor-pointer select-none transition-colors border-t border-slate-700 shrink-0 ${
+                    willBuyFromStock ? 'bg-blue-950/50' : 'bg-[#182338]/90 hover:bg-[#1e293b]'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      checked={willBuyFromStock}
-                      onChange={() => {}}
-                      className="w-4 h-4 rounded accent-blue-600 cursor-pointer pointer-events-none"
-                    />
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                      willBuyFromStock
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'border-slate-600 bg-slate-800/90'
+                    }`}>
+                      {willBuyFromStock && (
+                        <svg className="w-3 h-3 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
                     <span className={`text-xs ${willBuyFromStock ? 'text-blue-300 font-bold' : 'text-slate-200 font-medium'}`}>
                       Cliente vai levar outro seminovo (+ R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
                     </span>
@@ -414,7 +442,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   <span className="text-xs font-bold text-emerald-400 shrink-0">
                     + R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
-                </label>
+                </div>
               </div>
             </div>
           </div>
