@@ -19,30 +19,40 @@ async function invokeEdgeFunction(body: Record<string, any>): Promise<any> {
       body
     });
 
-    if (!error && data) {
+    if (data && typeof data === 'object') {
       return data;
     }
+
+    if (error) {
+      console.warn('[tradeinAiService] supabase.functions.invoke retornou erro, verificando payload...', error);
+      if ((error as any)?.context && typeof (error as any).context.json === 'function') {
+        const errorJson = await (error as any).context.json().catch(() => null);
+        if (errorJson) return errorJson;
+      }
+    }
   } catch (err) {
-    console.warn('[tradeinAiService] supabase.functions.invoke falhou, tentando fallback direto com apikey...', err);
+    console.warn('[tradeinAiService] supabase.functions.invoke exceção, tentando fallback direto com apikey...', err);
   }
 
   // Fallback com cabeçalhos autorizados completos
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_PUBLISHABLE_KEY,
-      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-    },
-    body: JSON.stringify(body)
-  });
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      },
+      body: JSON.stringify(body)
+    });
 
-  if (!response.ok) {
-    const errText = await response.text().catch(() => '');
-    throw new Error(`Edge Function HTTP ${response.status}: ${errText}`);
+    const resJson = await response.json().catch(() => null);
+    if (resJson) return resJson;
+    return { success: false, message: `Erro HTTP ${response.status} na Edge Function.` };
+  } catch (fetchErr: any) {
+    console.error('[tradeinAiService] Falha na chamada HTTP:', fetchErr);
+    return { success: false, message: 'Falha de conexão com a Edge Function: ' + (fetchErr?.message || '') };
   }
-
-  return await response.json();
 }
 
 export const tradeinAiService = {

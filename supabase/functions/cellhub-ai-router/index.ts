@@ -28,13 +28,45 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// Modelos ultrarrápidos para latência mínima
-const PRIMARY_VISION_MODELS = [
-  { ver: "v1beta", model: "gemini-2.0-flash" },
-  { ver: "v1beta", model: "gemini-1.5-flash-8b" },
-  { ver: "v1beta", model: "gemini-1.5-flash" },
-  { ver: "v1", model: "gemini-1.5-flash" }
-];
+// Descobrir dinamicamente os modelos disponíveis na chave
+async function getWorkingVisionModels(apiKey: string): Promise<{ ver: string; model: string }[]> {
+  const versions = ["v1beta", "v1"];
+  const list: { ver: string; model: string }[] = [];
+
+  for (const ver of versions) {
+    try {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (Array.isArray(data.models)) {
+          for (const m of data.models) {
+            if (m.supportedGenerationMethods?.includes("generateContent")) {
+              const cleanName = m.name.replace(/^models\//, "");
+              list.push({ ver, model: cleanName });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`[cellhub-ai-router] Erro ao listar ${ver}:`, e);
+    }
+  }
+
+  // Priorizar modelos mais rápidos de visão
+  list.sort((a, b) => {
+    const score = (m: string) => {
+      if (m.includes("2.0-flash")) return 1;
+      if (m.includes("1.5-flash-8b")) return 2;
+      if (m.includes("1.5-flash")) return 3;
+      if (m.includes("1.5-pro")) return 4;
+      if (m.includes("gemma")) return 5;
+      return 6;
+    };
+    return score(a.model) - score(b.model);
+  });
+
+  return list;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -53,7 +85,7 @@ serve(async (req) => {
     } catch {
       return new Response(
         JSON.stringify({ success: false, error: "invalid_json", message: "Corpo da requisição inválido." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -62,7 +94,7 @@ serve(async (req) => {
     if (!userId) {
       return new Response(
         JSON.stringify({ success: false, error: "userId_required", message: "Identificação do lojista ausente." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -89,7 +121,7 @@ serve(async (req) => {
     if (configError || !configRow) {
       return new Response(
         JSON.stringify({ success: false, error: "config_unavailable", message: "Configurações da CellHub IA indisponíveis." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -166,7 +198,7 @@ serve(async (req) => {
           hasPaidAccess: false,
           paidTierPrice: configRow.paid_tier_monthly_price || 9.90
         }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -186,14 +218,14 @@ serve(async (req) => {
       if (sessionErr || !sessionData) {
         return new Response(
           JSON.stringify({ success: false, error: "session_not_found", message: "Sessão expirada ou não encontrada." }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       if (sessionData.status === "cancelled") {
         return new Response(
           JSON.stringify({ success: false, error: "session_cancelled", message: "Esta sessão foi cancelada." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -211,27 +243,27 @@ serve(async (req) => {
     if (!photosToAnalyze || photosToAnalyze.length === 0) {
       return new Response(
         JSON.stringify({ success: false, error: "no_photos", message: "Envie as 3 fotos do aparelho." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 7. Preparar conteúdo multimodal com Verificação de Objeto Real
+    // 7. Preparar conteúdo multimodal
     const allowedPresetsDescriptions = allowedPresetsList.map(p => `- ID: "${p.id}" | Nome: "${p.label}"`).join("\n");
 
     const systemPrompt = `Você é o perito em inspeção visual e triagem da CellHub IA.
 Você está analisando 3 fotografias enviadas para a avaliação de um SMARTPHONE: ${deviceBrand} ${deviceModel}.
 
-⚠️ REGRA CRÍTICA 1 - VALIDAÇÃO DE OBJETO REAL (OBRIGATÓRIO):
-- Inspecione as fotos e verifique se elas representam de fato um SMARTPHONE / APARELHO CELULAR REAL (tela/frente, lateral/quina ou traseira).
-- Se as fotos mostrarem outros objetos (como teclado de computador, mouse, tela de notebook, parede, mesa vazia, chão, pessoa, foto preta ou ilegível), você DEVE IMEDIATAMENTE rejeitar a análise definindo:
+⚠️ REGRA CRÍTICA 1 - VALIDAÇÃO DE OBJETO REAL:
+- Inspecione as fotos e verifique se representam de fato um SMARTPHONE / APARELHO CELULAR REAL (tela/frente, lateral/quina ou traseira).
+- Se as fotos mostrarem outros objetos (como teclado de computador, mouse, tela de notebook, parede, mesa vazia, chão, pessoa, foto preta ou ilegível), você DEVE rejeitar a análise:
   "is_valid_smartphone": false,
-  "rejection_reason": "As fotos enviadas não correspondem a um smartphone. Objeto detectado: [descreva o que foi fotografado, ex: teclado de computador/mesa/outro objeto]",
+  "rejection_reason": "As fotos enviadas não correspondem a um smartphone. Objeto detectado: [descreva o que foi fotografado]",
   "selected_preset_ids": []
 - NUNCA marque como 'sem avarias' uma foto que não seja de um celular!
 
 ⚠️ REGRA CRÍTICA 2 - DETECÇÃO DE AVARIAS (Somente se is_valid_smartphone for true):
-- Se for um smartphone real, identifique SOMENTE avarias físicas comprovadas nas fotos (riscos na tela, trincos no display ou vidro traseiro, quinas amassadas, burn-in visível, lente da câmera trincada).
-- Escolha APENAS IDs presentes na lista permitida abaixo. NUNCA invente IDs:
+- Se for um smartphone real, identifique SOMENTE avarias físicas comprovadas nas fotos (riscos na tela, trincos, quinas amassadas, burn-in visível, lente trincada).
+- Escolha APENAS IDs presentes na lista permitida:
 ${allowedPresetsDescriptions}
 
 FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
@@ -266,7 +298,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
             };
           }
         } catch (e) {
-          console.error(`[cellhub-ai-router] Erro no storage download:`, e);
+          console.error(`[cellhub-ai-router] Erro storage:`, e);
         }
       } else if (photo.url) {
         try {
@@ -278,7 +310,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
             };
           }
         } catch (e) {
-          console.error(`[cellhub-ai-router] Erro no download url:`, e);
+          console.error(`[cellhub-ai-router] Erro url:`, e);
         }
       }
       return null;
@@ -288,17 +320,27 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     resolvedPhotos.forEach(p => contentsParts.push(p));
 
     contentsParts.push({
-      text: `Analise as imagens e determine se é um smartphone ${deviceBrand} ${deviceModel} e suas avarias. Retorne o JSON.`
+      text: `Analise as imagens e determine se é um smartphone ${deviceBrand} ${deviceModel} e suas avarias. Retorne o JSON puro.`
     });
 
-    // 8. Chamar Modelo de Visão Direto
+    // 8. Obter modelos ativos na chave e chamar o primeiro funcional
+    const availableModels = await getWorkingVisionModels(apiKey);
+    console.log(`[cellhub-ai-router] Modelos ativos na chave:`, availableModels.map(m => `${m.ver}/${m.model}`));
+
+    const fallbackList = [
+      ...availableModels,
+      { ver: "v1beta", model: "gemini-2.0-flash" },
+      { ver: "v1beta", model: "gemini-1.5-flash" },
+      { ver: "v1", model: "gemini-1.5-flash" }
+    ];
+
     let geminiData: any = null;
     let successfulModel = "";
     let lastErrorText = "";
 
-    for (const item of PRIMARY_VISION_MODELS) {
+    for (const item of fallbackList) {
       const geminiUrl = `https://generativelanguage.googleapis.com/${item.ver}/models/${item.model}:generateContent?key=${apiKey}`;
-      console.log(`[cellhub-ai-router] Executando análise rápida em ${item.model}...`);
+      console.log(`[cellhub-ai-router] Tentando: ${item.ver}/${item.model}...`);
 
       try {
         const geminiResponse = await fetch(geminiUrl, {
@@ -316,9 +358,11 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
         if (geminiResponse.ok) {
           geminiData = await geminiResponse.json();
           successfulModel = `${item.ver}/${item.model}`;
+          console.log(`[cellhub-ai-router] SUCESSO com ${successfulModel}!`);
           break;
         } else {
           lastErrorText = await geminiResponse.text();
+          console.warn(`[cellhub-ai-router] ${item.model} HTTP ${geminiResponse.status}:`, lastErrorText.slice(0, 150));
         }
       } catch (reqErr: any) {
         lastErrorText = reqErr.message || "Erro de rede";
@@ -328,7 +372,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     if (!geminiData) {
       return new Response(
         JSON.stringify({ success: false, error: "ai_provider_error", message: "Instabilidade momentânea no processamento visual da IA. Tente novamente." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -361,9 +405,8 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     const rejectionReason = parsedResult.rejection_reason || null;
     const detectedObjectDescription = parsedResult.detected_object_description || "Aparelho Celular";
 
-    console.log(`[cellhub-ai-router] Validação de Objeto: isValidSmartphone=${isValidSmartphone}, Objeto="${detectedObjectDescription}"`);
+    console.log(`[cellhub-ai-router] Validação: isValidSmartphone=${isValidSmartphone}, Objeto="${detectedObjectDescription}"`);
 
-    // Validação de presets somente se for um smartphone válido
     const validPresetIdsSet = new Set(allowedPresetsList.map(p => p.id));
     const rawIds = (isValidSmartphone && Array.isArray(parsedResult.selected_preset_ids)) ? parsedResult.selected_preset_ids : [];
     const sanitizedPresetIds = Array.from(new Set(rawIds.filter(id => validPresetIdsSet.has(id))));
@@ -376,7 +419,6 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     const costPerMillionOutput = selectedTier === "paid" ? 10.50 : 0.30;
     const estimatedCostUsd = ((inputTokens * costPerMillionInput) + (outputTokens * costPerMillionOutput)) / 1_000_000;
 
-    // Registrar log
     await supabase.from("ai_usage_logs").insert({
       user_id: userId,
       session_id: sessionId || null,
@@ -428,7 +470,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
     console.error("[cellhub-ai-router] Erro inesperado:", error);
     return new Response(
       JSON.stringify({ success: false, error: "internal_error", message: error.message || "Erro interno no servidor de IA." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

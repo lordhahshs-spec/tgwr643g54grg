@@ -206,7 +206,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
         setAnalysisError(res.message || 'Instabilidade momentânea no processamento visual.');
       }
     } catch (err: any) {
-      setAnalysisError('Instabilidade momentânea no processamento da IA.');
+      setAnalysisError(err?.message || 'Instabilidade momentânea no processamento da IA.');
     } finally {
       setAnalyzing(false);
     }
