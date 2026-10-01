@@ -250,29 +250,32 @@ serve(async (req) => {
     // 7. Preparar conteúdo multimodal
     const allowedPresetsDescriptions = allowedPresetsList.map(p => `- ID: "${p.id}" | Nome: "${p.label}"`).join("\n");
 
-    const systemPrompt = `Você é o perito em inspeção visual e triagem da CellHub IA.
-Você está analisando 3 fotografias enviadas para a avaliação de um SMARTPHONE: ${deviceBrand} ${deviceModel}.
+    const systemPrompt = `Você é o auditor e perito visual da CellHub IA especializado em inspeção técnica de smartphones para Trade-In.
+Você está avaliando as 3 fotografias enviadas para o seguinte aparelho: ${deviceBrand} ${deviceModel}.
 
-⚠️ REGRA CRÍTICA 1 - VALIDAÇÃO DE OBJETO REAL:
-- Inspecione as fotos e verifique se representam de fato um SMARTPHONE / APARELHO CELULAR REAL (tela/frente, lateral/quina ou traseira).
-- Se as fotos mostrarem outros objetos (como teclado de computador, mouse, tela de notebook, parede, mesa vazia, chão, pessoa, foto preta ou ilegível), você DEVE rejeitar a análise:
-  "is_valid_smartphone": false,
-  "rejection_reason": "As fotos enviadas não correspondem a um smartphone. Objeto detectado: [descreva o que foi fotografado]",
-  "selected_preset_ids": []
-- NUNCA marque como 'sem avarias' uma foto que não seja de um celular!
+🛑 ETAPA 1 - CLASSIFICAÇÃO RIGOROSA DO OBJETO:
+Analise as fotos com atenção máxima:
+- São de fato fotos de um SMARTPHONE / APARELHO CELULAR REAL (frente/tela, laterais ou traseira)?
+- Se as fotos mostrarem QUALQUER OUTRO OBJETO (como mouse, teclado de computador, monitor, notebook, fone, mesa, parede, chão, papel, pessoa, foto preta, borrada ou objeto aleatório):
+  -> Você DEVE OBRIGATORIAMENTE definir "is_valid_smartphone": false
+  -> Você DEVE definir "detected_object_description": "[Descreva exatamente o que foi fotografado, ex: 'Mouse e teclado de computador', 'Mesa vazia', 'Monitor de PC']"
+  -> Você DEVE definir "rejection_reason": "Fotos rejeitadas. Objeto fotografado é [descrever o objeto], não um smartphone."
+  -> Você DEVE definir "selected_preset_ids": []
+  -> Você DEVE definir "visual_summary": ["As fotos enviadas não são de um smartphone."]
+  -> NUNCA marque uma foto de mouse, teclado ou outro objeto como 'sem avarias'!
 
-⚠️ REGRA CRÍTICA 2 - DETECÇÃO DE AVARIAS (Somente se is_valid_smartphone for true):
-- Se for um smartphone real, identifique SOMENTE avarias físicas comprovadas nas fotos (riscos na tela, trincos, quinas amassadas, burn-in visível, lente trincada).
-- Escolha APENAS IDs presentes na lista permitida:
+✅ ETAPA 2 - IDENTIFICAÇÃO DE AVARIAS VISUAIS (Apenas se "is_valid_smartphone" for true):
+- Se e somente se as fotos forem comprovadamente de um smartphone real, inspecione a tela frontal, traseira, vidro da câmera e bordas.
+- Selecione APENAS os IDs de avarias permitidos abaixo:
 ${allowedPresetsDescriptions}
 
-FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
+RETORNE EXCLUSIVAMENTE O JSON NO SEGUINTE FORMATO:
 {
-  "is_valid_smartphone": true | false,
-  "detected_object_description": "Descrição do que está presente nas fotos",
-  "rejection_reason": null | "Motivo se não for um celular",
-  "selected_preset_ids": ["id_1", "id_2"],
-  "visual_summary": ["Resumo do que foi inspecionado em cada foto"],
+  "is_valid_smartphone": boolean,
+  "detected_object_description": string,
+  "rejection_reason": string | null,
+  "selected_preset_ids": string[],
+  "visual_summary": string[],
   "confidence": "high" | "medium" | "low"
 }`;
 
@@ -378,19 +381,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
 
     const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    let parsedResult: { 
-      is_valid_smartphone?: boolean;
-      detected_object_description?: string;
-      rejection_reason?: string | null;
-      selected_preset_ids?: string[]; 
-      visual_summary?: string[]; 
-      confidence?: string 
-    } = {
-      is_valid_smartphone: true,
-      selected_preset_ids: [],
-      visual_summary: [],
-      confidence: "medium"
-    };
+    let parsedResult: any = null;
 
     try {
       if (candidateText) {
@@ -401,11 +392,43 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       console.error("[cellhub-ai-router] Erro ao fazer parse do JSON do Gemini:", parseErr, candidateText);
     }
 
-    const isValidSmartphone = parsedResult.is_valid_smartphone !== false;
-    const rejectionReason = parsedResult.rejection_reason || null;
-    const detectedObjectDescription = parsedResult.detected_object_description || "Aparelho Celular";
+    if (!parsedResult || typeof parsedResult !== "object") {
+      parsedResult = {
+        is_valid_smartphone: false,
+        detected_object_description: "Objeto não identificado",
+        rejection_reason: "Não foi possível confirmar que as fotos pertencem a um smartphone.",
+        selected_preset_ids: [],
+        visual_summary: [],
+        confidence: "low"
+      };
+    }
 
-    console.log(`[cellhub-ai-router] Validação: isValidSmartphone=${isValidSmartphone}, Objeto="${detectedObjectDescription}"`);
+    const detectedDesc = String(parsedResult.detected_object_description || "").trim();
+    const detectedLower = detectedDesc.toLowerCase();
+
+    // Termos que indicam objetos ou fotos inválidas
+    const nonPhoneTerms = [
+      "mouse", "teclado", "keyboard", "computador", "computer", "notebook", "laptop",
+      "monitor", "mesa", "table", "desk", "cadeira", "parede", "wall", "chão", "floor",
+      "pessoa", "person", "rosto", "face", "documento", "caixa", "box", "carro", "car",
+      "fone", "headphone", "controle", "gamepad", "garrafa", "copo", "papel", "caneta",
+      "objeto desconhecido", "não reconhecido", "não identificado", "ambiente"
+    ];
+
+    const hasNonPhoneTerm = nonPhoneTerms.some(term => detectedLower.includes(term));
+    const rawIsValid = parsedResult.is_valid_smartphone;
+
+    // A validação é estrita: precisa ser true e não pode conter pistas de itens proibidos
+    const isValidSmartphone = (rawIsValid === true || rawIsValid === "true") && !hasNonPhoneTerm;
+
+    let rejectionReason = parsedResult.rejection_reason || null;
+    if (!isValidSmartphone && !rejectionReason) {
+      rejectionReason = `As fotos enviadas não correspondem a um smartphone (Detectado: ${detectedDesc || "objeto não compatível"}).`;
+    }
+
+    const detectedObjectDescription = detectedDesc || (isValidSmartphone ? `${deviceBrand} ${deviceModel}` : "Objeto incompatível");
+
+    console.log(`[cellhub-ai-router] Validação: isValidSmartphone=${isValidSmartphone}, Objeto="${detectedObjectDescription}", Motivo="${rejectionReason}"`);
 
     const validPresetIdsSet = new Set(allowedPresetsList.map(p => p.id));
     const rawIds = (isValidSmartphone && Array.isArray(parsedResult.selected_preset_ids)) ? parsedResult.selected_preset_ids : [];
