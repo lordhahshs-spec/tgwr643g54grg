@@ -83,7 +83,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
         </span>
       </button>
 
-      {/* 5. Simulador Trade-In */}
+      {/* 5. Avaliação de Aparelho */}
       <button
         type="button"
         onClick={() => onSelectTab('trade-in')}
@@ -93,7 +93,7 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
       >
         <Repeat className={`w-5 h-5 transition-transform ${activeTab === 'trade-in' ? 'stroke-[2.5] scale-105 text-[#00D287]' : 'opacity-75'}`} />
         <span className={`text-[10px] font-bold mt-0.5 tracking-tight ${activeTab === 'trade-in' ? 'text-[#00D287]' : 'text-slate-400'}`}>
-          Trade-In
+          Avaliação
         </span>
       </button>
 

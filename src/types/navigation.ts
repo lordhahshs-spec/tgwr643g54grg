@@ -38,7 +38,7 @@ export const NAVIGATION_TABS: TabItem[] = [
   },
   {
     id: 'trade-in',
-    label: 'Simulador de Troca',
+    label: 'Avaliação de Aparelho',
     iconName: 'Repeat',
   },
 ];
