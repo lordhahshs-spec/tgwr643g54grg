@@ -78,7 +78,6 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
 
   useEffect(() => {
     loadModels();
-    // Limpar seleções de avaria ao trocar de fabricante para evitar misturar regras de marcas diferentes
     setSelectedFaults({});
   }, [selectedBrand, userId]);
 
@@ -192,18 +191,18 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0b0f14] text-[#f3f5f7] p-3.5 sm:p-6 space-y-4 pb-24 md:pb-8">
-      {/* Top Bar with History & Admin Actions - Clean B2B style */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 bg-[#11161d] p-4 rounded-xl border border-[#252d37]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#171d25] border border-[#252d37] flex items-center justify-center text-[#16b981]">
+    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-3 sm:p-6 space-y-4 pb-24 md:pb-8">
+      {/* Top Bar with History & Admin Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#080c17] p-3.5 sm:p-4 rounded-2xl border border-slate-800/80">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
             <Repeat className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-semibold text-[#f3f5f7] tracking-tight">
-              Avaliação de Aparelho <span className="text-[#16b981] font-normal text-sm sm:text-base">(Seminovos & Troca)</span>
+            <h1 className="text-base sm:text-lg font-black text-white">
+              Avaliação de Aparelho <span className="text-blue-400">(Seminovos & Troca)</span>
             </h1>
-            <p className="text-xs text-[#a3adb8]">
+            <p className="text-xs text-slate-400">
               Calcule o valor de compra do celular do cliente e abata na venda de outro aparelho
             </p>
           </div>
@@ -214,9 +213,9 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             variant="outline"
             size="sm"
             onClick={() => setIsHistoryModalOpen(true)}
-            className="border-[#252d37] bg-[#171d25] text-[#f3f5f7] hover:text-white hover:bg-[#252d37] text-xs font-medium rounded-lg flex items-center gap-1.5 h-9"
+            className="border-slate-800 bg-slate-900/90 text-slate-200 hover:text-white hover:bg-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5"
           >
-            <History className="w-3.5 h-3.5 text-[#16b981]" />
+            <History className="w-3.5 h-3.5 text-blue-400" />
             Histórico de Termos
           </Button>
 
@@ -224,23 +223,28 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             variant="outline"
             size="sm"
             onClick={() => setIsAdminModalOpen(true)}
-            className="border-[#252d37] bg-[#171d25] text-[#f3f5f7] hover:text-white hover:bg-[#252d37] text-xs font-medium rounded-lg flex items-center gap-1.5 h-9"
+            className="border-purple-500/30 bg-purple-500/10 text-purple-300 hover:text-white hover:bg-purple-500/20 text-xs font-bold rounded-xl flex items-center gap-1.5"
           >
-            <Settings className="w-3.5 h-3.5 text-[#a3adb8]" />
+            <Settings className="w-3.5 h-3.5 text-purple-400" />
             Editar Minha Tabela
           </Button>
         </div>
       </div>
 
       {/* Main Quotation Window Card */}
-      <div className="bg-[#11161d] border border-[#252d37] rounded-xl shadow-md overflow-hidden">
+      <div className="bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden">
         {/* Window Topbar */}
-        <div className="px-5 py-3 border-b border-[#252d37] bg-[#171d25] flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-slate-800 bg-[#1e293b]/70 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs sm:text-sm font-semibold text-[#f3f5f7]">Nova Cotação</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-red-500/90 inline-block"></span>
+              <span className="w-3 h-3 rounded-full bg-amber-500/90 inline-block"></span>
+              <span className="w-3 h-3 rounded-full bg-emerald-500/90 inline-block"></span>
+            </div>
+            <span className="text-xs sm:text-sm font-bold text-slate-200 ml-2">Nova cotação</span>
           </div>
 
-          <div className="text-xs text-[#a3adb8] font-medium">
+          <div className="text-xs text-slate-300 font-medium">
             {allModels.length} modelos na sua tabela ({selectedBrand})
           </div>
         </div>
@@ -250,14 +254,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
           {/* Left Column: Device Selection & Faults List */}
           <div className="lg:col-span-7 space-y-4">
             {/* 1. Device Selection */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs sm:text-sm font-semibold text-[#f3f5f7]">
-                  Fabricante & Modelo
+                <label className="text-xs sm:text-sm font-bold text-slate-100">
+                  Modelo do aparelho
                 </label>
                 <button
                   onClick={() => setIsManualModel(!isManualModel)}
-                  className="text-xs text-[#16b981] hover:underline font-medium"
+                  className="text-xs text-blue-400 hover:underline font-medium"
                 >
                   {isManualModel ? '← Escolher da lista' : 'Digitar modelo manualmente'}
                 </button>
@@ -272,10 +276,10 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       setSelectedBrand(brand);
                       setIsManualModel(false);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                       selectedBrand === brand
-                        ? 'bg-[#16b981] text-white'
-                        : 'bg-[#171d25] text-[#a3adb8] hover:text-[#f3f5f7] border border-[#252d37]'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        : 'bg-[#1e293b] text-slate-300 hover:text-white border border-slate-700'
                     }`}
                   >
                     {brand === 'Apple' ? ' Apple' : brand}
@@ -289,26 +293,26 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                     value={customModelName}
                     onChange={(e) => setCustomModelName(e.target.value)}
                     placeholder="Nome do modelo (Ex: Galaxy S24 Ultra 256GB)"
-                    className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm text-[#f3f5f7] rounded-lg focus:border-[#16b981] h-10"
+                    className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-white rounded-xl focus:border-blue-500 h-11"
                   />
                   <Input
                     type="number"
                     value={customBaseBuyPrice}
                     onChange={(e) => setCustomBaseBuyPrice(Number(e.target.value) || 0)}
                     placeholder="Valor base de compra (R$)"
-                    className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm text-[#16b981] font-semibold rounded-lg h-10"
+                    className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-emerald-400 font-bold rounded-xl h-11"
                   />
                 </div>
               ) : allModels.length === 0 ? (
-                <div className="p-4 rounded-lg bg-[#171d25] border border-[#252d37] text-center space-y-2">
-                  <p className="text-xs text-[#a3adb8]">
+                <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-700 text-center space-y-2">
+                  <p className="text-xs text-slate-300">
                     Nenhum modelo cadastrado para <strong>{selectedBrand}</strong> ainda.
                   </p>
                   <div className="flex justify-center gap-2">
                     <Button
                       size="sm"
                       onClick={() => setIsAdminModalOpen(true)}
-                      className="bg-[#16b981] hover:bg-[#10b981] text-white text-xs font-medium h-8 rounded-lg"
+                      className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold h-8 rounded-lg"
                     >
                       + Cadastrar em Minha Tabela
                     </Button>
@@ -316,7 +320,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => setIsManualModel(true)}
-                      className="border-[#252d37] text-[#f3f5f7] text-xs font-medium h-8 rounded-lg"
+                      className="border-slate-600 text-slate-200 text-xs font-bold h-8 rounded-lg"
                     >
                       Digitar Manualmente
                     </Button>
@@ -327,7 +331,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                   <select
                     value={selectedModelId}
                     onChange={(e) => setSelectedModelId(e.target.value)}
-                    className="w-full bg-[#171d25] border border-[#252d37] text-xs sm:text-sm font-medium rounded-lg p-3 text-[#f3f5f7] focus:border-[#16b981] outline-none appearance-none pr-10 cursor-pointer h-11"
+                    className="w-full bg-[#1e293b] border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl p-3.5 text-white focus:border-blue-500 outline-none appearance-none pr-10 cursor-pointer h-12 shadow-sm"
                   >
                     {allModels.map(m => (
                       <option key={m.id} value={m.id}>
@@ -335,7 +339,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-[#a3adb8] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               )}
             </div>
@@ -343,15 +347,15 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             {/* 2. Specific Brand Faults Checklist */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-semibold text-[#f3f5f7]">
+                <span className="text-xs sm:text-sm font-bold text-slate-100 block">
                   Avarias / condições do aparelho ({selectedBrand})
                 </span>
-                <span className="text-[11px] text-[#737e8a]">
+                <span className="text-xs text-slate-400 font-medium">
                   {brandFaultDefinitions.length} condições avaliadas
                 </span>
               </div>
 
-              <div className="border border-[#252d37] rounded-xl bg-[#171d25]/60 divide-y divide-[#252d37]/80 overflow-hidden">
+              <div className="border border-slate-700 rounded-2xl bg-[#1e293b]/70 divide-y divide-slate-700/80 overflow-hidden shadow-sm">
                 {brandFaultDefinitions.map(fault => {
                   const isChecked = !!selectedFaults[fault.id];
                   const discount = currentModel?.fault_discounts?.[fault.id] !== undefined
@@ -363,7 +367,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       key={fault.id}
                       onClick={() => toggleFault(fault.id)}
                       className={`flex items-center justify-between p-3 sm:py-2.5 sm:px-4 cursor-pointer transition-colors ${
-                        isChecked ? 'bg-red-950/20 text-white' : 'hover:bg-[#171d25]'
+                        isChecked ? 'bg-red-950/30' : 'hover:bg-[#1e293b]'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -371,14 +375,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => {}}
-                          className="w-4 h-4 rounded accent-[#16b981] cursor-pointer pointer-events-none"
+                          className="w-4 h-4 rounded accent-blue-600 cursor-pointer pointer-events-none"
                         />
-                        <span className={`text-xs sm:text-sm ${isChecked ? 'text-white font-medium' : 'text-[#a3adb8]'}`}>
+                        <span className={`text-xs sm:text-sm font-medium ${isChecked ? 'text-white font-semibold' : 'text-slate-200'}`}>
                           {fault.label}
                         </span>
                       </div>
 
-                      <span className="text-xs sm:text-sm font-semibold text-rose-400 shrink-0">
+                      <span className="text-xs sm:text-sm font-bold text-red-400 shrink-0">
                         – R$ {discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </label>
@@ -388,8 +392,8 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                 {/* Trade Bonus Row */}
                 <label
                   onClick={() => setWillBuyFromStock(!willBuyFromStock)}
-                  className={`flex items-center justify-between p-3 sm:py-3 sm:px-4 cursor-pointer transition-colors border-t border-[#252d37] ${
-                    willBuyFromStock ? 'bg-emerald-950/25' : 'hover:bg-[#171d25]'
+                  className={`flex items-center justify-between p-3 sm:py-3 sm:px-4 cursor-pointer transition-colors border-t-2 border-slate-700 ${
+                    willBuyFromStock ? 'bg-blue-950/40' : 'hover:bg-[#1e293b]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -397,14 +401,14 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
                       type="checkbox"
                       checked={willBuyFromStock}
                       onChange={() => {}}
-                      className="w-4 h-4 rounded accent-[#16b981] cursor-pointer pointer-events-none"
+                      className="w-4 h-4 rounded accent-blue-600 cursor-pointer pointer-events-none"
                     />
-                    <span className={`text-xs sm:text-sm ${willBuyFromStock ? 'text-[#16b981] font-semibold' : 'text-[#f3f5f7] font-medium'}`}>
+                    <span className={`text-xs sm:text-sm ${willBuyFromStock ? 'text-blue-300 font-bold' : 'text-slate-200 font-medium'}`}>
                       Cliente vai levar outro seminovo do nosso estoque (+ R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
                     </span>
                   </div>
 
-                  <span className="text-xs sm:text-sm font-semibold text-[#16b981] shrink-0">
+                  <span className="text-xs sm:text-sm font-bold text-emerald-400 shrink-0">
                     + R$ {(currentModel?.trade_bonus || 50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </label>
@@ -415,42 +419,42 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
           {/* Right Column: Pricing Result & Mini Trade Calculation */}
           <div className="lg:col-span-5 space-y-4">
             {/* Card "Valor a pagar" */}
-            <div className="border border-[#252d37] rounded-xl bg-[#171d25] p-5 space-y-4 shadow-sm">
+            <div className="border border-slate-700 rounded-2xl bg-[#1e293b] p-5 space-y-4 shadow-xl">
               <div>
-                <span className="text-xs font-semibold text-[#a3adb8] block uppercase tracking-wider">
-                  Valor de Compra Avaliado
+                <span className="text-xs sm:text-sm font-semibold text-slate-300 block">
+                  Valor a pagar pelo aparelho do cliente
                 </span>
-                <div className="text-3xl sm:text-4xl font-bold text-[#16b981] tracking-tight mt-1">
+                <div className="text-3xl sm:text-4xl font-black text-blue-400 tracking-tight mt-1">
                   R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
               </div>
 
               {/* Breakdown Table */}
-              <div className="space-y-2 text-xs sm:text-sm border-t border-[#252d37] pt-3.5">
-                <div className="flex justify-between text-[#a3adb8]">
+              <div className="space-y-2 text-xs sm:text-sm border-t border-slate-700 pt-3.5">
+                <div className="flex justify-between text-slate-300">
                   <span>Valor na compra / base ({selectedBrand})</span>
-                  <strong className="text-[#f3f5f7] font-semibold">
+                  <strong className="text-white font-bold">
                     R$ {baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </strong>
                 </div>
 
                 {activeFaultsList.map(f => (
-                  <div key={f.id} className="flex justify-between text-rose-400 font-medium">
+                  <div key={f.id} className="flex justify-between text-red-400 font-medium">
                     <span>{f.label}</span>
-                    <strong className="font-semibold">– R$ {f.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    <strong className="font-bold">– R$ {f.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                   </div>
                 ))}
 
                 {willBuyFromStock && tradeBonusAmount > 0 && (
-                  <div className="flex justify-between text-[#16b981] font-medium">
+                  <div className="flex justify-between text-emerald-400 font-medium">
                     <span>Bônus na troca</span>
-                    <strong className="font-semibold">+ R$ {tradeBonusAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    <strong className="font-bold">+ R$ {tradeBonusAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                   </div>
                 )}
 
-                <div className="flex justify-between text-[#f3f5f7] font-bold border-t border-[#252d37] pt-2.5 text-sm sm:text-base">
+                <div className="flex justify-between text-white font-black border-t border-slate-700 pt-2.5 text-sm sm:text-base">
                   <span>Total</span>
-                  <span className="text-[#16b981] font-bold">
+                  <span className="text-blue-400 font-black">
                     R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -458,49 +462,49 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             </div>
 
             {/* Mini Cálculo: Vender celular da loja abatendo o seminovo */}
-            <div className="border border-[#252d37] rounded-xl bg-[#171d25] p-4 sm:p-5 space-y-3">
+            <div className="border border-blue-500/40 rounded-2xl bg-gradient-to-b from-blue-950/40 to-[#1e293b] p-4 sm:p-5 space-y-3 shadow-lg">
               <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-[#16b981]" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#f3f5f7]">
+                <Calculator className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-300">
                   Simulação de Troca (Abatimento)
                 </span>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-[#a3adb8] block">
+                <label className="text-xs font-semibold text-slate-200 block">
                   Valor do celular que a loja vai vender (R$):
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-[#737e8a] font-bold">R$</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">R$</span>
                   <Input
                     type="number"
                     value={sellingPhonePrice}
                     onChange={(e) => setSellingPhonePrice(e.target.value === '' ? '' : Number(e.target.value))}
                     placeholder="Ex: 4500"
-                    className="bg-[#11161d] border-[#252d37] pl-10 text-xs sm:text-sm text-[#f3f5f7] font-semibold rounded-lg focus:border-[#16b981] h-10"
+                    className="bg-[#0f172a] border-slate-700 pl-10 text-xs sm:text-sm text-white font-bold rounded-xl focus:border-blue-500 h-11"
                   />
                 </div>
               </div>
 
               {sellingPhonePrice && Number(sellingPhonePrice) > 0 ? (
-                <div className="p-3.5 rounded-lg bg-[#11161d] border border-[#252d37] space-y-1.5 text-xs sm:text-sm">
-                  <div className="flex justify-between text-[#a3adb8]">
+                <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-700 space-y-1.5 text-xs sm:text-sm animate-in fade-in duration-200">
+                  <div className="flex justify-between text-slate-300">
                     <span>Aparelho vendido:</span>
                     <span>R$ {Number(sellingPhonePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-[#16b981] font-medium">
+                  <div className="flex justify-between text-emerald-400 font-semibold">
                     <span>(-) Avaliação do usado:</span>
                     <span>- R$ {finalValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-[#f3f5f7] font-bold border-t border-[#252d37] pt-2 text-sm sm:text-base">
-                    <span>Cliente paga apenas:</span>
-                    <span className="text-[#16b981] font-bold">
+                  <div className="flex justify-between text-white font-black border-t border-slate-700 pt-2 text-sm sm:text-base">
+                    <span className="text-blue-300">Cliente paga apenas:</span>
+                    <span className="text-emerald-400 font-black">
                       R$ {differenceToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-[#737e8a] italic">
+                <p className="text-xs text-slate-400 italic">
                   Digite o valor do celular da loja para calcular automaticamente o saldo a pagar pelo cliente.
                 </p>
               )}
@@ -509,7 +513,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
             {/* Single Prominent Action Button */}
             <Button
               onClick={() => setIsTermModalOpen(true)}
-              className="w-full bg-[#16b981] hover:bg-[#10b981] text-white font-semibold text-sm sm:text-base h-11 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.99]"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-sm sm:text-base h-12 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
             >
               <FileSignature className="w-4 h-4" />
               Gerar Termo de Compra & Assinatura
