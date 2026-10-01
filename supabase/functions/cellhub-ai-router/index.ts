@@ -13,7 +13,7 @@ interface EvaluationRequest {
   brand?: string;
   modelName?: string;
   allowedPresets?: { id: string; label: string; defaultDiscount?: number; category?: string }[];
-  photos?: { type: string; url?: string; base64?: string }[];
+  photos?: { type: string; url?: string; name?: string; base64?: string }[];
 }
 
 // Conversor seguro de ArrayBuffer para Base64 em chunks (sem dependência externa e sem estouro de pilha)
@@ -28,6 +28,15 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   }
   return btoa(binary);
 }
+
+// Modelos Gemini suportados em cascata de resiliência
+const FALLBACK_MODELS = [
+  "gemini-1.5-flash-latest",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro-latest",
+  "gemini-1.5-pro"
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -140,20 +149,20 @@ serve(async (req) => {
       );
     }
 
-    // 5. Roteamento Inteligente
+    // 5. Roteamento de Tier
     let selectedTier: "free" | "paid" | null = null;
     let apiKey = "";
-    let selectedModel = "";
+    let primaryModel = "";
 
     if (configRow.free_tier_active && remainingFree > 0) {
       selectedTier = "free";
       apiKey = configRow.free_tier_api_key;
-      selectedModel = configRow.free_tier_model || "gemini-1.5-flash";
+      primaryModel = configRow.free_tier_model || "gemini-1.5-flash-latest";
       console.log(`[cellhub-ai-router] Roteado para API GRATUITA (Uso: ${usedFree}/${freeLimit}, Restantes: ${remainingFree})`);
     } else if (configRow.paid_tier_active && hasPaidAccess) {
       selectedTier = "paid";
       apiKey = configRow.paid_tier_api_key;
-      selectedModel = configRow.paid_tier_model || "gemini-1.5-pro";
+      primaryModel = configRow.paid_tier_model || "gemini-1.5-pro-latest";
       console.log(`[cellhub-ai-router] Cota gratuita esgotada. Roteado para API PAGA autorizada.`);
     } else {
       console.warn(`[cellhub-ai-router] Bloqueio: Cota gratuita esgotada (${usedFree}/${freeLimit}) e sem acesso pago ativo.`);
@@ -190,7 +199,7 @@ serve(async (req) => {
     }
 
     // 6. Carregar dados da sessão ou payload
-    let photosToAnalyze: { type: string; url?: string; base64?: string }[] = body.photos || [];
+    let photosToAnalyze: { type: string; url?: string; name?: string; base64?: string }[] = body.photos || [];
     let allowedPresetsList = body.allowedPresets || [];
     let deviceBrand = body.brand || "Smartphone";
     let deviceModel = body.modelName || "";
@@ -271,18 +280,40 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
             data: cleanBase64
           }
         });
+      } else if (photo.name) {
+        // Baixar diretamente via Storage SDK (mais seguro e rápido)
+        try {
+          console.log(`[cellhub-ai-router] Baixando do Storage SDK: ${photo.name}`);
+          const { data: fileData, error: downloadErr } = await supabase.storage
+            .from("tradein-photos")
+            .download(photo.name);
+
+          if (downloadErr || !fileData) {
+            throw downloadErr || new Error("Falha no download da imagem");
+          }
+
+          const imgBuffer = await fileData.arrayBuffer();
+          const base64Data = arrayBufferToBase64(imgBuffer);
+          contentsParts.push({
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: base64Data
+            }
+          });
+        } catch (storageErr) {
+          console.error(`[cellhub-ai-router] Erro no Storage download ${photo.name}:`, storageErr);
+        }
       } else if (photo.url) {
         try {
-          console.log(`[cellhub-ai-router] Baixando imagem: ${photo.url}`);
+          console.log(`[cellhub-ai-router] Baixando via URL: ${photo.url}`);
           const imgResp = await fetch(photo.url);
           if (!imgResp.ok) throw new Error(`HTTP ${imgResp.status}`);
           
           const imgBuffer = await imgResp.arrayBuffer();
           const base64Data = arrayBufferToBase64(imgBuffer);
-          
           contentsParts.push({
             inlineData: {
-              mimeType: imgResp.headers.get("content-type") || "image/jpeg",
+              mimeType: "image/jpeg",
               data: base64Data
             }
           });
@@ -296,40 +327,60 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       text: `Analise as fotografias acima para o aparelho ${deviceBrand} ${deviceModel}. Retorne o JSON com as avarias visíveis identificadas.`
     });
 
-    // 8. Chamar API Gemini
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
-    
-    console.log(`[cellhub-ai-router] Enviando requisição para Gemini (${selectedModel}, tier: ${selectedTier})...`);
+    // 8. Chamar API Gemini com Cascata de Modelos (Resiliência Total)
+    const modelsToTry = [primaryModel, ...FALLBACK_MODELS.filter(m => m !== primaryModel)];
+    let geminiData: any = null;
+    let successfulModel = "";
+    let lastErrorText = "";
 
-    const geminiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: contentsParts }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1
+    for (const modelCandidate of modelsToTry) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelCandidate}:generateContent?key=${apiKey}`;
+      console.log(`[cellhub-ai-router] Tentando Gemini Model: ${modelCandidate}...`);
+
+      try {
+        const geminiResponse = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: contentsParts }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.1
+            }
+          })
+        });
+
+        if (geminiResponse.ok) {
+          geminiData = await geminiResponse.json();
+          successfulModel = modelCandidate;
+          console.log(`[cellhub-ai-router] Sucesso com o modelo: ${modelCandidate}!`);
+          break;
+        } else {
+          lastErrorText = await geminiResponse.text();
+          console.warn(`[cellhub-ai-router] Modelo ${modelCandidate} retornou HTTP ${geminiResponse.status}:`, lastErrorText);
         }
-      })
-    });
+      } catch (reqErr: any) {
+        lastErrorText = reqErr.message || "Erro de rede";
+        console.warn(`[cellhub-ai-router] Falha ao consultar ${modelCandidate}:`, reqErr);
+      }
+    }
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error(`[cellhub-ai-router] Erro retornado pela API Gemini (${geminiResponse.status}):`, errText);
+    if (!geminiData) {
+      console.error(`[cellhub-ai-router] Todos os modelos falharam. Último erro:`, lastErrorText);
 
       await supabase.from("ai_usage_logs").insert({
         user_id: userId,
         session_id: sessionId || null,
         provider: "gemini",
         api_tier: selectedTier,
-        model: selectedModel,
+        model: primaryModel,
         operation: "tradein_visual_evaluation",
         status: "error",
         tokens_input: 0,
         tokens_output: 0,
         estimated_cost: 0,
         period_key: periodKey,
-        error_message: `Erro Gemini ${geminiResponse.status}: ${errText.slice(0, 300)}`
+        error_message: `Erro Gemini: ${lastErrorText.slice(0, 300)}`
       });
 
       return new Response(
@@ -338,7 +389,6 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       );
     }
 
-    const geminiData = await geminiResponse.json();
     const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
     let parsedResult: { selected_preset_ids: string[]; visual_summary: string[]; confidence: string } = {
@@ -377,7 +427,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       session_id: sessionId || null,
       provider: "gemini",
       api_tier: selectedTier,
-      model: selectedModel,
+      model: successfulModel || primaryModel,
       operation: "tradein_visual_evaluation",
       status: "success",
       tokens_input: inputTokens,
@@ -386,7 +436,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       period_key: periodKey
     });
 
-    // 11. Se houver sessionId, atualizar sessão no banco
+    // 11. Atualizar sessão no banco
     if (sessionId) {
       await supabase
         .from("ai_evaluation_sessions")
@@ -405,6 +455,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO):
       JSON.stringify({
         success: true,
         tierUsed: selectedTier,
+        modelUsed: successfulModel,
         detectedPresetIds: sanitizedPresetIds,
         visualSummary: parsedResult.visual_summary || [],
         confidence: parsedResult.confidence || "high",
