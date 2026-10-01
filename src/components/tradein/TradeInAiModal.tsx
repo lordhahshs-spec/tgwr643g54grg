@@ -60,12 +60,14 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   }>({ front: null, side: null, back: null });
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const hasTriggeredRef = useRef<boolean>(false);
 
   const initSession = async () => {
     if (!currentModel) return;
     setLoading(true);
     setAnalysisResult(null);
     setUpgradeRequired(false);
+    hasTriggeredRef.current = false;
 
     try {
       const q = await tradeinAiService.checkQuota(userId);
@@ -98,6 +100,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
       if (pollingRef.current) clearInterval(pollingRef.current);
       setSession(null);
       setAnalysisResult(null);
+      hasTriggeredRef.current = false;
     }
 
     return () => {
@@ -107,14 +110,14 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   // Polling para acompanhar o celular conectado e recebimento das fotos
   useEffect(() => {
-    if (!isOpen || !session || analysisResult || analyzing || upgradeRequired) return;
+    if (!isOpen || !session || analysisResult || analyzing || upgradeRequired || hasTriggeredRef.current) return;
 
     let pollAttempts = 0;
     const MAX_POLL_ATTEMPTS = 60; // 3 minutos
 
     pollingRef.current = setInterval(async () => {
       pollAttempts += 1;
-      if (pollAttempts > MAX_POLL_ATTEMPTS) {
+      if (pollAttempts > MAX_POLL_ATTEMPTS || hasTriggeredRef.current) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         return;
       }
@@ -127,13 +130,14 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
           setSession(updated);
         }
 
-        // Se o celular terminou de subir as 3 fotos
-        if (updated.status === 'photos_received' && !analyzing) {
+        // Se o celular terminou de subir as fotos e ainda não disparou
+        if (updated.status === 'photos_received' && !hasTriggeredRef.current) {
+          hasTriggeredRef.current = true;
           if (pollingRef.current) clearInterval(pollingRef.current);
           runAiAnalysis(updated.id);
         }
       } catch (e) {
-        console.warn('Polling error:', e);
+        // Silenciar erros transitórios de rede no polling
       }
     }, 2000);
 
@@ -143,11 +147,13 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   }, [isOpen, session?.id, session?.status, analysisResult, analyzing, upgradeRequired]);
 
   const handleCancelSession = async () => {
-    if (session?.id) {
-      await tradeinAiService.cancelSession(session.id, userId);
-      toast.info('Sessão cancelada no computador e no celular conectado.');
-    }
     if (pollingRef.current) clearInterval(pollingRef.current);
+    hasTriggeredRef.current = true;
+
+    if (session?.id) {
+      await tradeinAiService.cancelSession(session.id);
+      toast.info('Sessão cancelada no computador e no celular.');
+    }
     onClose();
   };
 
@@ -173,10 +179,10 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
       } else if (res.requiresUpgrade) {
         setUpgradeRequired(true);
       } else {
-        toast.error(res.message || 'Falha na análise da IA.');
+        toast.error(res.message || 'Não foi possível analisar as fotos.', { id: 'ai-error' });
       }
     } catch (err) {
-      toast.error('Erro ao comunicar com a CellHub IA.');
+      toast.error('Instabilidade de conexão com o servidor de IA.', { id: 'ai-conn-error' });
     } finally {
       setAnalyzing(false);
     }

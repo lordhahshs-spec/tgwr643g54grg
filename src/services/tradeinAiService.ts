@@ -9,7 +9,41 @@ import {
 } from '@/types/tradeinAi';
 import { FaultDefinition } from '@/types/tradein';
 
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_64AtuXy469nIF-4h-oLvKQ_SV9o41Kl";
 const EDGE_FUNCTION_URL = 'https://hhqerjxkptknwudsnlgh.supabase.co/functions/v1/cellhub-ai-router';
+
+// Helper seguro de invocação da Edge Function
+async function invokeEdgeFunction(body: Record<string, any>): Promise<any> {
+  try {
+    const { data, error } = await supabase.functions.invoke('cellhub-ai-router', {
+      body
+    });
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[tradeinAiService] supabase.functions.invoke falhou, tentando fallback direto com apikey...', err);
+  }
+
+  // Fallback com cabeçalhos autorizados completos
+  const response = await fetch(EDGE_FUNCTION_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`Edge Function HTTP ${response.status}: ${errText}`);
+  }
+
+  return await response.json();
+}
 
 export const tradeinAiService = {
   // 1. Criar sessão temporária para leitura via QR Code
@@ -22,7 +56,7 @@ export const tradeinAiService = {
   }): Promise<{ success: boolean; session?: AiEvaluationSession; error?: string }> {
     try {
       const sessionToken = `ses_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos de validade
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos
 
       const payload = {
         session_token: sessionToken,
@@ -81,7 +115,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 3. Atualizar status da sessão (ex: quando celular conecta)
+  // 3. Atualizar status da sessão
   async updateSessionStatus(sessionId: string, status: string): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -95,22 +129,13 @@ export const tradeinAiService = {
     }
   },
 
-  // 4. Cancelar sessão no banco e notificar Edge Function / Celular
-  async cancelSession(sessionId: string, userId?: string): Promise<boolean> {
+  // 4. Cancelar sessão
+  async cancelSession(sessionId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('ai_evaluation_sessions')
         .update({ status: 'cancelled', updated_at: new Date().toISOString() })
         .eq('id', sessionId);
-
-      if (userId) {
-        fetch(EDGE_FUNCTION_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'cancel_session', sessionId, userId })
-        }).catch(() => {});
-      }
-
       return !error;
     } catch (err) {
       console.error('Erro ao cancelar sessão:', err);
@@ -118,15 +143,12 @@ export const tradeinAiService = {
     }
   },
 
-  // 5. Upload de fotos do celular para o Supabase Storage e registro na sessão
+  // 5. Upload paralelo e otimizado de fotos
   async uploadPhotosForSession(
     sessionId: string, 
     photos: { type: 'front' | 'side' | 'back'; file: Blob | File }[]
   ): Promise<{ success: boolean; photos?: AiEvaluationPhoto[]; error?: string }> {
     try {
-      const uploadedPhotos: AiEvaluationPhoto[] = [];
-
-      // Executar uploads em paralelo para máxima velocidade
       const uploadPromises = photos.map(async (item) => {
         const fileExt = 'jpg';
         const fileName = `${sessionId}/${item.type}_${Date.now()}.${fileExt}`;
@@ -155,15 +177,12 @@ export const tradeinAiService = {
       });
 
       const results = await Promise.all(uploadPromises);
-      results.forEach(r => {
-        if (r) uploadedPhotos.push(r);
-      });
+      const uploadedPhotos = results.filter(Boolean) as AiEvaluationPhoto[];
 
       if (uploadedPhotos.length === 0) {
         return { success: false, error: 'Falha no envio das fotografias.' };
       }
 
-      // Atualizar sessão com as fotos enviadas
       const { error: updateErr } = await supabase
         .from('ai_evaluation_sessions')
         .update({
@@ -202,31 +221,23 @@ export const tradeinAiService = {
     remainingFree?: number;
   }> {
     try {
-      const response = await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: params.sessionId ? 'evaluate_session' : 'manual_evaluate',
-          sessionId: params.sessionId,
-          userId: params.userId,
-          brand: params.brand,
-          modelName: params.modelName,
-          allowedPresets: params.allowedPresets,
-          photos: params.photos
-        })
+      const data = await invokeEdgeFunction({
+        action: params.sessionId ? 'evaluate_session' : 'manual_evaluate',
+        sessionId: params.sessionId,
+        userId: params.userId,
+        brand: params.brand,
+        modelName: params.modelName,
+        allowedPresets: params.allowedPresets,
+        photos: params.photos
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      if (!data || !data.success) {
         return {
           success: false,
-          error: data.error || 'ai_evaluation_failed',
-          message: data.message || 'Não foi possível concluir a análise de IA.',
-          requiresUpgrade: Boolean(data.requires_upgrade),
-          remainingFree: data.remainingFree
+          error: data?.error || 'ai_evaluation_failed',
+          message: data?.message || 'Não foi possível concluir a análise de IA.',
+          requiresUpgrade: Boolean(data?.requires_upgrade),
+          remainingFree: data?.remainingFree
         };
       }
 
@@ -240,28 +251,22 @@ export const tradeinAiService = {
       };
     } catch (err: any) {
       console.error('Erro ao acionar avaliação de IA:', err);
-      return { success: false, error: 'connection_error', message: 'Erro de conexão com o servidor de IA.' };
+      return { success: false, error: 'connection_error', message: 'Instabilidade de rede com o servidor de IA.' };
     }
   },
 
-  // 7. Consultar cotas e status atual da franquia do lojista
+  // 7. Consultar cotas
   async checkQuota(userId: string): Promise<AiQuotaStatus | null> {
     try {
-      const response = await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check_quota', userId })
-      });
-
-      if (!response.ok) return null;
-      return await response.json();
+      const data = await invokeEdgeFunction({ action: 'check_quota', userId });
+      return data as AiQuotaStatus;
     } catch (err) {
       console.error('Erro ao consultar cota:', err);
       return null;
     }
   },
 
-  // 8. Obter configurações administrativas (para Master Admin)
+  // 8. Obter configurações administrativas
   async getAdminConfig(): Promise<AiConfiguration | null> {
     try {
       const { data, error } = await supabase
@@ -296,7 +301,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 10. Obter logs de uso para o Master Admin
+  // 10. Obter logs de uso
   async getUsageLogs(limit = 100): Promise<AiUsageLog[]> {
     try {
       const { data, error } = await supabase
@@ -313,7 +318,7 @@ export const tradeinAiService = {
     }
   },
 
-  // 11. Obter ou alternar assinatura paga de teste do lojista (Master Admin)
+  // 11. Alternar acesso pago de teste
   async toggleUserPaidAccess(userId: string, enabled: boolean): Promise<boolean> {
     try {
       const { error } = await supabase
