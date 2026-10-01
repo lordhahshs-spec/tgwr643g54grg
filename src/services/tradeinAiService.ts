@@ -153,6 +153,26 @@ export const tradeinAiService = {
     }
   },
 
+  // 4.1 Reabrir sessão existente para nova captura no celular sem gerar novo QR Code
+  async resetSessionForRetry(sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('ai_evaluation_sessions')
+        .update({
+          status: 'phone_connected',
+          photos: [],
+          detected_presets: [],
+          visual_summary: [],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+      return !error;
+    } catch (err) {
+      console.error('Erro ao reabrir sessão para retentativa:', err);
+      return false;
+    }
+  },
+
   // 5. Upload paralelo e otimizado de fotos
   async uploadPhotosForSession(
     sessionId: string, 

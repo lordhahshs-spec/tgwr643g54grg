@@ -169,6 +169,34 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     onClose();
   };
 
+  const handleRetryReopenedSession = async () => {
+    if (!session) {
+      initSession();
+      return;
+    }
+
+    setAnalyzing(false);
+    setRejectionData(null);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+    setDesktopFiles({ front: null, side: null, back: null });
+    hasTriggeredRef.current = false;
+
+    // Reseta no Supabase para reabrir a mesma sessão instantaneamente no smartphone
+    await tradeinAiService.resetSessionForRetry(session.id);
+
+    // Atualiza estado local da sessão mantendo o mesmo QR Code / Token
+    setSession(prev => prev ? {
+      ...prev,
+      status: 'phone_connected',
+      photos: [],
+      detected_presets: [],
+      visual_summary: []
+    } : null);
+
+    toast.success('Sessão reaberta! O celular já foi liberado para capturar novas fotos.');
+  };
+
   const runAiAnalysis = async (sessionId?: string) => {
     setAnalyzing(true);
     setAnalysisError(null);
@@ -349,13 +377,21 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 Por favor, aponte a câmera e tire fotos reais e nítidas do smartphone que está sendo avaliado.
               </p>
 
-              <div className="flex justify-center gap-3 pt-2">
+              <div className="flex flex-wrap justify-center gap-2.5 pt-2">
                 <Button
-                  onClick={initSession}
+                  onClick={handleRetryReopenedSession}
                   className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-6 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center gap-2"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Fotografar Celular Novamente
+                  Liberar Celular para Novas Fotos
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={initSession}
+                  className="border-white/10 bg-[#0c1424] text-slate-300 text-xs h-11 rounded-2xl px-4 hover:text-white"
+                >
+                  Gerar Novo QR Code
                 </Button>
               </div>
             </div>

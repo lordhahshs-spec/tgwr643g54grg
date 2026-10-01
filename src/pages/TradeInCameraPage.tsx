@@ -1,23 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
-  Camera, 
-  CheckCircle2, 
-  Sparkles, 
-  Smartphone, 
-  AlertCircle, 
-  RefreshCw, 
-  ShieldCheck, 
-  ArrowRight, 
-  UploadCloud, 
-  Check, 
-  Ban, 
-  XCircle, 
-  Lock 
+import {
+  Camera,
+  CheckCircle2,
+  Sparkles,
+  Smartphone,
+  AlertCircle,
+  RefreshCw,
+  ShieldCheck,
+  ArrowRight,
+  UploadCloud,
+  Check,
+  Ban,
+  XCircle,
+  Lock,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { tradeinAiService } from '@/services/tradeinAiService';
 import { AiEvaluationSession } from '@/types/tradeinAi';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type PhotoStep = 'front' | 'side' | 'back';
@@ -98,19 +100,34 @@ export default function TradeInCameraPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const statusPollingRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+
+  const resetLocalCapture = (msg?: string) => {
+    if (sessionId) {
+      sessionStorage.removeItem(`submitted_${sessionId}`);
+    }
+    setIsCompleted(false);
+    setIsCancelled(false);
+    setIsUploading(false);
+    setUploadProgressText('');
+    setPhotos({ front: null, side: null, back: null });
+    setCurrentStep('front');
+    if (msg) {
+      toast.info(msg);
+    }
+  };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     async function loadSession() {
       if (!sessionId) {
         setErrorMsg('Código da sessão inválido.');
-        setLoading(false);
-        return;
-      }
-
-      const localSubmitted = sessionStorage.getItem(`submitted_${sessionId}`);
-      if (localSubmitted) {
-        setIsCompleted(true);
         setLoading(false);
         return;
       }
@@ -128,12 +145,6 @@ export default function TradeInCameraPage() {
         return;
       }
 
-      if (['photos_received', 'analyzing', 'completed'].includes(s.status) || (s.photos && s.photos.length > 0)) {
-        setIsCompleted(true);
-        setLoading(false);
-        return;
-      }
-
       if (new Date(s.expires_at).getTime() < Date.now()) {
         setErrorMsg('Esta sessão expirou. Gere um novo QR Code na tela da loja.');
         setLoading(false);
@@ -141,6 +152,14 @@ export default function TradeInCameraPage() {
       }
 
       setSession(s);
+
+      // Se a sessão está reaberta (sem fotos ou status de conexão), libera o fluxo
+      if (['phone_connected', 'waiting_for_phone', 'waiting_for_photos'].includes(s.status) && (!s.photos || s.photos.length === 0)) {
+        resetLocalCapture();
+      } else if (['photos_received', 'analyzing', 'completed'].includes(s.status) || (s.photos && s.photos.length > 0)) {
+        setIsCompleted(true);
+      }
+
       setLoading(false);
 
       if (s.status === 'waiting_for_phone') {
@@ -151,30 +170,69 @@ export default function TradeInCameraPage() {
     loadSession();
   }, [sessionId]);
 
+  // Sincronização em tempo real e polling para reabertura instantânea da sessão
   useEffect(() => {
-    if (!sessionId || isCompleted || isCancelled) return;
+    if (!sessionId) return;
 
-    statusPollingRef.current = setInterval(async () => {
+    // 1. Inscrição Realtime no Supabase
+    const channel = supabase
+      .channel(`camera_session_${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ai_evaluation_sessions',
+          filter: `session_token=eq.${sessionId}`
+        },
+        (payload) => {
+          const updated = payload.new as AiEvaluationSession;
+          if (!updated) return;
+          handleSessionStateChange(updated);
+        }
+      )
+      .subscribe();
+
+    // 2. Polling de fallback a cada 1.2 segundos
+    const pollInterval = setInterval(async () => {
+      if (!isMountedRef.current) return;
       try {
         const s = await tradeinAiService.getSession(sessionId);
-        if (!s) return;
-
-        if (s.status === 'cancelled') {
-          setIsCancelled(true);
-          if (statusPollingRef.current) clearInterval(statusPollingRef.current);
-        } else if (['photos_received', 'analyzing', 'completed'].includes(s.status)) {
-          setIsCompleted(true);
-          if (statusPollingRef.current) clearInterval(statusPollingRef.current);
+        if (s) {
+          handleSessionStateChange(s);
         }
       } catch (err) {
         // Silenciar
       }
-    }, 1500);
+    }, 1200);
+
+    const handleSessionStateChange = (s: AiEvaluationSession) => {
+      setSession(s);
+
+      if (s.status === 'cancelled') {
+        setIsCancelled(true);
+        return;
+      }
+
+      // Reabertura detectada: o lojista clicou em tentar novamente no computador
+      if (
+        (['phone_connected', 'waiting_for_phone', 'waiting_for_photos'].includes(s.status) && (!s.photos || s.photos.length === 0))
+      ) {
+        if (isCompleted || isCancelled) {
+          resetLocalCapture('Sessão reaberta pelo lojista! Por favor, fotografe o smartphone novamente.');
+        }
+      } else if (['photos_received', 'analyzing', 'completed'].includes(s.status)) {
+        if (!isUploading) {
+          setIsCompleted(true);
+        }
+      }
+    };
 
     return () => {
-      if (statusPollingRef.current) clearInterval(statusPollingRef.current);
+      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
-  }, [sessionId, isCompleted, isCancelled]);
+  }, [sessionId, isCompleted, isCancelled, isUploading]);
 
   const stepMeta: Record<PhotoStep, { title: string; desc: string; tip: string; next: PhotoStep | null }> = {
     front: {
@@ -330,11 +388,27 @@ export default function TradeInCameraPage() {
           <div className="p-3.5 rounded-2xl bg-[#0c1424] border border-white/10 text-xs space-y-1">
             <div className="flex items-center justify-center gap-1.5 text-[#00D287] font-bold">
               <Lock className="w-3.5 h-3.5" />
-              <span>Sessão Concluída & Bloqueada</span>
+              <span>Fotos Entregues com Sucesso</span>
             </div>
             <span className="text-[11px] text-slate-400 block pt-1">
-              Para avaliar outro smartphone, gere um novo QR Code na tela da loja.
+              Aguardando confirmação do operador na tela do computador.
             </span>
+          </div>
+
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (session) {
+                  tradeinAiService.resetSessionForRetry(session.id);
+                }
+                resetLocalCapture('Câmera liberada para novas fotos!');
+              }}
+              className="w-full border-white/10 bg-[#060a16] hover:bg-[#0c1424] text-slate-300 text-xs h-10 rounded-2xl flex items-center justify-center gap-2"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Tirar Novas Fotos Deste Aparelho
+            </Button>
           </div>
         </div>
       </div>
