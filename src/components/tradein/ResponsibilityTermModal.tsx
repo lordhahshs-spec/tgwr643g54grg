@@ -9,10 +9,7 @@ import {
   ShieldCheck, 
   Smartphone, 
   User, 
-  MapPin, 
-  Lock, 
-  QrCode, 
-  AlertCircle 
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -119,7 +116,7 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
     setIsDrawing(false);
   };
 
-  const clearCanvas = () => {
+  const clearSignature = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -128,36 +125,36 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
     setHasSignature(false);
   };
 
-  const handleProceedToSign = () => {
-    if (!imei.trim() || imei.trim().length < 8) {
-      toast.error('Informe o IMEI do aparelho para validar o termo jurídico.');
-      return;
-    }
-    if (!customer.name.trim() || !customer.cpf.trim() || !customer.phone.trim()) {
-      toast.error('Preencha Nome, CPF e Telefone do vendedor do aparelho.');
+  const handleGoToSign = () => {
+    if (!customer.name.trim() || !customer.cpf.trim() || customer.cpf.length < 14) {
+      toast.error('Preencha o Nome Completo e um CPF válido do cliente.');
       return;
     }
     setStep('sign');
   };
 
-  const handleFinalizeDocument = async () => {
-    const canvas = canvasRef.current;
-    let finalSign = signatureImage;
-    if (canvas && hasSignature) {
-      finalSign = canvas.toDataURL('image/png');
-      setSignatureImage(finalSign);
+  const handleFinalizeAndSave = async () => {
+    if (!hasSignature && !signatureImage) {
+      toast.error('Por favor, colha a assinatura do cliente antes de prosseguir.');
+      return;
     }
+
+    const canvas = canvasRef.current;
+    const sigData = canvas ? canvas.toDataURL('image/png') : signatureImage;
+    setSignatureImage(sigData);
 
     setIsSaving(true);
     try {
-      const result = await onConfirmSave(customer, finalSign, imei.trim());
-      if (result) {
-        setSavedEvaluation(result);
+      const saved = await onConfirmSave(customer, sigData, imei);
+      if (saved) {
+        setSavedEvaluation(saved);
         setStep('complete');
-        toast.success('Termo de compra e responsabilidade salvo com sucesso!');
+        toast.success('Termo gerado e compra registrada com sucesso!');
+      } else {
+        toast.error('Ocorreu um erro ao salvar o registro.');
       }
     } catch (err) {
-      toast.error('Erro ao gerar termo.');
+      toast.error('Erro ao registrar avaliação.');
     } finally {
       setIsSaving(false);
     }
@@ -167,183 +164,179 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
     window.print();
   };
 
-  const evaluationCode = savedEvaluation?.evaluation_code || evaluation.evaluation_code || 'REC-2025-PEND';
-  const qrVerificationUrl = `https://cellhub.app/verificar/${evaluationCode}`;
-  const storeName = settings?.store_name || 'Minha Loja de Celulares';
-  const storeCnpj = settings?.store_cnpj || '';
-  const storeAddress = settings?.store_address || '';
-  const termsText = settings?.terms_text || DEFAULT_LEGAL_TERMS;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl bg-[#11161d] border border-[#252d37] rounded-xl shadow-2xl overflow-hidden my-auto max-h-[95vh] flex flex-col print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0">
+      <div className="relative w-full max-w-3xl bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100 print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0">
         
-        {/* Header (Hidden on print) */}
-        <div className="p-4 sm:p-5 border-b border-[#252d37] bg-[#171d25] flex items-center justify-between shrink-0 print:hidden">
+        {/* Modal Top Header (Hidden in Print) */}
+        <div className="p-4 sm:p-5 border-b border-slate-800 bg-[#1e293b]/80 flex items-center justify-between shrink-0 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#11161d] border border-[#252d37] flex items-center justify-center text-[#16b981] shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-semibold text-[#f3f5f7] tracking-tight">
-                Termo de Compra & Responsabilidade de Procedência
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Termo de Compra, Procedência & Responsabilidade
               </h2>
-              <p className="text-xs text-[#a3adb8]">
-                Resguardo legal com qualificação do cliente e registro de IMEI
+              <p className="text-xs text-slate-400">
+                Respaldo jurídico com assinatura digital e dados do vendedor
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-[#11161d] border border-[#252d37] text-[#a3adb8] hover:text-white hover:bg-[#252d37] flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 scrollbar-thin scrollbar-thumb-[#252d37] print:p-0 print:overflow-visible">
-          {/* STEP 1: IMEI & Customer Form */}
+        {/* Modal Body Container */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin print:p-0 print:overflow-visible">
           {step === 'form' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
-              {/* Device Overview Banner */}
-              <div className="p-4 rounded-xl bg-[#171d25] border border-[#252d37] flex items-center justify-between">
+            /* STEP 1: CUSTOMER FORM & IMEI */
+            <div className="space-y-5 animate-in fade-in duration-150">
+              {/* Summary Card */}
+              <div className="p-3.5 sm:p-4 rounded-xl bg-[#1e293b] border border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#11161d] border border-[#252d37] flex items-center justify-center text-[#16b981] shrink-0">
-                    <Smartphone className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                    <Smartphone className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs text-[#737e8a] block font-medium">Aparelho Negociado:</span>
-                    <strong className="text-sm text-[#f3f5f7] font-semibold">
-                      {evaluation.brand} {evaluation.model_name} {evaluation.storage}
+                    <span className="text-[11px] text-slate-400 uppercase font-bold block">Aparelho Avaliado</span>
+                    <strong className="text-sm font-bold text-white">
+                      {evaluation.brand} {evaluation.model_name} ({evaluation.storage})
                     </strong>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] text-[#737e8a] block uppercase font-medium">Valor a Pagar</span>
-                  <span className="text-base sm:text-lg font-bold text-[#16b981]">
-                    R$ {evaluation.final_valuation?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <div className="text-left sm:text-right">
+                  <span className="text-[11px] text-slate-400 uppercase font-bold block">Valor a ser Pago</span>
+                  <span className="text-base sm:text-lg font-black text-emerald-400">
+                    R$ {Number(evaluation.final_valuation || 0).toLocaleString('pt-BR')}
                   </span>
                 </div>
               </div>
 
-              {/* IMEI Input Box (Crucial for legal safety) */}
-              <div className="p-4 rounded-xl bg-[#171d25] border border-[#252d37] space-y-2">
+              {/* IMEI & Security Verification */}
+              <div className="space-y-1.5 p-3.5 rounded-xl bg-[#0a0f1d] border border-slate-800">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[#f3f5f7] flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-[#16b981]" />
-                    Número de IMEI do Aparelho (Obrigatório):
+                  <label className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-blue-400" />
+                    Número do IMEI (15 dígitos):
                   </label>
-                  <span className="text-[11px] text-[#737e8a]">Disque *#06# no teclado</span>
+                  <span className="text-[11px] text-slate-400">Consulte discando *#06# no teclado</span>
                 </div>
                 <Input
                   value={imei}
-                  onChange={(e) => setImei(e.target.value.replace(/\D/g, '').slice(0, 18))}
-                  placeholder="Ex: 354892091234567"
-                  className="bg-[#11161d] border-[#252d37] text-sm text-[#f3f5f7] font-mono tracking-wider rounded-lg h-11 focus:border-[#16b981]"
+                  onChange={(e) => setImei(e.target.value.replace(/\D/g, '').slice(0, 15))}
+                  placeholder="Ex: 354892109876543"
+                  className="bg-[#1e293b] border-slate-700 text-sm text-white font-mono tracking-wider rounded-xl h-11 focus:border-blue-500"
                 />
               </div>
 
               {/* Customer Identification */}
-              <div className="space-y-3 pt-1">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#a3adb8] flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[#16b981]" />
-                  Dados do Cliente / Vendedor
+              <div className="space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-400" />
+                  Identificação do Vendedor (Cliente que está entregando)
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="text-xs text-[#a3adb8] font-medium block">Nome Completo do Cliente:</label>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-300 block">Nome Completo do Cliente: *</label>
                     <Input
                       value={customer.name}
                       onChange={(e) => setCustomer(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Nome completo do vendedor"
-                      className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm text-[#f3f5f7] rounded-lg h-10"
+                      placeholder="Ex: João da Silva Santos"
+                      className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs text-[#a3adb8] font-medium block">CPF:</label>
+                    <label className="text-xs font-semibold text-slate-300 block">CPF do Vendedor: *</label>
                     <Input
                       value={customer.cpf}
                       onChange={(e) => handleCpfChange(e.target.value)}
                       placeholder="000.000.000-00"
-                      className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm text-[#f3f5f7] rounded-lg h-10 font-mono"
+                      className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-white font-mono rounded-xl h-10"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs text-[#a3adb8] font-medium block">Telefone / WhatsApp:</label>
+                    <label className="text-xs font-semibold text-slate-300 block">WhatsApp / Telefone:</label>
                     <Input
                       value={customer.phone}
                       onChange={(e) => setCustomer(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="(11) 99999-9999"
-                      className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm text-[#f3f5f7] rounded-lg h-10"
+                      className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
                     />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="text-xs text-[#a3adb8] font-medium block">Endereço Residencial (Opcional):</label>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-300 block">Endereço Residencial (Opcional):</label>
                     <Input
                       value={customer.address}
                       onChange={(e) => setCustomer(prev => ({ ...prev, address: e.target.value }))}
-                      placeholder="Rua, número, complemento - Bairro, Cidade"
-                      className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm text-[#f3f5f7] rounded-lg h-10"
+                      placeholder="Rua / Avenida, Número, Bairro, Cidade"
+                      className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#252d37]">
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="border-[#252d37] text-[#a3adb8] hover:text-white"
+                  className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white rounded-xl"
                 >
                   Cancelar
                 </Button>
                 <Button
-                  onClick={handleProceedToSign}
-                  className="bg-[#16b981] hover:bg-[#10b981] text-white font-semibold flex items-center gap-2 h-10 px-5 rounded-lg"
+                  onClick={handleGoToSign}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-2 h-10 px-5 rounded-xl shadow-md shadow-blue-600/30"
                 >
-                  <PenTool className="w-4 h-4" /> Avançar para Assinatura
+                  Continuar para Assinatura →
                 </Button>
               </div>
             </div>
           )}
 
-          {/* STEP 2: Digital Signature on Canvas */}
           {step === 'sign' && (
+            /* STEP 2: DIGITAL SIGNATURE PAD */
             <div className="space-y-4 animate-in fade-in duration-150">
-              <div className="p-3.5 rounded-lg bg-[#171d25] border border-[#252d37] space-y-1 text-xs">
-                <span className="text-[#a3adb8] block">
-                  Vendedor: <strong className="text-[#f3f5f7]">{customer.name}</strong> • CPF: <strong className="text-[#f3f5f7]">{customer.cpf}</strong>
-                </span>
-                <span className="text-[#a3adb8] block">
-                  Aparelho: <strong className="text-[#f3f5f7]">{evaluation.brand} {evaluation.model_name}</strong> (IMEI: <strong className="text-[#f3f5f7]">{imei}</strong>)
-                </span>
+              <div className="p-3.5 rounded-xl bg-[#1e293b] border border-slate-700 text-xs text-slate-300 space-y-1">
+                <p className="font-bold text-white">
+                  Declaração do Vendedor: {customer.name} (CPF: {customer.cpf})
+                </p>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  Declaro que sou proprietário(a) legítimo(a) deste aparelho e me responsabilizo integralmente pela sua procedência legal.
+                </p>
               </div>
 
+              {/* Signature Canvas Box */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[#f3f5f7] flex items-center gap-1.5">
-                    <PenTool className="w-3.5 h-3.5 text-[#16b981]" />
-                    Assinatura Digital do Vendedor (Na tela ou celular):
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-blue-400" />
+                    Assine com o dedo ou mouse no quadro abaixo:
                   </label>
                   <button
-                    onClick={clearCanvas}
-                    className="text-xs text-[#a3adb8] hover:text-rose-400 flex items-center gap-1 transition-colors"
+                    onClick={clearSignature}
+                    className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1"
                   >
-                    <RotateCcw className="w-3 h-3" /> Limpar assinatura
+                    <RotateCcw className="w-3 h-3" /> Limpar Assinatura
                   </button>
                 </div>
 
-                <div className="border border-[#252d37] rounded-xl bg-white overflow-hidden shadow-inner touch-none relative">
+                <div className="border-2 border-dashed border-slate-600 rounded-xl bg-white overflow-hidden touch-none h-44 flex items-center justify-center relative cursor-crosshair">
                   <canvas
                     ref={canvasRef}
-                    width={560}
-                    height={160}
+                    width={600}
+                    height={180}
+                    className="w-full h-full"
                     onMouseDown={startDrawing}
                     onMouseMove={draw}
                     onMouseUp={stopDrawing}
@@ -351,181 +344,197 @@ export const ResponsibilityTermModal: React.FC<ResponsibilityTermModalProps> = (
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
-                    className="w-full h-40 cursor-crosshair block"
                   />
                   {!hasSignature && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs italic">
-                      Desenhe ou assine com o dedo / caneta nesta área
-                    </div>
+                    <span className="absolute text-slate-400 text-xs pointer-events-none select-none">
+                      Assine aqui ✍️
+                    </span>
                   )}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[#171d25] border border-[#252d37] text-[11px] text-[#a3adb8] space-y-1 leading-relaxed">
-                <strong className="text-[#f3f5f7] block">Cláusula Penal (Art. 180 e 299 CPB):</strong>
-                O cliente atesta ser legítimo proprietário e se responsabiliza integralmente pela procedência do aparelho.
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t border-[#252d37]">
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
                 <Button
                   variant="outline"
                   onClick={() => setStep('form')}
-                  className="border-[#252d37] text-[#a3adb8] hover:text-white"
+                  className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white rounded-xl"
                 >
-                  ← Voltar dados
+                  ← Voltar
                 </Button>
                 <Button
-                  onClick={handleFinalizeDocument}
-                  disabled={isSaving}
-                  className="bg-[#16b981] hover:bg-[#10b981] text-white font-semibold flex items-center gap-2 h-10 px-5 rounded-lg shadow-sm"
+                  onClick={handleFinalizeAndSave}
+                  disabled={!hasSignature || isSaving}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-2 h-10 px-5 rounded-xl shadow-md shadow-blue-600/30"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Finalizar e Gerar Recibo
+                  {isSaving ? 'Salvando...' : 'Concluir & Gerar Termo'}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* STEP 3: Complete Print Layout (A4 format ready) */}
           {step === 'complete' && (
-            <div className="space-y-4">
-              {/* Screen Confirmation Banner (Hidden on Print) */}
-              <div className="p-4 rounded-xl bg-[#171d25] border border-[#16b981]/30 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
+            /* STEP 3: SUCCESS & PRINTABLE VIEW */
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Success Notification Bar (Hidden in Print) */}
+              <div className="p-4 rounded-xl bg-[#1e293b] border border-blue-500/40 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
                 <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-5 h-5 text-[#16b981]" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-[#f3f5f7]">Termo de Compra Salvo com Sucesso!</h3>
-                    <p className="text-[11px] text-[#a3adb8]">Código de Validação: {evaluationCode}</p>
+                    <h4 className="text-sm font-bold text-white">
+                      Termo gerado com sucesso!
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Código: <span className="font-mono font-bold text-blue-400">{savedEvaluation?.evaluation_code}</span> — Salvo no histórico digital.
+                    </p>
                   </div>
                 </div>
-                <Button
-                  onClick={handlePrint}
-                  className="bg-[#16b981] hover:bg-[#10b981] text-white font-semibold text-xs flex items-center gap-1.5 h-9 rounded-lg shadow-sm"
-                >
-                  <Printer className="w-4 h-4" /> Imprimir Documento (A4 / PDF)
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handlePrint}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 h-9 rounded-xl shadow-md shadow-blue-600/30"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Imprimir Termo A4
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white text-xs h-9 rounded-xl"
+                  >
+                    Fechar
+                  </Button>
+                </div>
               </div>
 
-              {/* Printable Legal Document Container */}
-              <div className="bg-white text-slate-900 p-6 sm:p-8 rounded-xl border border-slate-300 shadow-sm print:p-0 print:border-none print:shadow-none print:rounded-none font-sans space-y-5 text-xs sm:text-sm leading-relaxed">
-                {/* Document Header */}
-                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+              {/* Printable Term Document (Optimized for A4 paper print) */}
+              <div className="bg-white text-black p-6 sm:p-8 rounded-xl shadow-xl border border-slate-300 print:border-none print:shadow-none print:p-0 font-sans text-xs sm:text-sm leading-relaxed">
+                
+                {/* Header */}
+                <div className="border-b-2 border-slate-900 pb-3 mb-4 flex items-center justify-between">
                   <div>
-                    <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
-                      {storeName}
+                    <h1 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900">
+                      {settings?.store_name || 'CELLHUB — COMPRA & AVALIAÇÃO DE SEMINOVOS'}
                     </h1>
-                    {storeCnpj && <p className="text-xs text-slate-600 font-medium">CNPJ/CPF: {storeCnpj}</p>}
-                    {storeAddress && <p className="text-xs text-slate-600">{storeAddress}</p>}
+                    {settings?.store_cnpj && (
+                      <p className="text-xs text-slate-600 font-semibold">
+                        CNPJ/CPF: {settings.store_cnpj}
+                      </p>
+                    )}
+                    {settings?.store_address && (
+                      <p className="text-xs text-slate-600">
+                        {settings.store_address}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black uppercase bg-slate-900 text-white px-2.5 py-1 rounded">
+                      {evaluation.type === 'troca' ? 'TROCA COM RETOMADA' : 'RECIBO DE COMPRA'}
+                    </span>
+                    <p className="text-xs font-mono font-bold mt-1 text-slate-800">
+                      Nº {savedEvaluation?.evaluation_code || 'REC-XXXXX'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Data: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Device & Value Summary */}
+                <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-slate-100 rounded-lg border border-slate-300">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase text-slate-500 block">Aparelho Adquirido:</span>
+                    <strong className="text-sm text-slate-900">{evaluation.brand} {evaluation.model_name} ({evaluation.storage})</strong>
+                    {imei && (
+                      <p className="text-xs font-mono font-bold text-blue-800 mt-0.5">
+                        IMEI: {imei}
+                      </p>
+                    )}
                   </div>
 
                   <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-500 block uppercase">Nº DO RECIBO</span>
-                    <span className="text-sm sm:text-base font-mono font-black text-slate-900">{evaluationCode}</span>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">{new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                </div>
-
-                <div className="text-center font-bold uppercase tracking-wider text-xs border border-slate-400 bg-slate-100 py-1.5 rounded">
-                  TERMO DE COMPRA E DECLARAÇÃO DE PROCEDÊNCIA & RESPONSABILIDADE
-                </div>
-
-                {/* Seller & Device Details Table */}
-                <div className="grid grid-cols-2 gap-3 p-3.5 rounded border border-slate-300 bg-slate-50/50">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold block">1. QUALIFICAÇÃO DO VENDEDOR</span>
-                    <p className="font-semibold">Nome: {customer.name}</p>
-                    <p>CPF: {customer.cpf}</p>
-                    <p>Telefone: {customer.phone}</p>
-                    {customer.address && <p>Endereço: {customer.address}</p>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold block">2. CARACTERIZAÇÃO DO SMARTPHONE</span>
-                    <p className="font-semibold">Modelo: {evaluation.brand} {evaluation.model_name} {evaluation.storage}</p>
-                    <p className="font-mono font-bold text-slate-900">IMEI: {imei}</p>
-                    <p>Modalidade: {evaluation.type === 'troca' ? 'Troca / Trade-In com Abatimento' : 'Compra Direta'}</p>
-                  </div>
-                </div>
-
-                {/* Values Breakdown */}
-                <div className="border border-slate-300 rounded p-3 bg-white space-y-1.5">
-                  <div className="flex justify-between font-medium">
-                    <span>Valor Base do Aparelho:</span>
-                    <span>R$ {evaluation.base_value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                  </div>
-
-                  {evaluation.faults_selected && evaluation.faults_selected.length > 0 && (
-                    <div className="py-1 border-y border-dashed border-slate-300 space-y-0.5 text-[11px] text-slate-700">
-                      <span className="font-bold text-slate-800 block">Deduções / Avarias Identificadas:</span>
-                      {evaluation.faults_selected.map(f => (
-                        <div key={f.id} className="flex justify-between pl-2">
-                          <span>• {f.label}:</span>
-                          <span className="text-red-700 font-semibold">– R$ {f.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {evaluation.trade_bonus_applied && evaluation.trade_bonus_applied > 0 ? (
-                    <div className="flex justify-between text-emerald-700 font-medium">
-                      <span>(+) Bônus de Fidelidade na Troca:</span>
-                      <span>+ R$ {evaluation.trade_bonus_applied.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  ) : null}
-
-                  <div className="flex justify-between font-black text-sm sm:text-base border-t border-slate-900 pt-1 text-slate-900">
-                    <span>VALOR TOTAL PAGO PELA LOJA:</span>
-                    <span>R$ {evaluation.final_valuation?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-
-                {/* Legal Clauses Text */}
-                <div className="p-3 border border-slate-300 rounded text-[10px] text-slate-700 space-y-1 whitespace-pre-line leading-relaxed font-sans bg-slate-50/30">
-                  {termsText}
-                </div>
-
-                {/* Signatures & QR Code */}
-                <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-8 items-end border-t border-slate-400">
-                  {/* Digital Signature Image or Line */}
-                  <div className="text-center space-y-1.5">
-                    {signatureImage ? (
-                      <img
-                        src={signatureImage}
-                        alt="Assinatura"
-                        className="h-16 mx-auto object-contain border-b border-slate-900 pb-1"
-                      />
-                    ) : (
-                      <div className="border-b border-slate-900 h-14 mx-4"></div>
+                    <span className="text-[11px] font-bold uppercase text-slate-500 block">Valor Final Pago:</span>
+                    <strong className="text-base sm:text-lg text-emerald-700 font-black">
+                      R$ {Number(evaluation.final_valuation || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </strong>
+                    {Number(evaluation.total_faults_discount || 0) > 0 && (
+                      <p className="text-[11px] text-red-600 font-medium">
+                        (Avarias deduzidas: -R$ {evaluation.total_faults_discount})
+                      </p>
                     )}
-                    <span className="font-bold block text-xs uppercase text-slate-900">{customer.name}</span>
-                    <span className="text-[10px] text-slate-500 block">Assinatura do Vendedor / Titular (CPF: {customer.cpf})</span>
-                  </div>
-
-                  {/* Store Stamp / Signature */}
-                  <div className="text-center space-y-1.5">
-                    <div className="border-b border-slate-900 h-14 mx-4 flex items-end justify-center pb-1">
-                      <span className="text-[11px] font-bold text-slate-700">{storeName}</span>
-                    </div>
-                    <span className="font-bold block text-xs uppercase text-slate-900">Responsável pela Avaliação</span>
-                    <span className="text-[10px] text-slate-500 block">Visto da Loja Compradora</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Actions Footer */}
-              <div className="flex justify-between items-center pt-3 border-t border-[#252d37] print:hidden">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="border-[#252d37] text-[#a3adb8] hover:text-white"
-                >
-                  Fechar
-                </Button>
-                <Button
-                  onClick={handlePrint}
-                  className="bg-[#16b981] hover:bg-[#10b981] text-white font-semibold flex items-center gap-1.5"
-                >
-                  <Printer className="w-4 h-4" /> Imprimir Documento
-                </Button>
+                {/* Customer Data */}
+                <div className="mb-4 p-3 border border-slate-300 rounded-lg bg-slate-50">
+                  <span className="text-xs font-black uppercase text-slate-800 block mb-1">
+                    Qualificação do Vendedor (Cliente):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500">Nome:</span> <strong className="text-slate-900">{customer.name}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">CPF:</span> <strong className="text-slate-900 font-mono">{customer.cpf}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Telefone:</span> <strong className="text-slate-900">{customer.phone || 'Não informado'}</strong>
+                    </div>
+                    {customer.address && (
+                      <div className="col-span-2 sm:col-span-3">
+                        <span className="text-slate-500">Endereço:</span> <span className="text-slate-800">{customer.address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Legal Terms Clauses */}
+                <div className="mb-4">
+                  <span className="text-xs font-black uppercase text-slate-800 block mb-1">
+                    Cláusulas de Declaração de Procedência & Responsabilidade:
+                  </span>
+                  <p className="text-[11px] text-slate-700 whitespace-pre-line leading-relaxed text-justify">
+                    {settings?.terms_text || DEFAULT_LEGAL_TERMS}
+                  </p>
+                </div>
+
+                {/* Signature Box */}
+                <div className="mt-6 pt-4 border-t border-slate-300 grid grid-cols-2 gap-6">
+                  <div className="text-center">
+                    <div className="h-16 flex items-center justify-center border-b border-slate-900">
+                      {signatureImage ? (
+                        <img 
+                          src={signatureImage} 
+                          alt="Assinatura do Vendedor" 
+                          className="max-h-14 max-w-full object-contain" 
+                        />
+                      ) : (
+                        <span className="text-xs italic text-slate-400">Assinatura Digital Registrada</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 block mt-1">
+                      {customer.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      CPF: {customer.cpf}
+                    </span>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="h-16 flex items-center justify-center border-b border-slate-900">
+                      <span className="text-xs font-bold text-slate-800">
+                        {settings?.store_name || 'Lojista Responsável'}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 block mt-1">
+                      Responsável / Vistoriador
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {savedEvaluation?.created_by_name || 'CellHub'}
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}

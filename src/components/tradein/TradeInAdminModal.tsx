@@ -7,11 +7,8 @@ import {
   Save, 
   X, 
   Smartphone, 
-  FileText,
   Search,
-  Building2,
-  ShieldCheck,
-  CheckCircle2
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -151,68 +148,68 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-4xl bg-[#11161d] border border-[#252d37] rounded-xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-4xl bg-[#0f172a] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
         
-        {/* Header - Clean B2B style */}
-        <div className="p-4 sm:p-6 border-b border-[#252d37] bg-[#171d25] flex items-center justify-between shrink-0">
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b border-slate-800 bg-[#1e293b]/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#11161d] border border-[#252d37] flex items-center justify-center text-[#16b981] shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-semibold text-[#f3f5f7] tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                 Configuração da Tabela de Preços & Avarias
               </h2>
-              <p className="text-xs text-[#a3adb8] mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Edite os valores de compra, adicione novos modelos e configure os dados do recibo
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-[#11161d] border border-[#252d37] text-[#a3adb8] hover:text-white hover:bg-[#252d37] flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="px-5 pt-3 border-b border-[#252d37] bg-[#11161d] flex gap-2 shrink-0">
+        <div className="px-5 pt-3 border-b border-slate-800 bg-[#0f172a] flex gap-2 shrink-0">
           <button
             onClick={() => { setTab('models'); setEditingModel(null); }}
-            className={`pb-3 px-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3 px-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
               tab === 'models'
-                ? 'border-[#16b981] text-[#16b981]'
-                : 'border-transparent text-[#a3adb8] hover:text-[#f3f5f7]'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Smartphone className="w-4 h-4" /> Modelos & Preços da Loja
           </button>
           <button
             onClick={() => { setTab('settings'); setEditingModel(null); }}
-            className={`pb-3 px-3.5 text-xs sm:text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3 px-3.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
               tab === 'settings'
-                ? 'border-[#16b981] text-[#16b981]'
-                : 'border-transparent text-[#a3adb8] hover:text-[#f3f5f7]'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Building2 className="w-4 h-4" /> Dados da Loja & Termo Legal
           </button>
         </div>
 
-        {/* Content Body with scrollbar */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-[#252d37] scrollbar-track-[#11161d] space-y-5">
+        {/* Content Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-thin space-y-5">
           {tab === 'models' && (
             editingModel ? (
               /* FORM: ADD / EDIT MODEL */
               <div className="space-y-5 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between pb-3 border-b border-[#252d37]">
-                  <h3 className="text-sm sm:text-base font-semibold text-[#f3f5f7] flex items-center gap-2">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                     {editingModel.id ? 'Editar Modelo na Minha Tabela' : 'Adicionar Novo Modelo'}
                   </h3>
                   <button
                     onClick={() => setEditingModel(null)}
-                    className="text-xs text-[#a3adb8] hover:text-white underline font-medium"
+                    className="text-xs text-blue-400 hover:underline font-medium"
                   >
                     ← Cancelar e Voltar
                   </button>
@@ -220,11 +217,11 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-[#a3adb8] block">Fabricante / Marca:</label>
+                    <label className="text-xs font-semibold text-slate-300 block">Fabricante / Marca:</label>
                     <select
                       value={editingModel.brand}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, brand: e.target.value }))}
-                      className="w-full bg-[#171d25] border border-[#252d37] text-xs sm:text-sm font-medium rounded-lg p-2.5 text-[#f3f5f7] focus:border-[#16b981] outline-none"
+                      className="w-full bg-[#1e293b] border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl p-2.5 text-white focus:border-blue-500 outline-none"
                     >
                       {BRANDS_LIST.map(b => (
                         <option key={b} value={b}>{b}</option>
@@ -233,53 +230,53 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-[#a3adb8] block">Nome do Modelo:</label>
+                    <label className="text-xs font-semibold text-slate-300 block">Nome do Modelo:</label>
                     <Input
                       value={editingModel.model_name || ''}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, model_name: e.target.value }))}
-                      placeholder="Ex: Galaxy S24 Ultra"
-                      className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm rounded-lg focus:border-[#16b981] text-[#f3f5f7] h-10"
+                      placeholder="Ex: SPARK 20 ou Note 13"
+                      className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm rounded-xl focus:border-blue-500 text-white h-10"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-[#a3adb8] block">Armazenamento:</label>
+                    <label className="text-xs font-semibold text-slate-300 block">Armazenamento:</label>
                     <Input
                       value={editingModel.storage || '128GB'}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, storage: e.target.value }))}
                       placeholder="Ex: 128GB, 256GB"
-                      className="bg-[#171d25] border-[#252d37] text-xs sm:text-sm rounded-lg focus:border-[#16b981] text-[#f3f5f7] h-10"
+                      className="bg-[#1e293b] border-slate-700 text-xs sm:text-sm rounded-xl focus:border-blue-500 text-white h-10"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[#171d25] border border-[#252d37]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[#1e293b] border border-slate-700">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#16b981] block">
+                    <label className="text-xs font-bold text-emerald-400 block">
                       Valor de Compra Base (R$):
                     </label>
                     <Input
                       type="number"
                       value={editingModel.buy_price || 0}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, buy_price: Number(e.target.value) || 0 }))}
-                      className="bg-[#11161d] border-[#252d37] text-sm text-[#16b981] font-bold rounded-lg h-10"
+                      className="bg-[#0f172a] border-slate-700 text-sm text-emerald-400 font-bold rounded-xl h-10"
                     />
-                    <span className="text-[11px] text-[#737e8a] block">
+                    <span className="text-[11px] text-slate-400 block">
                       Valor pago pelo aparelho em estado 100% conservado (sem avarias).
                     </span>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#a3adb8] block">
+                    <label className="text-xs font-bold text-blue-400 block">
                       Bônus de Troca na Loja (R$):
                     </label>
                     <Input
                       type="number"
                       value={editingModel.trade_bonus || 0}
                       onChange={(e) => setEditingModel(prev => ({ ...prev!, trade_bonus: Number(e.target.value) || 0 }))}
-                      className="bg-[#11161d] border-[#252d37] text-sm text-[#f3f5f7] font-bold rounded-lg h-10"
+                      className="bg-[#0f172a] border-slate-700 text-sm text-blue-400 font-bold rounded-xl h-10"
                     />
-                    <span className="text-[11px] text-[#737e8a] block">
+                    <span className="text-[11px] text-slate-400 block">
                       Crédito extra aplicado se o cliente comprar outro seminovo do estoque.
                     </span>
                   </div>
@@ -289,42 +286,45 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs sm:text-sm font-semibold text-[#f3f5f7] block">
+                      <span className="text-xs sm:text-sm font-bold text-white block">
                         Tabela de Descontos por Avaria ({editingModel.brand})
                       </span>
-                      <span className="text-[11px] text-[#737e8a]">
+                      <span className="text-[11px] text-slate-400">
                         Personalize quanto descontar para cada defeito neste modelo
                       </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-[#252d37]">
-                    {editingBrandPresets.map(fault => {
-                      const currentVal = editingModel.fault_discounts?.[fault.id] !== undefined
-                        ? editingModel.fault_discounts[fault.id]
-                        : fault.defaultDiscount;
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                    {editingBrandPresets.map(f => {
+                      const currentDiscount = editingModel.fault_discounts?.[f.id] !== undefined
+                        ? editingModel.fault_discounts[f.id]
+                        : f.defaultDiscount;
 
                       return (
-                        <div key={fault.id} className="p-3 rounded-lg bg-[#171d25] border border-[#252d37] space-y-1.5">
-                          <span className="text-xs font-medium text-[#f3f5f7] block truncate">
-                            {fault.label}
+                        <div 
+                          key={f.id}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-[#1e293b]/70 border border-slate-800 gap-3"
+                        >
+                          <span className="text-xs font-medium text-slate-300 truncate">
+                            {f.label}
                           </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-rose-400 font-semibold">- R$</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-xs text-red-400 font-bold">- R$</span>
                             <Input
                               type="number"
-                              value={currentVal}
+                              value={currentDiscount}
                               onChange={(e) => {
                                 const val = Number(e.target.value) || 0;
                                 setEditingModel(prev => ({
                                   ...prev!,
                                   fault_discounts: {
                                     ...(prev?.fault_discounts || {}),
-                                    [fault.id]: val
+                                    [f.id]: val
                                   }
                                 }));
                               }}
-                              className="bg-[#11161d] border-[#252d37] text-xs h-8 text-rose-400 font-semibold"
+                              className="w-20 bg-[#0f172a] border-slate-700 text-xs font-bold text-right text-red-400 rounded-lg h-8"
                             />
                           </div>
                         </div>
@@ -333,17 +333,17 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2.5 pt-3 border-t border-[#252d37]">
+                <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-800">
                   <Button
                     variant="outline"
                     onClick={() => setEditingModel(null)}
-                    className="border-[#252d37] text-[#a3adb8] hover:text-white"
+                    className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white rounded-xl"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleSaveModel}
-                    className="bg-[#16b981] hover:bg-[#10b981] text-white font-semibold flex items-center gap-1.5"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-1.5 rounded-xl"
                   >
                     <Save className="w-4 h-4" /> Salvar Modelo
                   </Button>
@@ -359,10 +359,10 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                       <button
                         key={brand}
                         onClick={() => setSelectedBrand(brand)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                           selectedBrand === brand
-                            ? 'bg-[#16b981] text-white'
-                            : 'bg-[#171d25] text-[#a3adb8] hover:text-[#f3f5f7] border border-[#252d37]'
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                            : 'bg-[#1e293b] text-slate-300 hover:text-white border border-slate-700'
                         }`}
                       >
                         {brand === 'Apple' ? ' Apple' : brand}
@@ -373,154 +373,160 @@ export const TradeInAdminModal: React.FC<TradeInAdminModalProps> = ({
                   <Button
                     onClick={openNewModel}
                     size="sm"
-                    className="bg-[#16b981] hover:bg-[#10b981] text-white font-medium text-xs flex items-center gap-1.5 rounded-lg h-8"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 rounded-xl h-9"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Novo Modelo {selectedBrand}
+                    <Plus className="w-3.5 h-3.5" /> Adicionar Modelo
                   </Button>
                 </div>
 
-                {/* Search Bar in Brand */}
+                {/* Search Bar */}
                 <div className="relative">
-                  <Search className="w-4 h-4 text-[#737e8a] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     value={searchModel}
                     onChange={(e) => setSearchModel(e.target.value)}
-                    placeholder={`Pesquisar modelo de ${selectedBrand}...`}
-                    className="bg-[#171d25] border-[#252d37] pl-10 text-xs sm:text-sm text-[#f3f5f7] rounded-lg h-9"
+                    placeholder={`Pesquisar modelo em ${selectedBrand}...`}
+                    className="bg-[#1e293b] border-slate-700 pl-9 text-xs sm:text-sm rounded-xl focus:border-blue-500 text-white h-10"
                   />
                 </div>
 
-                {/* Table / Cards List with scrollbar */}
-                {loading ? (
-                  <div className="text-center py-10 text-[#737e8a] text-xs">Carregando tabela de preços...</div>
-                ) : filteredModels.length === 0 ? (
-                  <div className="text-center py-12 bg-[#171d25]/40 rounded-xl border border-[#252d37] text-[#a3adb8] space-y-3">
-                    <Smartphone className="w-8 h-8 mx-auto opacity-30 text-[#a3adb8]" />
-                    <p className="text-xs sm:text-sm font-medium">Nenhum modelo encontrado para {selectedBrand}.</p>
-                    <Button onClick={openNewModel} size="sm" variant="outline" className="text-xs border-[#252d37] text-[#f3f5f7]">
-                      Cadastrar Primeiro Modelo
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#252d37]">
-                    {filteredModels.map(m => (
-                      <div
-                        key={m.id}
-                        className="p-3.5 rounded-lg bg-[#171d25] border border-[#252d37] flex items-center justify-between gap-3 hover:border-[#333d4b] transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-[#11161d] border border-[#252d37] flex items-center justify-center text-[#f3f5f7] font-semibold text-xs shrink-0">
-                            {m.brand === 'Apple' ? '' : m.brand.slice(0, 2).toUpperCase()}
+                {/* Table / List */}
+                <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#0a0f1d]">
+                  {loading ? (
+                    <div className="p-8 text-center text-xs text-slate-400">Carregando catálogo...</div>
+                  ) : filteredModels.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      Nenhum modelo encontrado para <strong>{selectedBrand}</strong>.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-800/80">
+                      {filteredModels.map((m) => (
+                        <div 
+                          key={m.id}
+                          className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs sm:text-sm font-bold text-white truncate">
+                                {m.model_name}
+                              </span>
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-slate-700">
+                                {m.storage}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              Bônus de Troca: <span className="text-blue-400 font-bold">+R$ {m.trade_bonus}</span>
+                            </div>
                           </div>
-                          <div>
-                            <strong className="text-xs sm:text-sm text-[#f3f5f7] block font-semibold">{m.model_name}</strong>
-                            <span className="text-[11px] text-[#737e8a] font-normal">{m.storage} • {m.brand}</span>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[10px] text-slate-400 block uppercase font-bold">Compra Base</span>
+                              <span className="font-bold text-emerald-400 text-xs sm:text-sm">R$ {m.buy_price.toLocaleString('pt-BR')}</span>
+                            </div>
+
+                            <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
+                              <button
+                                onClick={() => {
+                                  const brandPresets = getBrandPresets(m.brand, m.model_name);
+                                  const mergedFaults: Record<string, number> = {};
+                                  brandPresets.forEach(f => {
+                                    mergedFaults[f.id] = m.fault_discounts?.[f.id] !== undefined 
+                                      ? m.fault_discounts[f.id] 
+                                      : f.defaultDiscount;
+                                  });
+
+                                  setEditingModel({
+                                    ...m,
+                                    fault_discounts: mergedFaults
+                                  });
+                                }}
+                                className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                                title="Editar Modelo"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {m.user_id && (
+                                <button
+                                  onClick={() => handleDeleteModel(m.id, m.model_name)}
+                                  className="p-2 rounded-lg bg-slate-800 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                                  title="Remover Modelo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-4 text-xs">
-                          <div className="text-right">
-                            <span className="text-[10px] text-[#737e8a] block uppercase font-medium">Compra Base</span>
-                            <span className="font-semibold text-[#16b981] text-xs sm:text-sm">R$ {m.buy_price.toLocaleString('pt-BR')}</span>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-[10px] text-[#737e8a] block uppercase font-medium">Bônus Troca</span>
-                            <span className="font-semibold text-[#f3f5f7] text-xs sm:text-sm">+ R$ {m.trade_bonus.toLocaleString('pt-BR')}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 pl-2">
-                            <button
-                              onClick={() => setEditingModel(m)}
-                              className="p-1.5 rounded-lg bg-[#11161d] border border-[#252d37] text-[#a3adb8] hover:text-white hover:border-[#16b981] transition-colors"
-                              title="Editar modelo e valores"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteModel(m.id, m.model_name)}
-                              className="p-1.5 rounded-lg bg-[#11161d] border border-[#252d37] text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 transition-colors"
-                              title="Excluir da minha tabela"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )
           )}
 
           {tab === 'settings' && (
-            /* STORE SETTINGS & LEGAL TERM */
+            /* STORE & RECEIPT SETTINGS */
             <div className="space-y-5 animate-in fade-in duration-150">
-              <div className="p-5 rounded-xl bg-[#171d25] border border-[#252d37] space-y-4">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#16b981] flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  Identificação da Sua Loja no Recibo / Termo
+              <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-800 space-y-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" /> Dados Cadastrais da Loja (Saem no Recibo / Termo)
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-[#a3adb8] block">Nome Fantasia da Loja:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300 block">Razão Social / Nome Fantasia:</label>
                     <Input
                       value={settings.store_name}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_name: e.target.value }))}
-                      placeholder="Ex: Cell Express Centro"
-                      className="bg-[#11161d] border-[#252d37] text-xs sm:text-sm rounded-lg text-[#f3f5f7] h-10"
+                      placeholder="Ex: Top Cell Imports & Acessórios"
+                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-[#a3adb8] block">CNPJ / CPF do Lojista:</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300 block">CNPJ / CPF da Empresa:</label>
                     <Input
                       value={settings.store_cnpj}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_cnpj: e.target.value }))}
-                      placeholder="00.000.000/0001-00"
-                      className="bg-[#11161d] border-[#252d37] text-xs sm:text-sm rounded-lg text-[#f3f5f7] h-10"
+                      placeholder="Ex: 00.000.000/0001-00"
+                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
                     />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <label className="text-xs font-medium text-[#a3adb8] block">Endereço da Loja (Para o Cabeçalho do Documento):</label>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-300 block">Endereço Completo da Loja:</label>
                     <Input
                       value={settings.store_address}
                       onChange={(e) => setSettings(prev => ({ ...prev, store_address: e.target.value }))}
-                      placeholder="Rua / Avenida, Número - Bairro, Cidade/UF"
-                      className="bg-[#11161d] border-[#252d37] text-xs sm:text-sm rounded-lg text-[#f3f5f7] h-10"
+                      placeholder="Ex: Av. Paulista, 1000 - Loja 42 - Bela Vista, São Paulo - SP"
+                      className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm text-white rounded-xl h-10"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-[#171d25] border border-[#252d37] space-y-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#16b981] flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" />
-                  Cláusulas Legais de Procedência & Responsabilidade Penal
+              <div className="p-4 rounded-xl bg-[#1e293b] border border-slate-800 space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-2">
+                  Cláusulas do Termo de Compra e Procedência Legal
                 </span>
 
-                <div className="relative">
-                  <Textarea
-                    value={settings.terms_text}
-                    onChange={(e) => setSettings(prev => ({ ...prev, terms_text: e.target.value }))}
-                    rows={8}
-                    className="bg-[#11161d] border-[#252d37] text-xs sm:text-sm rounded-lg text-[#f3f5f7] leading-relaxed font-sans p-3.5 scrollbar-thin scrollbar-thumb-[#252d37] focus:ring-1 focus:ring-[#16b981]"
-                  />
-                </div>
-                <span className="text-xs text-[#737e8a] block">
-                  Este texto é impresso e assinado pelo vendedor para assegurar a responsabilidade civil/penal e isentar a sua loja de problemas de receptação.
-                </span>
+                <Textarea
+                  value={settings.terms_text}
+                  onChange={(e) => setSettings(prev => ({ ...prev, terms_text: e.target.value }))}
+                  rows={8}
+                  className="bg-[#0f172a] border-slate-700 text-xs sm:text-sm rounded-xl text-slate-200 leading-relaxed font-sans p-3.5 scrollbar-thin focus:ring-1 focus:ring-blue-500"
+                />
               </div>
 
               <div className="flex justify-end pt-2">
                 <Button
                   onClick={handleSaveSettings}
-                  className="bg-[#16b981] hover:bg-[#10b981] text-white font-semibold h-10 px-5 rounded-lg flex items-center gap-2 shadow-sm"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-600/30"
                 >
-                  <Save className="w-4 h-4" /> Salvar Dados da Loja
+                  <Save className="w-4 h-4" /> Salvar Configurações da Loja
                 </Button>
               </div>
             </div>

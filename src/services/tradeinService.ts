@@ -195,7 +195,31 @@ export const BRAND_PRESETS: Record<string, FaultDefinition[]> = {
     { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 250, category: 'placa_sistema' },
   ],
 
-  // HOTWAY / OUTROS (Fallback padrão)
+  // HOTWAV
+  Hotwav: [
+    { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 25, category: 'estetica' },
+    { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 50, category: 'estetica' },
+    { id: 'bateria_baixa', label: 'Bateria / saúde baixa', defaultDiscount: 80, category: 'bateria' },
+    { id: 'tela_quebrada', label: 'Tela quebrada / trincada', defaultDiscount: 150, category: 'tela' },
+    { id: 'tela_manchas', label: 'Tela com manchas / linhas', defaultDiscount: 170, category: 'tela' },
+    { id: 'traseira_danificada', label: 'Traseira / carcaça blindada danificada', defaultDiscount: 70, category: 'estetica' },
+    { id: 'biometria', label: 'Biometria / leitor digital com problema', defaultDiscount: 100, category: 'cameras_sensores' },
+    { id: 'conector_carga', label: 'Conector de carga com problema', defaultDiscount: 120, category: 'bateria' },
+    { id: 'camera_traseira', label: 'Câmera traseira / lanterna com problema', defaultDiscount: 160, category: 'cameras_sensores' },
+    { id: 'camera_frontal', label: 'Câmera frontal com problema', defaultDiscount: 90, category: 'cameras_sensores' },
+    { id: 'alto_falante', label: 'Alto-falante / áudio com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'microfone', label: 'Microfone com problema', defaultDiscount: 70, category: 'placa_sistema' },
+    { id: 'wifi_bluetooth', label: 'Wi-Fi / Bluetooth com problema', defaultDiscount: 100, category: 'placa_sistema' },
+    { id: 'nfc', label: 'NFC com problema', defaultDiscount: 80, category: 'placa_sistema' },
+    { id: 'botoes', label: 'Botões / volume / power com problema', defaultDiscount: 60, category: 'estetica' },
+    { id: 'vedacao_agua', label: 'Vedação / tampas protetoras danificadas', defaultDiscount: 90, category: 'estetica' },
+    { id: 'sinais_oxidacao', label: 'Oxidação / sinais de líquido', defaultDiscount: 250, category: 'placa_sistema' },
+    { id: 'peca_nao_original', label: 'Peça não original / reparo incompatível', defaultDiscount: 120, category: 'placa_sistema' },
+    { id: 'carregamento_problema', label: 'Problema de carregamento', defaultDiscount: 100, category: 'bateria' },
+    { id: 'bloqueio_conta', label: 'Aparelho bloqueado / restrição de conta', defaultDiscount: 250, category: 'placa_sistema' },
+  ],
+
+  // OUTROS (Fallback padrão)
   Outros: [
     { id: 'marcas_leves', label: 'Marcas leves', defaultDiscount: 25, category: 'estetica' },
     { id: 'marcas_moderadas', label: 'Marcas moderadas', defaultDiscount: 50, category: 'estetica' },
@@ -232,6 +256,8 @@ export function getBrandPresets(brand: string, modelName?: string): FaultDefinit
     baseList = BRAND_PRESETS.Itel;
   } else if (norm.includes('tecno')) {
     baseList = BRAND_PRESETS.Tecno;
+  } else if (norm.includes('hotwav') || norm.includes('hotway')) {
+    baseList = BRAND_PRESETS.Hotwav;
   } else {
     baseList = BRAND_PRESETS.Outros;
   }
@@ -270,7 +296,7 @@ export const BRANDS_LIST: DeviceBrand[] = [
   'Infinix',
   'Tecno',
   'Itel',
-  'Hotway',
+  'HOTWAV',
   'Outros'
 ];
 
@@ -303,7 +329,7 @@ export const tradeinService = {
           .order('model_name', { ascending: true });
 
         if (brand && brand !== 'Todos' && brand !== 'Outros') {
-          userQuery = userQuery.eq('brand', brand);
+          userQuery = userQuery.ilike('brand', brand);
         }
         if (!includeInactive) {
           userQuery = userQuery.eq('is_active', true);
@@ -339,7 +365,7 @@ export const tradeinService = {
         .order('model_name', { ascending: true });
 
       if (brand && brand !== 'Todos' && brand !== 'Outros') {
-        defaultQuery = defaultQuery.eq('brand', brand);
+        defaultQuery = defaultQuery.ilike('brand', brand);
       }
       if (!includeInactive) {
         defaultQuery = defaultQuery.eq('is_active', true);

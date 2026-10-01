@@ -7,7 +7,8 @@ export type DeviceBrand =
   | 'Infinix'
   | 'Tecno'
   | 'Itel'
-  | 'Hotway'
+  | 'HOTWAV'
+  | 'Hotwav'
   | 'Outros';
 
 export interface FaultDefinition {
