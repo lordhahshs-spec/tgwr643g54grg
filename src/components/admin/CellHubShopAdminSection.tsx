@@ -44,7 +44,7 @@ import {
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { pricingRulesService, MarginRule } from '@/services/pricingRulesService';
-import { CreateOfficialOfferModal } from '@/components/marketplace/CreateOfficialOfferModal';
+import { CreateOfficialOfferModal, categorySupportsModelGrid, categorySupportsVariations } from '@/components/marketplace/CreateOfficialOfferModal';
 import { CellHubSuppliersManager } from '@/components/admin/CellHubSuppliersManager';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
@@ -291,6 +291,15 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         setEditPrice(calculated.toFixed(2));
       }
     }
+    const hasGrid = categorySupportsModelGrid(newCat);
+    if (!hasGrid && editTab === 'modelos') {
+      setEditTab('geral');
+    }
+    const hasVar = categorySupportsVariations(newCat);
+    if (!hasVar) {
+      setEditVariationFeminino(false);
+      setEditVariationMasculino(false);
+    }
   };
 
   const handleEditSupplierCostChange = (val: string) => {
@@ -366,13 +375,13 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         shippingPolicy: editShippingPolicy,
         freeShipping: editShippingPolicy === 'frete_gratis',
         images: editImages,
-        compatibleBrand: editCompatibleBrand || undefined,
-        compatibleModels: editCompatibleModels,
-        variationType: (editVariationMasculino || editVariationFeminino) ? 'masculino_feminino' : 'nenhum',
-        variationOptions: [
+        compatibleBrand: categorySupportsModelGrid(editCategory) ? (editCompatibleBrand || undefined) : undefined,
+        compatibleModels: categorySupportsModelGrid(editCategory) ? editCompatibleModels : [],
+        variationType: (categorySupportsVariations(editCategory) && (editVariationMasculino || editVariationFeminino)) ? 'masculino_feminino' : 'nenhum',
+        variationOptions: categorySupportsVariations(editCategory) ? [
           ...(editVariationFeminino ? ['Cores \\Feminina'] : []),
           ...(editVariationMasculino ? ['Cores \\Masculina'] : [])
-        ],
+        ] : [],
       });
 
       if (success) {
@@ -995,7 +1004,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               </button>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs Dinâmicas */}
             <div className="px-5 pt-3 pb-2 flex items-center gap-2 border-b border-white/5 bg-[#080d17] shrink-0">
               <button
                 type="button"
@@ -1008,18 +1017,22 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               >
                 <span>1. Geral & Preço</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setEditTab('modelos')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  editTab === 'modelos'
-                    ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span>2. Modelos & Cores</span>
-                <span className="text-[10px] opacity-80 font-normal">({editCompatibleModels.length})</span>
-              </button>
+
+              {categorySupportsModelGrid(editCategory) && (
+                <button
+                  type="button"
+                  onClick={() => setEditTab('modelos')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    editTab === 'modelos'
+                      ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span>{categorySupportsVariations(editCategory) ? '2. Modelos & Cores' : '2. Grade de Modelos'}</span>
+                  <span className="text-[10px] opacity-80 font-normal">({editCompatibleModels.length})</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setEditTab('fotos')}
@@ -1029,7 +1042,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                     : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <span>3. Fornecedor & Fotos</span>
+                <span>{categorySupportsModelGrid(editCategory) ? '3. Fornecedor & Fotos' : '2. Fornecedor & Fotos'}</span>
               </button>
             </div>
 
@@ -1153,8 +1166,8 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 </div>
               )}
 
-              {/* TAB 2: MODELOS E CORES */}
-              {editTab === 'modelos' && (
+              {/* TAB 2: MODELOS E CORES (SE SUPORTADO PELA CATEGORIA) */}
+              {editTab === 'modelos' && categorySupportsModelGrid(editCategory) && (
                 <div className="space-y-4 animate-in fade-in duration-100">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">Marca Compatível</label>
@@ -1176,43 +1189,45 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                     </div>
                   </div>
 
-                  {/* Variações Cores Feminina / Cores Masculina */}
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-[#00D287]" /> Cores da Capinha:
-                      </span>
-                      <span className="text-[10px] text-slate-400">Ativa sub-linhas na grade</span>
-                    </div>
+                  {/* Variações Cores Feminina / Cores Masculina (SOMENTE PARA CAPINHAS) */}
+                  {categorySupportsVariations(editCategory) && (
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-[#00D287]" /> Cores da Capinha:
+                        </span>
+                        <span className="text-[10px] text-slate-400">Ativa sub-linhas na grade</span>
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditVariationFeminino(!editVariationFeminino)}
-                        className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                          editVariationFeminino
-                            ? 'bg-pink-950/40 border-pink-500/50 text-pink-300'
-                            : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                        }`}
-                      >
-                        <span>👩 Cores \Feminina</span>
-                        {editVariationFeminino && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditVariationFeminino(!editVariationFeminino)}
+                          className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                            editVariationFeminino
+                              ? 'bg-pink-950/40 border-pink-500/50 text-pink-300'
+                              : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          <span>👩 Cores \Feminina</span>
+                          {editVariationFeminino && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setEditVariationMasculino(!editVariationMasculino)}
-                        className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                          editVariationMasculino
-                            ? 'bg-blue-950/40 border-blue-500/50 text-blue-300'
-                            : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                        }`}
-                      >
-                        <span>👨 Cores \Masculina</span>
-                        {editVariationMasculino && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditVariationMasculino(!editVariationMasculino)}
+                          className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                            editVariationMasculino
+                              ? 'bg-blue-950/40 border-blue-500/50 text-blue-300'
+                              : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          <span>👨 Cores \Masculina</span>
+                          {editVariationMasculino && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Adição e Tags de Modelos */}
                   <div className="space-y-2">

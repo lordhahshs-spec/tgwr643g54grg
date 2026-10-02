@@ -1,28 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
-  UploadCloud,
   Plus,
   Trash2,
-  ShieldCheck,
   CheckCircle2,
-  Truck,
   ArrowRight,
-  ArrowLeft,
   DollarSign,
   Sparkles,
-  Clock,
-  Percent,
-  Image as ImageIcon,
   Smartphone,
-  CheckSquare,
-  Square,
   Search,
   Users,
   RefreshCw,
-  Zap,
-  Tag,
-  Boxes
+  Boxes,
+  Layers,
+  Wrench,
+  Monitor
 } from 'lucide-react';
 import {
   OfferCategory,
@@ -32,7 +24,6 @@ import {
   ModelPriceItem
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
-import { melhorEnvioService } from '@/services/melhorEnvioService';
 import { pricingRulesService, OFFICIAL_CATEGORIES } from '@/services/pricingRulesService';
 import { tradeinService } from '@/services/tradeinService';
 import { UserAccount } from '@/services/leadAuthService';
@@ -55,7 +46,20 @@ const CONDITIONS: OfferCondition[] = [
   'Recondicionado'
 ];
 
-// Presets Populares por Marca para Automação Inteligente (1 Clique)
+// Regras Inteligentes por Categoria:
+// 1. Grade de Modelos: produtos que possuem versões específicas para cada modelo de celular
+export const categorySupportsModelGrid = (cat: string): boolean => {
+  const lower = (cat || '').toLowerCase();
+  return ['capinhas', 'telas', 'baterias', 'peças', 'películas', 'conectores', 'carcaças'].includes(lower);
+};
+
+// 2. Variação de Cores (Feminina / Masculina): apenas faz sentido para Capinhas/Cases
+export const categorySupportsVariations = (cat: string): boolean => {
+  const lower = (cat || '').toLowerCase();
+  return ['capinhas'].includes(lower);
+};
+
+// Presets Populares por Marca
 const BRAND_POPULAR_MODELS: Record<string, string[]> = {
   Apple: [
     'iPhone 18 Pro Max',
@@ -150,7 +154,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 }) => {
   if (isOpen === false) return null;
 
-  // Tabs de navegação minimalista: 0 = Geral & Preço, 1 = Modelos & Variações, 2 = Fotos & Envio
+  // Tabs de navegação minimalista: 'geral' | 'modelos' | 'fotos'
   const [activeTab, setActiveTab] = useState<'geral' | 'modelos' | 'fotos'>('geral');
 
   // Product Fields
@@ -174,7 +178,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [manualModels, setManualModels] = useState<string[]>([]);
   const [manualModelInput, setManualModelInput] = useState('');
 
-  // Variações de Cores
+  // Variações de Cores (apenas ativas quando a categoria permite, ex: Capinhas)
   const [variationFeminino, setVariationFeminino] = useState(true);
   const [variationMasculino, setVariationMasculino] = useState(true);
 
@@ -237,6 +241,33 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     loadTradeInAppleModels();
   }, [currentUser?.id]);
 
+  // CATEGORIA INTELIGENTE: Atualiza dinamicamente as permissões de layout e margens ao mudar a categoria
+  const isModelGridSupported = categorySupportsModelGrid(category);
+  const isVariationSupported = categorySupportsVariations(category);
+
+  const handleCategoryChange = (newCat: OfferCategory) => {
+    setCategory(newCat);
+    const suggested = pricingRulesService.getSuggestedMargin(newCat);
+    setMarginPercent(suggested);
+
+    const hasGrid = categorySupportsModelGrid(newCat);
+    setEnableCompatibility(hasGrid);
+
+    const hasVar = categorySupportsVariations(newCat);
+    if (!hasVar) {
+      setVariationFeminino(false);
+      setVariationMasculino(false);
+    } else {
+      setVariationFeminino(true);
+      setVariationMasculino(true);
+    }
+
+    // Se mudou para categoria sem grade (ex: Ferramentas), ajusta a aba atual se estiver em 'modelos'
+    if (!hasGrid && activeTab === 'modelos') {
+      setActiveTab('geral');
+    }
+  };
+
   // AUTO-PREÇO: Recalcula preço de venda ao mudar custo ou margem
   const parsedCost = parseFloat(supplierCost.replace(',', '.')) || 0;
   useEffect(() => {
@@ -255,6 +286,19 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     setTitle(newTitle);
     const lower = newTitle.toLowerCase();
 
+    // Auto-detect Categoria
+    if (lower.includes('capa') || lower.includes('capinha') || lower.includes('case')) {
+      if (category !== 'Capinhas') handleCategoryChange('Capinhas');
+    } else if (lower.includes('tela') || lower.includes('display') || lower.includes('frontal') || lower.includes('touch')) {
+      if (category !== 'Telas') handleCategoryChange('Telas');
+    } else if (lower.includes('bateria')) {
+      if (category !== 'Baterias') handleCategoryChange('Baterias');
+    } else if (lower.includes('película') || lower.includes('pelicula') || lower.includes('vidro 3d')) {
+      if (category !== 'Películas') handleCategoryChange('Películas');
+    } else if (lower.includes('carregador') || lower.includes('cabo') || lower.includes('fonte') || lower.includes('fone')) {
+      if (category !== 'Acessórios') handleCategoryChange('Acessórios');
+    }
+
     // Auto-detect Marca
     if (lower.includes('realme') && selectedBrand !== 'Realme') {
       setSelectedBrand('Realme');
@@ -271,23 +315,14 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       setSelectedBrand('Xiaomi');
       if (manualModels.length === 0) setManualModels(BRAND_POPULAR_MODELS.Xiaomi || []);
     }
-
-    // Auto-detect Categoria
-    if (lower.includes('capa') || lower.includes('capinha') || lower.includes('case')) {
-      if (category !== 'Capinhas') setCategory('Capinhas');
-    } else if (lower.includes('película') || lower.includes('pelicula') || lower.includes('vidro 3d')) {
-      if (category !== 'Películas') setCategory('Películas');
-    } else if (lower.includes('carregador') || lower.includes('cabo') || lower.includes('fonte')) {
-      if (category !== 'Acessórios') setCategory('Acessórios');
-    }
   };
 
   // TEMPLATES RÁPIDOS DE 1 CLIQUE
-  const applyQuickTemplate = (templateType: 'iphone_capa' | 'realme_capa' | 'samsung_capa' | 'pelicula_3d' | 'carregador') => {
+  const applyQuickTemplate = (templateType: 'iphone_capa' | 'realme_capa' | 'tela_iphone' | 'bateria_iphone' | 'pelicula_3d' | 'carregador') => {
     if (templateType === 'iphone_capa') {
       setTitle('Capinha Magnética MagSafe Acrílica Transparente para iPhone');
+      handleCategoryChange('Capinhas');
       setSelectedBrand('Apple');
-      setCategory('Capinhas');
       setSupplierCost('4.50');
       setMarginPercent(45);
       setVariationFeminino(true);
@@ -295,45 +330,55 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       setSelectedAppleModels(appleModelsList);
       toast.success('Template Capinha iPhone aplicado!');
     } else if (templateType === 'realme_capa') {
-      setTitle('Capinha de Silicone Anti-Impacto com Proteção de Câmera Realme');
+      setTitle('Capinha Silicone Anti-Impacto com Proteção de Câmera Realme');
+      handleCategoryChange('Capinhas');
       setSelectedBrand('Realme');
-      setCategory('Capinhas');
       setSupplierCost('4.43');
       setMarginPercent(45);
       setVariationFeminino(true);
       setVariationMasculino(true);
       setManualModels(BRAND_POPULAR_MODELS.Realme);
       toast.success('Template Capinha Realme aplicado!');
-    } else if (templateType === 'samsung_capa') {
-      setTitle('Capinha Silicone Soft Gel Anti-Queda Samsung Galaxy');
-      setSelectedBrand('Samsung');
-      setCategory('Capinhas');
-      setSupplierCost('4.50');
-      setMarginPercent(45);
-      setVariationFeminino(true);
-      setVariationMasculino(true);
-      setManualModels(BRAND_POPULAR_MODELS.Samsung);
-      toast.success('Template Capinha Samsung aplicado!');
+    } else if (templateType === 'tela_iphone') {
+      setTitle('Tela Display Incell / OLED Premium com Touch');
+      handleCategoryChange('Telas');
+      setSelectedBrand('Apple');
+      setSupplierCost('65.00');
+      setMarginPercent(30);
+      setVariationFeminino(false);
+      setVariationMasculino(false);
+      setSelectedAppleModels(appleModelsList);
+      toast.success('Template Tela Display aplicado (sem variações de cor)!');
+    } else if (templateType === 'bateria_iphone') {
+      setTitle('Bateria Alta Capacidade Homologada Selo CellHub');
+      handleCategoryChange('Baterias');
+      setSelectedBrand('Apple');
+      setSupplierCost('38.00');
+      setMarginPercent(35);
+      setVariationFeminino(false);
+      setVariationMasculino(false);
+      setSelectedAppleModels(appleModelsList);
+      toast.success('Template Bateria aplicado (sem variações de cor)!');
     } else if (templateType === 'pelicula_3d') {
       setTitle('Película de Vidro 3D / 9D Privativa Borda Reforçada');
+      handleCategoryChange('Películas');
       setSelectedBrand('Apple');
-      setCategory('Películas');
       setSupplierCost('2.20');
       setMarginPercent(50);
       setVariationFeminino(false);
       setVariationMasculino(false);
+      setSelectedAppleModels(appleModelsList);
       toast.success('Template Película aplicado!');
     } else if (templateType === 'carregador') {
       setTitle('Fonte Carregador Rápido 20W USB-C Turbo Homologado');
-      setCategory('Acessórios');
+      handleCategoryChange('Acessórios');
       setSupplierCost('11.50');
       setMarginPercent(40);
       setEnableCompatibility(false);
-      toast.success('Template Carregador aplicado!');
+      toast.success('Template Carregador aplicado (item unitário)!');
     }
   };
 
-  // Troca de marca inteligente
   const handleSelectBrand = (brandName: string) => {
     setSelectedBrand(brandName);
     if (brandName !== 'Apple' && manualModels.length === 0 && BRAND_POPULAR_MODELS[brandName]) {
@@ -341,7 +386,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     }
   };
 
-  // Carregar modelos populares da marca com 1 clique
   const handleLoadPopularBrandModels = () => {
     if (selectedBrand === 'Apple') {
       setSelectedAppleModels([...appleModelsList]);
@@ -352,7 +396,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     }
   };
 
-  // Aplicar preço base a todos os modelos
   const handleApplyBasePriceToAll = () => {
     const baseP = parsedPrice > 0 ? parsedPrice : 6.53;
     const updated: Record<string, string> = {};
@@ -429,7 +472,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     const discountPct = isDiscount ? Math.round(((parsedOrig - parsedPrice) / parsedOrig) * 100) : undefined;
     const matchedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
 
-    const finalCompatibleModels = enableCompatibility
+    const finalCompatibleModels = isModelGridSupported && enableCompatibility
       ? selectedBrand === 'Apple'
         ? selectedAppleModels
         : manualModels
@@ -445,8 +488,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     });
 
     const variationOptions: string[] = [];
-    if (variationFeminino) variationOptions.push('Cores \\Feminina');
-    if (variationMasculino) variationOptions.push('Cores \\Masculina');
+    if (isVariationSupported) {
+      if (variationFeminino) variationOptions.push('Cores \\Feminina');
+      if (variationMasculino) variationOptions.push('Cores \\Masculina');
+    }
 
     try {
       const res = await marketplaceService.createOffer({
@@ -484,7 +529,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         packageHeight,
         packageWidth,
         packageLength,
-        compatibleBrand: enableCompatibility ? selectedBrand : undefined,
+        compatibleBrand: (isModelGridSupported && enableCompatibility) ? selectedBrand : undefined,
         compatibleModels: finalCompatibleModels,
         modelPricing: finalModelPricing,
         variationType: variationOptions.length > 0 ? 'masculino_feminino' : 'nenhum',
@@ -523,7 +568,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             </div>
             <div>
               <h3 className="text-sm font-bold text-white leading-none">Cadastrar Produto no Atacado</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">CellHub Shop • Catálogo B2B</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">CellHub Shop • {category}</p>
             </div>
           </div>
 
@@ -556,10 +601,17 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
           </button>
           <button
             type="button"
-            onClick={() => applyQuickTemplate('samsung_capa')}
+            onClick={() => applyQuickTemplate('tela_iphone')}
             className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
           >
-            ✨ Capa Samsung
+            🖥️ Tela Display
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickTemplate('bateria_iphone')}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
+          >
+            🔋 Bateria
           </button>
           <button
             type="button"
@@ -568,9 +620,16 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
           >
             🛡️ Película 3D
           </button>
+          <button
+            type="button"
+            onClick={() => applyQuickTemplate('carregador')}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
+          >
+            🔌 Carregador 20W
+          </button>
         </div>
 
-        {/* TABS COMPACTAS */}
+        {/* TABS DINÂMICAS: EXIBE SOMENTE AS ABAS QUE FAZEM SENTIDO PARA A CATEGORIA */}
         <div className="px-5 pt-3 pb-2 flex items-center gap-2 border-b border-white/5 bg-[#080d17] shrink-0">
           <button
             type="button"
@@ -583,20 +642,24 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
           >
             <span>1. Dados & Preço</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('modelos')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'modelos'
-                ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            <span>2. Modelos & Cores</span>
-            <span className="text-[10px] opacity-80 font-normal">
-              ({selectedBrand === 'Apple' ? selectedAppleModels.length : manualModels.length})
-            </span>
-          </button>
+
+          {isModelGridSupported && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('modelos')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === 'modelos'
+                  ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                  : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <span>{isVariationSupported ? '2. Modelos & Cores' : '2. Grade de Modelos'}</span>
+              <span className="text-[10px] opacity-80 font-normal">
+                ({selectedBrand === 'Apple' ? selectedAppleModels.length : manualModels.length})
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setActiveTab('fotos')}
@@ -606,7 +669,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                 : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <span>3. Fotos & Envio</span>
+            <span>{isModelGridSupported ? '3. Fotos & Envio' : '2. Fotos & Envio'}</span>
           </button>
         </div>
 
@@ -624,12 +687,15 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   type="text"
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="Ex: Capinha Magnética MagSafe Realme C55"
+                  placeholder={
+                    category === 'Capinhas'
+                      ? 'Ex: Capinha Magnética MagSafe Silicone Realme C55'
+                      : category === 'Telas'
+                      ? 'Ex: Tela Display OLED Incell Touch iPhone'
+                      : 'Ex: Carregador Rápido 20W USB-C Turbo'
+                  }
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  💡 Digite o nome da marca (ex: Realme, iPhone, Samsung) para auto-configurar a grade.
-                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -637,7 +703,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Categoria</label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value as OfferCategory)}
+                    onChange={(e) => handleCategoryChange(e.target.value as OfferCategory)}
                     className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
                     {CATEGORIES.map((cat) => (
@@ -667,7 +733,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     <DollarSign className="w-3.5 h-3.5 text-[#00D287]" /> Precificação no Atacado
                   </span>
                   <div className="flex items-center gap-1">
-                    {[30, 40, 45, 50].map((m) => (
+                    {[20, 30, 35, 45, 50].map((m) => (
                       <button
                         key={m}
                         type="button"
@@ -715,7 +781,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
-                  <span>Lucro por unidade vendida:</span>
+                  <span>Lucro unitário estimado:</span>
                   <span className="font-bold text-[#00D287]">+ R$ {profitMargin.toFixed(2)} ({profitPercent}%)</span>
                 </div>
               </div>
@@ -742,8 +808,8 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             </div>
           )}
 
-          {/* ABA 2: MODELOS & VARIAÇÕES */}
-          {activeTab === 'modelos' && (
+          {/* ABA 2: MODELOS E VARIAÇÕES (SOMENTE SE A CATEGORIA SUPORTAR) */}
+          {activeTab === 'modelos' && isModelGridSupported && (
             <div className="space-y-4 animate-in fade-in duration-100">
               {/* SELEÇÃO DE MARCA */}
               <div>
@@ -766,43 +832,45 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                 </div>
               </div>
 
-              {/* VARIAÇÕES DE COR MINIMALISTAS */}
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-[#00D287]" /> Cores da Capinha:
-                  </span>
-                  <span className="text-[10px] text-slate-400">Ativa sub-linhas na grade</span>
-                </div>
+              {/* VARIAÇÕES DE COR MINIMALISTAS (APENAS PARA CAPINHAS) */}
+              {isVariationSupported && (
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-[#00D287]" /> Cores da Capinha:
+                    </span>
+                    <span className="text-[10px] text-slate-400">Ativa sub-linhas na grade</span>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setVariationFeminino(!variationFeminino)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                      variationFeminino
-                        ? 'bg-pink-950/40 border-pink-500/50 text-pink-300'
-                        : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                    }`}
-                  >
-                    <span>👩 Cores \Feminina</span>
-                    {variationFeminino && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVariationFeminino(!variationFeminino)}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                        variationFeminino
+                          ? 'bg-pink-950/40 border-pink-500/50 text-pink-300'
+                          : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <span>👩 Cores \Feminina</span>
+                      {variationFeminino && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setVariationMasculino(!variationMasculino)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                      variationMasculino
-                        ? 'bg-blue-950/40 border-blue-500/50 text-blue-300'
-                        : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                    }`}
-                  >
-                    <span>👨 Cores \Masculina</span>
-                    {variationMasculino && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setVariationMasculino(!variationMasculino)}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                        variationMasculino
+                          ? 'bg-blue-950/40 border-blue-500/50 text-blue-300'
+                          : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <span>👨 Cores \Masculina</span>
+                      {variationMasculino && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* CONTROLES DE PREÇO EM MASSA */}
               <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-950 border border-white/5 text-xs">
@@ -951,7 +1019,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             </div>
           )}
 
-          {/* ABA 3: FOTOS E ENVIO */}
+          {/* ABA FOTOS E ENVIO */}
           {activeTab === 'fotos' && (
             <div className="space-y-4 animate-in fade-in duration-100">
               <div>
@@ -964,7 +1032,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddImageUrl())}
-                    placeholder="https://exemplo.com/foto-capinha.jpg"
+                    placeholder="https://exemplo.com/foto-produto.jpg"
                     className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
                   />
                   <button
@@ -996,13 +1064,13 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Descrição Rápida do Produto
+                  Descrição do Produto
                 </label>
                 <textarea
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Material, acabamento, bordas anti-impacto, botões metalizados..."
+                  placeholder="Material, acabamento, especificações técnicas, compatibilidade..."
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 outline-none focus:border-[#00D287]"
                 />
               </div>
@@ -1050,7 +1118,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             {activeTab !== 'fotos' ? (
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === 'geral' ? 'modelos' : 'fotos')}
+                onClick={() => setActiveTab(activeTab === 'geral' && isModelGridSupported ? 'modelos' : 'fotos')}
                 className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
               >
                 <span>Avançar</span>
