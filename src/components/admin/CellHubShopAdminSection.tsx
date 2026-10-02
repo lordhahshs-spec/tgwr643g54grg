@@ -44,7 +44,7 @@ import {
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { pricingRulesService, MarginRule } from '@/services/pricingRulesService';
-import { CreateOfficialOfferModal, categorySupportsModelGrid, categorySupportsVariations } from '@/components/marketplace/CreateOfficialOfferModal';
+import { CreateOfficialOfferModal, categorySupportsModelGrid, categorySupportsVariations, categorySupportsWarranty } from '@/components/marketplace/CreateOfficialOfferModal';
 import { CellHubSuppliersManager } from '@/components/admin/CellHubSuppliersManager';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
@@ -137,9 +137,10 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
   useEffect(() => {
     loadData();
+    // Auto-refresh em tempo real a cada 3 segundos para novos produtos e modificações
     const interval = setInterval(() => {
       loadData(true);
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1342,15 +1343,22 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Garantia (Dias)</label>
-                    <input
-                      type="number"
-                      value={editWarrantyDays}
-                      onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
-                    />
-                  </div>
+                  {categorySupportsWarranty(editCategory) ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Garantia Técnica (Dias)</label>
+                      <input
+                        type="number"
+                        value={editWarrantyDays}
+                        onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
+                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col justify-center px-3 py-1.5 rounded-xl bg-slate-950 border border-white/5">
+                      <span className="text-[10.5px] text-slate-400 font-semibold">Garantia:</span>
+                      <span className="text-xs text-slate-300">Produto de consumo (Sem garantia de fábrica)</span>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Política de Frete</label>

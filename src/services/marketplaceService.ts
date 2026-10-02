@@ -90,10 +90,14 @@ export const marketplaceService = {
     }
 
     if (params?.status && params.status !== 'todas') {
-      query = query.eq('status', params.status);
-    } else if (!params?.sellerId) {
-      // Por padrão na vitrine pública mostra apenas publicadas
-      query = query.eq('status', 'publicada');
+      if (params.status === 'publicada' || params.status === 'ativa') {
+        query = query.or('status.eq.publicada,status.eq.ativa');
+      } else {
+        query = query.eq('status', params.status);
+      }
+    } else if (!params?.sellerId && !params?.status) {
+      // Por padrão na vitrine pública mostra apenas publicadas ou ativas
+      query = query.or('status.eq.publicada,status.eq.ativa');
     }
 
     if (params?.isOfficial !== undefined) {
