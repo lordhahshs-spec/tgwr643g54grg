@@ -7,40 +7,34 @@ import {
   ShieldCheck,
   CheckCircle2,
   Truck,
-  Tag,
   ArrowRight,
   ArrowLeft,
-  Box,
-  Scale,
   DollarSign,
   Sparkles,
-  HelpCircle,
   Clock,
   Percent,
-  Sliders,
-  ArrowDown,
   Image as ImageIcon,
-  Star,
   Smartphone,
   CheckSquare,
   Square,
   Search,
   Users,
   RefreshCw,
-  Layers
+  Zap,
+  Tag,
+  Boxes
 } from 'lucide-react';
 import {
   OfferCategory,
   OfferCondition,
   ShippingPolicy,
-  CategoryPackageDefault,
   MarketplaceSupplier,
   ModelPriceItem
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
 import { pricingRulesService, OFFICIAL_CATEGORIES } from '@/services/pricingRulesService';
-import { tradeinService, BRANDS_LIST } from '@/services/tradeinService';
+import { tradeinService } from '@/services/tradeinService';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
@@ -58,56 +52,94 @@ const CONDITIONS: OfferCondition[] = [
   'Novo',
   'Seminovo',
   'Usado',
-  'Recondicionado',
-  'Com avaria',
-  'Para retirada de peças',
-  'Outro'
+  'Recondicionado'
 ];
 
-const PRESET_MARGINS = [10, 15, 20, 25, 30, 35, 40, 50];
-
-// Fallback robusto de modelos Apple organizados por geração decrescente
-const DEFAULT_APPLE_MODELS = [
-  'iPhone 18 Pro Max',
-  'iPhone 18 Pro',
-  'iPhone 17 Pro Max',
-  'iPhone 17 Pro',
-  'iPhone 17 Air',
-  'iPhone 17',
-  'iPhone 16 Pro Max',
-  'iPhone 16 Pro',
-  'iPhone 16 Plus',
-  'iPhone 16',
-  'iPhone 16e',
-  'iPhone 15 Pro Max',
-  'iPhone 15 Pro',
-  'iPhone 15 Plus',
-  'iPhone 15',
-  'iPhone 14 Pro Max',
-  'iPhone 14 Pro',
-  'iPhone 14 Plus',
-  'iPhone 14',
-  'iPhone 13 Pro Max',
-  'iPhone 13 Pro',
-  'iPhone 13',
-  'iPhone 13 mini',
-  'iPhone 12 Pro Max',
-  'iPhone 12 Pro',
-  'iPhone 12',
-  'iPhone 12 mini',
-  'iPhone 11 Pro Max',
-  'iPhone 11 Pro',
-  'iPhone 11',
-  'iPhone XR',
-  'iPhone XS Max',
-  'iPhone XS',
-  'iPhone X',
-  'iPhone SE (2ª/3ª geração)',
-  'iPhone 8 Plus',
-  'iPhone 8',
-  'iPhone 7 Plus',
-  'iPhone 7'
-];
+// Presets Populares por Marca para Automação Inteligente (1 Clique)
+const BRAND_POPULAR_MODELS: Record<string, string[]> = {
+  Apple: [
+    'iPhone 18 Pro Max',
+    'iPhone 18 Pro',
+    'iPhone 17 Pro Max',
+    'iPhone 17 Pro',
+    'iPhone 17',
+    'iPhone 16 Pro Max',
+    'iPhone 16 Pro',
+    'iPhone 16 Plus',
+    'iPhone 16',
+    'iPhone 15 Pro Max',
+    'iPhone 15 Pro',
+    'iPhone 15',
+    'iPhone 14 Pro Max',
+    'iPhone 14 Pro',
+    'iPhone 14',
+    'iPhone 13 Pro Max',
+    'iPhone 13 Pro',
+    'iPhone 13',
+    'iPhone 12 Pro Max',
+    'iPhone 12',
+    'iPhone 11',
+    'iPhone XR',
+    'iPhone X'
+  ],
+  Realme: [
+    'Realme C55',
+    'Realme C63 / C61',
+    'Realme C65',
+    'Realme C67 4G',
+    'Realme 11 5G',
+    'Realme 11 Pro+',
+    'Realme 12 Pro+',
+    'Realme Note 50',
+    'Realme C53'
+  ],
+  Samsung: [
+    'Galaxy A15',
+    'Galaxy A25',
+    'Galaxy A35',
+    'Galaxy A55',
+    'Galaxy S24 Ultra',
+    'Galaxy S24',
+    'Galaxy S23 Ultra',
+    'Galaxy S23',
+    'Galaxy A05',
+    'Galaxy A06'
+  ],
+  Motorola: [
+    'Moto G04 / G24',
+    'Moto G34 5G',
+    'Moto G54 5G',
+    'Moto G84 5G',
+    'Moto G14',
+    'Edge 40 Neo',
+    'Edge 50 Fusion',
+    'Edge 50 Pro'
+  ],
+  Xiaomi: [
+    'Redmi Note 13 4G',
+    'Redmi Note 13 5G',
+    'Redmi Note 13 Pro 5G',
+    'Redmi 13C',
+    'Redmi 12',
+    'Poco X6 Pro',
+    'Poco M6 Pro',
+    'Poco F6'
+  ],
+  Infinix: [
+    'Hot 30i',
+    'Hot 40i',
+    'Hot 40 Pro',
+    'Note 30 5G',
+    'Note 40 Pro',
+    'Smart 8'
+  ],
+  Tecno: [
+    'Spark 20',
+    'Spark 20 Pro',
+    'Spark Go 2024',
+    'Camon 30'
+  ]
+};
 
 export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> = ({
   isOpen = true,
@@ -117,7 +149,9 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   onOfferCreated,
 }) => {
   if (isOpen === false) return null;
-  const [step, setStep] = useState<'form' | 'preview'>('form');
+
+  // Tabs de navegação minimalista: 0 = Geral & Preço, 1 = Modelos & Variações, 2 = Fotos & Envio
+  const [activeTab, setActiveTab] = useState<'geral' | 'modelos' | 'fotos'>('geral');
 
   // Product Fields
   const [title, setTitle] = useState('');
@@ -125,34 +159,32 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [subcategory, setSubcategory] = useState('');
   const [condition, setCondition] = useState<OfferCondition>('Novo');
   const [description, setDescription] = useState('');
-  const [details, setDetails] = useState('');
   
-  // Modelos e Marcas Compatíveis (Especial para Capinhas e Acessórios)
+  // Modelos e Marcas Compatíveis
   const [enableCompatibility, setEnableCompatibility] = useState<boolean>(true);
   const [selectedBrand, setSelectedBrand] = useState<string>('Apple');
-  const [appleModelsList, setAppleModelsList] = useState<string[]>(DEFAULT_APPLE_MODELS);
-  const [selectedAppleModels, setSelectedAppleModels] = useState<string[]>(DEFAULT_APPLE_MODELS);
-  const [appleSearchFilter, setAppleSearchFilter] = useState('');
+  const [appleModelsList, setAppleModelsList] = useState<string[]>(BRAND_POPULAR_MODELS.Apple);
+  const [selectedAppleModels, setSelectedAppleModels] = useState<string[]>(BRAND_POPULAR_MODELS.Apple);
+  const [modelSearch, setModelSearch] = useState('');
   
   // Preços individuais por modelo (ex: { 'iPhone 11': '6.65', 'iPhone 17': '7.77' })
   const [modelPrices, setModelPrices] = useState<Record<string, string>>({});
 
-  // Modelos Manuais para Outras Marcas (Samsung, Motorola, Xiaomi, etc.)
+  // Modelos Manuais / Carregados para Outras Marcas
   const [manualModels, setManualModels] = useState<string[]>([]);
   const [manualModelInput, setManualModelInput] = useState('');
 
-  // Variações de Cores / Perfil (Apenas Masculino / Feminino)
-  const [variationMasculino, setVariationMasculino] = useState(true);
+  // Variações de Cores
   const [variationFeminino, setVariationFeminino] = useState(true);
+  const [variationMasculino, setVariationMasculino] = useState(true);
 
   // Pricing Mode & Margins
   const [pricingMode, setPricingMode] = useState<'margin' | 'manual'>('margin');
   const [marginPercent, setMarginPercent] = useState<number>(45);
-  const [price, setPrice] = useState('6.65');
+  const [price, setPrice] = useState('6.53');
   const [originalPrice, setOriginalPrice] = useState('');
   const [supplierCost, setSupplierCost] = useState('4.50');
   const [warrantyDays, setWarrantyDays] = useState<number>(90);
-  const [badgeText, setBadgeText] = useState('Garantia Oficial CellHub');
 
   // Shipping
   const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>('comprador_paga');
@@ -165,11 +197,8 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [images, setImages] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
-  const [categoriesList, setCategoriesList] = useState<string[]>(() => pricingRulesService.getCategories());
-
-  // Suppliers (Dropshipping / Melhor Envio origin)
+  // Suppliers
   const [suppliers, setSuppliers] = useState<MarketplaceSupplier[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
 
@@ -182,7 +211,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     });
   }, []);
 
-  // Carrega modelos cadastrados na aba de Avaliação de Aparelhos (Trade-In)
+  // Carrega modelos Apple do Trade-in
   useEffect(() => {
     async function loadTradeInAppleModels() {
       try {
@@ -196,31 +225,136 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             )
           );
 
-          const merged = Array.from(new Set([...uniqueNames, ...DEFAULT_APPLE_MODELS]));
+          const merged = Array.from(new Set([...uniqueNames, ...BRAND_POPULAR_MODELS.Apple]));
           setAppleModelsList(merged);
-          // Por padrão, todos vêm marcados conforme solicitado pelo usuário
           setSelectedAppleModels(merged);
-        } else {
-          setAppleModelsList(DEFAULT_APPLE_MODELS);
-          setSelectedAppleModels(DEFAULT_APPLE_MODELS);
         }
       } catch (err) {
         console.error('Erro ao carregar modelos do Trade-In:', err);
-        setAppleModelsList(DEFAULT_APPLE_MODELS);
-        setSelectedAppleModels(DEFAULT_APPLE_MODELS);
       }
     }
 
     loadTradeInAppleModels();
   }, [currentUser?.id]);
 
-  // Sincroniza preço base em todos os modelos que não possuem preço customizado
-  const handleApplyBasePriceToAll = () => {
-    const baseP = parseFloat(price) || 0;
-    if (baseP <= 0) {
-      toast.error('Informe um preço de venda base válido primeiro.');
-      return;
+  // AUTO-PREÇO: Recalcula preço de venda ao mudar custo ou margem
+  const parsedCost = parseFloat(supplierCost.replace(',', '.')) || 0;
+  useEffect(() => {
+    if (pricingMode === 'margin' && parsedCost > 0) {
+      const calculated = pricingRulesService.calculatePriceFromCost(parsedCost, marginPercent);
+      setPrice(calculated.toFixed(2));
     }
+  }, [parsedCost, marginPercent, pricingMode]);
+
+  const parsedPrice = parseFloat(price.replace(',', '.')) || 0;
+  const profitMargin = parsedPrice > parsedCost ? parsedPrice - parsedCost : 0;
+  const profitPercent = parsedCost > 0 ? Math.round((profitMargin / parsedCost) * 100) : 0;
+
+  // INTELIGÊNCIA AUTÔNOMA: Detecção automática de marca e categoria ao digitar o título
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    const lower = newTitle.toLowerCase();
+
+    // Auto-detect Marca
+    if (lower.includes('realme') && selectedBrand !== 'Realme') {
+      setSelectedBrand('Realme');
+      if (manualModels.length === 0) setManualModels(BRAND_POPULAR_MODELS.Realme || []);
+    } else if ((lower.includes('iphone') || lower.includes('apple')) && selectedBrand !== 'Apple') {
+      setSelectedBrand('Apple');
+    } else if ((lower.includes('samsung') || lower.includes('galaxy')) && selectedBrand !== 'Samsung') {
+      setSelectedBrand('Samsung');
+      if (manualModels.length === 0) setManualModels(BRAND_POPULAR_MODELS.Samsung || []);
+    } else if ((lower.includes('motorola') || lower.includes('moto')) && selectedBrand !== 'Motorola') {
+      setSelectedBrand('Motorola');
+      if (manualModels.length === 0) setManualModels(BRAND_POPULAR_MODELS.Motorola || []);
+    } else if ((lower.includes('xiaomi') || lower.includes('redmi') || lower.includes('poco')) && selectedBrand !== 'Xiaomi') {
+      setSelectedBrand('Xiaomi');
+      if (manualModels.length === 0) setManualModels(BRAND_POPULAR_MODELS.Xiaomi || []);
+    }
+
+    // Auto-detect Categoria
+    if (lower.includes('capa') || lower.includes('capinha') || lower.includes('case')) {
+      if (category !== 'Capinhas') setCategory('Capinhas');
+    } else if (lower.includes('película') || lower.includes('pelicula') || lower.includes('vidro 3d')) {
+      if (category !== 'Películas') setCategory('Películas');
+    } else if (lower.includes('carregador') || lower.includes('cabo') || lower.includes('fonte')) {
+      if (category !== 'Acessórios') setCategory('Acessórios');
+    }
+  };
+
+  // TEMPLATES RÁPIDOS DE 1 CLIQUE
+  const applyQuickTemplate = (templateType: 'iphone_capa' | 'realme_capa' | 'samsung_capa' | 'pelicula_3d' | 'carregador') => {
+    if (templateType === 'iphone_capa') {
+      setTitle('Capinha Magnética MagSafe Acrílica Transparente para iPhone');
+      setSelectedBrand('Apple');
+      setCategory('Capinhas');
+      setSupplierCost('4.50');
+      setMarginPercent(45);
+      setVariationFeminino(true);
+      setVariationMasculino(true);
+      setSelectedAppleModels(appleModelsList);
+      toast.success('Template Capinha iPhone aplicado!');
+    } else if (templateType === 'realme_capa') {
+      setTitle('Capinha de Silicone Anti-Impacto com Proteção de Câmera Realme');
+      setSelectedBrand('Realme');
+      setCategory('Capinhas');
+      setSupplierCost('4.43');
+      setMarginPercent(45);
+      setVariationFeminino(true);
+      setVariationMasculino(true);
+      setManualModels(BRAND_POPULAR_MODELS.Realme);
+      toast.success('Template Capinha Realme aplicado!');
+    } else if (templateType === 'samsung_capa') {
+      setTitle('Capinha Silicone Soft Gel Anti-Queda Samsung Galaxy');
+      setSelectedBrand('Samsung');
+      setCategory('Capinhas');
+      setSupplierCost('4.50');
+      setMarginPercent(45);
+      setVariationFeminino(true);
+      setVariationMasculino(true);
+      setManualModels(BRAND_POPULAR_MODELS.Samsung);
+      toast.success('Template Capinha Samsung aplicado!');
+    } else if (templateType === 'pelicula_3d') {
+      setTitle('Película de Vidro 3D / 9D Privativa Borda Reforçada');
+      setSelectedBrand('Apple');
+      setCategory('Películas');
+      setSupplierCost('2.20');
+      setMarginPercent(50);
+      setVariationFeminino(false);
+      setVariationMasculino(false);
+      toast.success('Template Película aplicado!');
+    } else if (templateType === 'carregador') {
+      setTitle('Fonte Carregador Rápido 20W USB-C Turbo Homologado');
+      setCategory('Acessórios');
+      setSupplierCost('11.50');
+      setMarginPercent(40);
+      setEnableCompatibility(false);
+      toast.success('Template Carregador aplicado!');
+    }
+  };
+
+  // Troca de marca inteligente
+  const handleSelectBrand = (brandName: string) => {
+    setSelectedBrand(brandName);
+    if (brandName !== 'Apple' && manualModels.length === 0 && BRAND_POPULAR_MODELS[brandName]) {
+      setManualModels(BRAND_POPULAR_MODELS[brandName]);
+    }
+  };
+
+  // Carregar modelos populares da marca com 1 clique
+  const handleLoadPopularBrandModels = () => {
+    if (selectedBrand === 'Apple') {
+      setSelectedAppleModels([...appleModelsList]);
+      toast.success('Todos os modelos iPhone marcados!');
+    } else if (BRAND_POPULAR_MODELS[selectedBrand]) {
+      setManualModels(BRAND_POPULAR_MODELS[selectedBrand]);
+      toast.success(`Modelos populares ${selectedBrand} carregados!`);
+    }
+  };
+
+  // Aplicar preço base a todos os modelos
+  const handleApplyBasePriceToAll = () => {
+    const baseP = parsedPrice > 0 ? parsedPrice : 6.53;
     const updated: Record<string, string> = {};
     appleModelsList.forEach((m) => {
       updated[m] = baseP.toFixed(2);
@@ -232,74 +366,27 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     toast.success(`Preço R$ ${baseP.toFixed(2)} aplicado a todos os modelos!`);
   };
 
-  // Auto-update default suggested margin when Category changes
-  useEffect(() => {
-    const list = pricingRulesService.getCategories();
-    setCategoriesList(list);
-    if (!list.includes(category) && list.length > 0) {
-      setCategory(list[0] as OfferCategory);
+  const handleAddManualModel = () => {
+    const trimmed = manualModelInput.trim();
+    if (!trimmed) return;
+    if (manualModels.includes(trimmed)) {
+      toast.info('Este modelo já está na lista.');
+      return;
     }
-    const suggested = pricingRulesService.getSuggestedMargin(category);
-    setMarginPercent(suggested);
-    if (pricingMode === 'margin' && supplierCost) {
-      const costNum = parseFloat(supplierCost);
-      if (!isNaN(costNum) && costNum > 0) {
-        const calculated = pricingRulesService.calculatePriceFromCost(costNum, suggested);
-        setPrice(calculated.toFixed(2));
-      }
+    setManualModels((prev) => [...prev, trimmed]);
+    if (!modelPrices[trimmed]) {
+      setModelPrices((prev) => ({
+        ...prev,
+        [trimmed]: parsedPrice > 0 ? parsedPrice.toFixed(2) : '6.53',
+      }));
     }
-
-    const isCapinhaOrAcc = ['capinhas', 'acessórios', 'telas', 'películas'].includes(category.toLowerCase());
-    setEnableCompatibility(isCapinhaOrAcc);
-  }, [category]);
-
-  useEffect(() => {
-    melhorEnvioService.getPackageDefaults().then((defs) => {
-      const match = defs.find((d) => d.category.toLowerCase() === category.toLowerCase());
-      if (match) {
-        setPackageWeight(match.default_weight);
-        setPackageHeight(match.default_height);
-        setPackageWidth(match.default_width);
-        setPackageLength(match.default_length);
-      }
-    });
-  }, [category]);
-
-  const handleCategoryChange = (cat: OfferCategory) => {
-    setCategory(cat);
-    melhorEnvioService.getPackageDefaults().then((defs) => {
-      const match = defs.find((d) => d.category.toLowerCase() === cat.toLowerCase());
-      if (match) {
-        setPackageWeight(match.default_weight);
-        setPackageHeight(match.default_height);
-        setPackageWidth(match.default_width);
-        setPackageLength(match.default_length);
-      }
-    });
+    setManualModelInput('');
   };
 
-  // Modelos Apple: Toggle individual
-  const handleToggleAppleModel = (modelName: string) => {
-    setSelectedAppleModels((prev) =>
-      prev.includes(modelName)
-        ? prev.filter((m) => m !== modelName)
-        : [...prev, modelName]
-    );
+  const handleRemoveManualModel = (index: number) => {
+    setManualModels((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Modelos Apple: Marcar todos
-  const handleSelectAllApple = () => {
-    setSelectedAppleModels([...appleModelsList]);
-    toast.success('Todos os modelos Apple foram marcados!');
-  };
-
-  // Modelos Apple: Desmarcar todos
-  const handleDeselectAllApple = () => {
-    setSelectedAppleModels([]);
-    toast.info('Todos os modelos foram desmarcados.');
-  };
-
-  // Atualiza preço de um modelo específico
   const handleSetModelPrice = (modelName: string, val: string) => {
     setModelPrices((prev) => ({
       ...prev,
@@ -307,206 +394,41 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     }));
   };
 
-  // Modelos Manuais (Outras Marcas): Adicionar
-  const handleAddManualModel = () => {
-    const clean = manualModelInput.trim();
-    if (!clean) return;
-
-    if (manualModels.some((m) => m.toLowerCase() === clean.toLowerCase())) {
-      toast.info('Este modelo já foi adicionado.');
+  const handleAddImageUrl = () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      toast.error('Insira uma URL válida iniciando com https://');
       return;
     }
-
-    setManualModels((prev) => [...prev, clean]);
-    setModelPrices((prev) => ({
-      ...prev,
-      [clean]: price || '6.65',
-    }));
-    setManualModelInput('');
-  };
-
-  // Modelos Manuais: Remover
-  const handleRemoveManualModel = (index: number) => {
-    setManualModels((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Handle Supplier Cost input in margin mode
-  const handleSupplierCostChange = (val: string) => {
-    setSupplierCost(val);
-    if (pricingMode === 'margin') {
-      const costNum = parseFloat(val);
-      if (!isNaN(costNum) && costNum > 0) {
-        const calculated = pricingRulesService.calculatePriceFromCost(costNum, marginPercent);
-        setPrice(calculated.toFixed(2));
-      } else {
-        setPrice('');
-      }
-    }
-  };
-
-  // Handle Margin Percent change
-  const handleMarginPercentChange = (newMargin: number) => {
-    setMarginPercent(newMargin);
-    if (pricingMode === 'margin' && supplierCost) {
-      const costNum = parseFloat(supplierCost);
-      if (!isNaN(costNum) && costNum > 0) {
-        const calculated = pricingRulesService.calculatePriceFromCost(costNum, newMargin);
-        setPrice(calculated.toFixed(2));
-      }
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`O arquivo ${file.name} não é uma imagem suportada.`);
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`A foto ${file.name} excede o limite de 10MB.`);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setImages((prev) => [...prev, event.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-
-    e.target.value = '';
-    toast.success('Foto(s) adicionada(s) com sucesso!');
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`O arquivo ${file.name} não é uma imagem suportada.`);
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`A foto ${file.name} excede o limite de 10MB.`);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setImages((prev) => [...prev, event.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-    toast.success('Foto(s) adicionada(s) com sucesso!');
-  };
-
-  const handleAddImage = () => {
-    let clean = imageUrlInput.trim();
-    if (!clean) return;
-
-    if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-      clean = `https://${clean}`;
-    }
-
-    if (images.includes(clean)) {
-      toast.info('Essa imagem já foi adicionada.');
-      return;
-    }
-
-    setImages([...images, clean]);
+    setImages((prev) => [...prev, url]);
     setImageUrlInput('');
-    toast.success('Link de imagem adicionado!');
-  };
-
-  const handleSetCoverImage = (index: number) => {
-    if (index === 0) return;
-    setImages((prev) => {
-      const copy = [...prev];
-      const [chosen] = copy.splice(index, 1);
-      return [chosen, ...copy];
-    });
-    toast.success('Definida como foto principal!');
+    toast.success('Imagem adicionada!');
   };
 
   const handleRemoveImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  const parsedPrice = parseFloat(price) || 0;
-  const parsedCost = parseFloat(supplierCost) || 0;
-  const profitMargin = parsedPrice - parsedCost;
-  const profitPercent = parsedCost > 0 ? ((profitMargin / parsedCost) * 100).toFixed(1) : '0';
-
-  const filteredAppleModels = useMemo(() => {
-    const q = appleSearchFilter.toLowerCase().trim();
-    if (!q) return appleModelsList;
-    return appleModelsList.filter((m) => m.toLowerCase().includes(q));
-  }, [appleModelsList, appleSearchFilter]);
-
-  const handleValidateForm = () => {
+  // Submissão do Formulário
+  const handleSubmit = async () => {
     if (!title.trim()) {
+      setActiveTab('geral');
       toast.error('Informe o título do produto.');
-      return false;
+      return;
     }
     if (parsedPrice <= 0) {
-      toast.error('Informe um preço de venda final válido.');
-      return false;
+      setActiveTab('geral');
+      toast.error('Informe um preço de venda válido.');
+      return;
     }
-    if (images.length === 0) {
-      toast.error('Adicione pelo menos 1 imagem do produto.');
-      return false;
-    }
-
-    if (enableCompatibility) {
-      if (selectedBrand === 'Apple' && selectedAppleModels.length === 0) {
-        toast.error('Selecione ao menos 1 modelo de iPhone compatível.');
-        return false;
-      }
-      if (selectedBrand !== 'Apple' && selectedBrand !== 'Universal' && manualModels.length === 0) {
-        toast.error('Adicione ao menos 1 modelo compatível para a marca selecionada.');
-        return false;
-      }
-    }
-
-    if (!variationMasculino && !variationFeminino) {
-      toast.error('Selecione ao menos uma opção de kit (Masculino ou Feminino).');
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!handleValidateForm()) return;
 
     setIsSubmitting(true);
     const parsedOrig = parseFloat(originalPrice.replace(/\./g, '').replace(',', '.')) || 0;
     const isDiscount = parsedOrig > parsedPrice;
     const discountPct = isDiscount ? Math.round(((parsedOrig - parsedPrice) / parsedOrig) * 100) : undefined;
-
     const matchedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
 
-    // Determina lista final de modelos compatíveis e preços específicos por modelo
     const finalCompatibleModels = enableCompatibility
       ? selectedBrand === 'Apple'
         ? selectedAppleModels
@@ -522,7 +444,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       };
     });
 
-    // Determina opções de variação (Feminina / Masculina)
     const variationOptions: string[] = [];
     if (variationFeminino) variationOptions.push('Cores \\Feminina');
     if (variationMasculino) variationOptions.push('Cores \\Masculina');
@@ -538,8 +459,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         category,
         subcategory: subcategory.trim() || undefined,
         condition,
-        description: description.trim() || 'Produto oficial verificado com garantia técnica CellHub Shop.',
-        details: details.trim() || undefined,
+        description: description.trim() || 'Produto oficial com garantia técnica CellHub Shop.',
         price: parsedPrice,
         originalPrice: isDiscount ? parsedOrig : undefined,
         discountPercent: discountPct,
@@ -568,781 +488,586 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         compatibleModels: finalCompatibleModels,
         modelPricing: finalModelPricing,
         variationType: variationOptions.length > 0 ? 'masculino_feminino' : 'nenhum',
-        variationOptions: variationOptions,
+        variationOptions,
       });
 
       if (res.success) {
-        toast.success('Produto oficial cadastrado com sucesso no catálogo da CellHub Shop!');
+        toast.success('Produto cadastrado com sucesso!');
         if (onOfferCreated) onOfferCreated();
         if (onCreated) onCreated();
         onClose();
       } else {
-        toast.error(`Erro ao cadastrar produto: ${res.error || 'Tente novamente.'}`);
+        toast.error(`Erro ao cadastrar: ${res.error || 'Tente novamente.'}`);
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Erro inesperado ao cadastrar produto.');
+      toast.error(e.message || 'Erro ao cadastrar produto.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 md:backdrop-blur-sm md:p-4 overflow-hidden">
-      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-3xl bg-[#090e1c] md:border md:border-[#00D287]/30 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
-        {/* Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-950/80 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <button
-              onClick={step === 'preview' ? () => setStep('form') : onClose}
-              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
-              <span className="text-xs">Voltar</span>
-            </button>
+  const filteredAppleModels = appleModelsList.filter((m) =>
+    m.toLowerCase().includes(modelSearch.toLowerCase())
+  );
 
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] hidden sm:flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-0 md:p-4 overflow-hidden animate-in fade-in duration-150">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl bg-[#090e1a] border-0 md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        
+        {/* HEADER COMPACTO E MINIMALISTA */}
+        <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between bg-[#060a13] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-bold text-xs">
+              <Boxes className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs sm:text-base font-bold text-white">Cadastrar Produto Atacado</h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
-                  CELLHUB SHOP
-                </span>
-              </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[220px] sm:max-w-none">Catálogo Atacado com grade por modelo e kits Masc/Fem</p>
+              <h3 className="text-sm font-bold text-white leading-none">Cadastrar Produto no Atacado</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">CellHub Shop • Catálogo B2B</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="hidden md:flex w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 pb-24 md:pb-6">
-          {step === 'form' ? (
-            <>
-              {/* Informações Básicas */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Título do Produto <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Capinha Magnética MagSafe Acrílica Anti-Impacto"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
-                  />
-                </div>
+        {/* TEMPLATES RÁPIDOS (1 CLIQUE PARA PREENCHER TUDO) */}
+        <div className="px-5 py-2 bg-slate-950/60 border-b border-white/5 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 text-xs">
+          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider shrink-0 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#00D287]" /> Templates:
+          </span>
+          <button
+            type="button"
+            onClick={() => applyQuickTemplate('iphone_capa')}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
+          >
+            📱 Capa iPhone
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickTemplate('realme_capa')}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
+          >
+            ⚡ Capa Realme
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickTemplate('samsung_capa')}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
+          >
+            ✨ Capa Samsung
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickTemplate('pelicula_3d')}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-medium shrink-0 border border-white/5 transition-colors"
+          >
+            🛡️ Película 3D
+          </button>
+        </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">Categoria</label>
-                    <select
-                      value={category}
-                      onChange={(e) => handleCategoryChange(e.target.value as OfferCategory)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                    >
-                      {categoriesList.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
+        {/* TABS COMPACTAS */}
+        <div className="px-5 pt-3 pb-2 flex items-center gap-2 border-b border-white/5 bg-[#080d17] shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('geral')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'geral'
+                ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>1. Dados & Preço</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('modelos')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'modelos'
+                ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>2. Modelos & Cores</span>
+            <span className="text-[10px] opacity-80 font-normal">
+              ({selectedBrand === 'Apple' ? selectedAppleModels.length : manualModels.length})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('fotos')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'fotos'
+                ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>3. Fotos & Envio</span>
+          </button>
+        </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">Condição</label>
-                    <select
-                      value={condition}
-                      onChange={(e) => setCondition(e.target.value as OfferCondition)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                    >
-                      {CONDITIONS.map((cond) => (
-                        <option key={cond} value={cond}>{cond}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+        {/* BODY COM SCROLL SUAVE */}
+        <div className="p-5 overflow-y-auto flex-1 space-y-4">
+          
+          {/* ABA 1: DADOS GERAIS E PREÇO */}
+          {activeTab === 'geral' && (
+            <div className="space-y-4 animate-in fade-in duration-100">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Título do Produto <span className="text-[#00D287]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  placeholder="Ex: Capinha Magnética MagSafe Realme C55"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  💡 Digite o nome da marca (ex: Realme, iPhone, Samsung) para auto-configurar a grade.
+                </span>
               </div>
 
-              {/* Bloco de Precificação Base & Margem */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-[#00D287]/20 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-[#00D287]" />
-                    Precificação Base de Venda no Atacado
-                  </span>
-
-                  {/* Pricing Mode Toggle */}
-                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/5 self-start">
-                    <button
-                      type="button"
-                      onClick={() => setPricingMode('margin')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                        pricingMode === 'margin'
-                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Percent className="w-3 h-3" />
-                      Por Porcentagem (%)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPricingMode('manual')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                        pricingMode === 'manual'
-                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Sliders className="w-3 h-3" />
-                      Manual (Fixo)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mode A: Porcentagem Automática */}
-                {pricingMode === 'margin' ? (
-                  <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Custo Base no Fornecedor (R$) <span className="text-rose-400">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={supplierCost}
-                          onChange={(e) => handleSupplierCostChange(e.target.value)}
-                          placeholder="Ex: 4.50"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-semibold text-slate-300">
-                            Margem de Lucro (%)
-                          </label>
-                          <span className="text-[10px] text-[#00D287] font-bold">
-                            Padrão de {category}: {pricingRulesService.getSuggestedMargin(category)}%
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            step="1"
-                            value={marginPercent}
-                            onChange={(e) => handleMarginPercentChange(parseFloat(e.target.value) || 0)}
-                            className="w-full px-3.5 py-2.5 pr-8 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Preço Base Sugerido por Unidade:</span>
-                        <span className="text-lg font-black text-[#00D287]">
-                          R$ {parsedPrice > 0 ? parsedPrice.toFixed(2) : '0,00'}
-                        </span>
-                      </div>
-                      {parsedCost > 0 && (
-                        <div className="text-right">
-                          <span className="text-slate-400 block text-[11px]">Lucro Unitário Estimado:</span>
-                          <span className="font-bold text-white">
-                            + R$ {profitMargin.toFixed(2)} ({profitPercent}%)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  /* Mode B: Manual (Preço Fixo) */
-                  <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Preço Base Padrão de Venda (R$) <span className="text-rose-400">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
-                          placeholder="Ex: 6.65"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                          Custo no Fornecedor (R$) - Opcional
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={supplierCost}
-                          onChange={(e) => setSupplierCost(e.target.value)}
-                          placeholder="Ex: 4.50"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-sm focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* SEÇÃO: MARCAS & GRADE DE MODELOS COM PREÇO UNITÁRIO POR MODELO */}
-              <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e172e] to-[#090e1c] border border-[#00D287]/30 space-y-4 shadow-lg">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                        Marca & Grade de Modelos (Atacado)
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
-                          Preço por Modelo
-                        </span>
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        Cada modelo pode ter seu valor customizado (ex: iPhone 11 por R$ 6,65 / iPhone 17 por R$ 7,77 / iPhone 18 Pro por R$ 9,99).
-                      </p>
-                    </div>
-                  </div>
-
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer self-start sm:self-auto bg-slate-900/80 px-3 py-1.5 rounded-xl border border-white/10">
-                    <input
-                      type="checkbox"
-                      checked={enableCompatibility}
-                      onChange={(e) => setEnableCompatibility(e.target.checked)}
-                      className="rounded accent-[#00D287] w-4 h-4"
-                    />
-                    <span>Ativar grade de modelos</span>
-                  </label>
-                </div>
-
-                {enableCompatibility && (
-                  <div className="space-y-3.5">
-                    {/* Seleção de Marca */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                        Marca do Aparelho
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Infinix', 'Tecno', 'Outros'].map((brandName) => {
-                          const isSelected = selectedBrand.toLowerCase() === brandName.toLowerCase();
-                          return (
-                            <button
-                              key={brandName}
-                              type="button"
-                              onClick={() => setSelectedBrand(brandName)}
-                              className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between ${
-                                isSelected
-                                  ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-md shadow-[#00D287]/20 font-black'
-                                  : 'bg-slate-950/80 text-slate-300 border-white/10 hover:border-white/20 hover:bg-slate-900'
-                              }`}
-                            >
-                              <span>{brandName}</span>
-                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5 fill-slate-950 text-white" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Botão Global: Aplicar preço base a todos */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-white/10 text-xs">
-                      <span className="text-slate-300 font-medium">
-                        Preço base atual: <strong className="text-[#00D287]">R$ {parsedPrice.toFixed(2)}</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleApplyBasePriceToAll}
-                        className="px-3 py-1.5 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287]/25 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-colors"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Aplicar R$ {parsedPrice.toFixed(2)} a todos os modelos
-                      </button>
-                    </div>
-
-                    {/* CASO 1: APPLE (Utiliza modelos do Trade-in com tudo marcado por padrão) */}
-                    {selectedBrand === 'Apple' ? (
-                      <div className="p-3.5 rounded-xl bg-slate-950/90 border border-[#00D287]/20 space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div>
-                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
-                              Modelos Apple (Cadastrados no Trade-In)
-                            </span>
-                            <span className="text-[11px] text-slate-400 block">
-                              Todos os modelos vêm marcados por padrão. Ajuste os preços específicos por modelo na grade abaixo.
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 self-start sm:self-auto">
-                            <button
-                              type="button"
-                              onClick={handleSelectAllApple}
-                              className="px-2.5 py-1 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287]/25 text-[#00D287] border border-[#00D287]/30 text-[10.5px] font-bold transition-colors"
-                            >
-                              Marcar Todos
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleDeselectAllApple}
-                              className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 text-[10.5px] font-bold transition-colors"
-                            >
-                              Desmarcar Todos
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Barra de Busca de Modelos Apple */}
-                        <div className="relative">
-                          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={appleSearchFilter}
-                            onChange={(e) => setAppleSearchFilter(e.target.value)}
-                            placeholder="Buscar modelo de iPhone (ex: 14 Pro, 15, 16, 17)..."
-                            className="w-full pl-8 pr-3.5 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
-                          />
-                        </div>
-
-                        {/* Grade com Lista de Modelos, Checkbox e Preço Unitário */}
-                        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                          <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1 bg-slate-900/60 rounded-lg">
-                            <div className="col-span-7">Modelo</div>
-                            <div className="col-span-5 text-right">Preço Unitário (R$)</div>
-                          </div>
-
-                          {filteredAppleModels.map((modelName) => {
-                            const isChecked = selectedAppleModels.includes(modelName);
-                            const currentModelPrice = modelPrices[modelName] || price || '6.65';
-
-                            return (
-                              <div
-                                key={modelName}
-                                className={`grid grid-cols-12 items-center gap-2 px-3 py-2 rounded-xl text-xs border transition-all ${
-                                  isChecked
-                                    ? 'bg-[#00D287]/10 border-[#00D287]/40 text-white'
-                                    : 'bg-slate-900/30 border-white/5 text-slate-500 opacity-60'
-                                }`}
-                              >
-                                <label
-                                  onClick={() => handleToggleAppleModel(modelName)}
-                                  className="col-span-7 flex items-center gap-2 cursor-pointer select-none truncate"
-                                >
-                                  {isChecked ? (
-                                    <CheckSquare className="w-4 h-4 text-[#00D287] shrink-0" />
-                                  ) : (
-                                    <Square className="w-4 h-4 text-slate-600 shrink-0" />
-                                  )}
-                                  <span className="truncate font-semibold">{modelName}</span>
-                                </label>
-
-                                <div className="col-span-5 flex items-center justify-end gap-1.5">
-                                  <span className="text-[11px] text-slate-400 font-bold">R$</span>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    disabled={!isChecked}
-                                    value={currentModelPrice}
-                                    onChange={(e) => handleSetModelPrice(modelName, e.target.value)}
-                                    placeholder={price || '6.65'}
-                                    className="w-20 px-2 py-1 bg-slate-900 border border-white/15 rounded-lg text-xs text-[#00D287] font-black text-right outline-none focus:border-[#00D287] disabled:opacity-30"
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      /* CASO 2: OUTRAS MARCAS (Adição Manual de Modelos) */
-                      <div className="p-3.5 rounded-xl bg-slate-950/90 border border-white/10 space-y-3">
-                        <div>
-                          <span className="text-xs font-bold text-white block">
-                            Adicionar Modelos para {selectedBrand}
-                          </span>
-                          <span className="text-[11px] text-slate-400">
-                            Digite o nome do modelo e defina o valor unitário.
-                          </span>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={manualModelInput}
-                            onChange={(e) => setManualModelInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddManualModel())}
-                            placeholder={`Nome do modelo ${selectedBrand}...`}
-                            className="flex-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddManualModel}
-                            className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5 stroke-[3]" /> Adicionar
-                          </button>
-                        </div>
-
-                        {/* Lista de Modelos Adicionados com Preço */}
-                        {manualModels.length > 0 ? (
-                          <div className="space-y-1.5 pt-1 max-h-56 overflow-y-auto">
-                            {manualModels.map((m, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs text-white"
-                              >
-                                <span className="font-semibold">{m}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-slate-400 font-bold text-[11px]">R$</span>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={modelPrices[m] || price || '6.65'}
-                                    onChange={(e) => handleSetModelPrice(m, e.target.value)}
-                                    className="w-20 px-2 py-1 bg-slate-950 border border-white/15 rounded-lg text-xs text-[#00D287] font-black text-right outline-none focus:border-[#00D287]"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveManualModel(idx)}
-                                    className="p-1 hover:text-rose-400 transition-colors"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="p-3 rounded-xl bg-slate-900/40 border border-dashed border-white/10 text-center text-xs text-slate-400">
-                            Nenhum modelo manual adicionado ainda para {selectedBrand}.
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* SEÇÃO: VARIAÇÃO DE CORES (FEMININA / MASCULINA) */}
-                <div className="pt-2 border-t border-white/10 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-[#00D287]" />
-                        Variação de Cores da Capinha (Atacado)
-                      </span>
-                      <p className="text-[11px] text-slate-400">
-                        Marque se o produto terá variação Feminina e Masculina, apenas Feminina, apenas Masculina, ou desmarque ambas para produto sem variação.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <label
-                      onClick={() => setVariationFeminino(!variationFeminino)}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
-                        variationFeminino
-                          ? 'bg-pink-950/40 border-pink-500/50 text-white font-bold'
-                          : 'bg-slate-950/60 border-white/10 text-slate-500'
-                      }`}
-                    >
-                      {variationFeminino ? (
-                        <CheckSquare className="w-4 h-4 text-pink-400 shrink-0" />
-                      ) : (
-                        <Square className="w-4 h-4 text-slate-600 shrink-0" />
-                      )}
-                      <div>
-                        <span className="text-xs block text-white">👩 Cores \Feminina</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Cores femininas (rosa, lilás, glitter, etc.)</span>
-                      </div>
-                    </label>
-
-                    <label
-                      onClick={() => setVariationMasculino(!variationMasculino)}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
-                        variationMasculino
-                          ? 'bg-blue-950/40 border-blue-500/50 text-white font-bold'
-                          : 'bg-slate-950/60 border-white/10 text-slate-500'
-                      }`}
-                    >
-                      {variationMasculino ? (
-                        <CheckSquare className="w-4 h-4 text-blue-400 shrink-0" />
-                      ) : (
-                        <Square className="w-4 h-4 text-slate-600 shrink-0" />
-                      )}
-                      <div>
-                        <span className="text-xs block text-white">👨 Cores \Masculina</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Cores masculinas (preto, azul, grafite, etc.)</span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Descrição e Detalhes */}
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Descrição do Produto
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Descreva as qualidades, acabamento, botões metalizados e proteção da capinha..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
-                  />
-                </div>
-              </div>
-
-              {/* Garantia e Política de Frete */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#00D287]" /> Garantia (Dias)
-                  </label>
-                  <input
-                    type="number"
-                    value={warrantyDays}
-                    onChange={(e) => setWarrantyDays(Number(e.target.value) || 90)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Política de Frete</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Categoria</label>
                   <select
-                    value={shippingPolicy}
-                    onChange={(e) => setShippingPolicy(e.target.value as ShippingPolicy)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as OfferCategory)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
                   >
-                    <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
-                    <option value="comprador_paga">Frete Calculado no Checkout (Cliente Paga)</option>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Condição</label>
+                  <select
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value as OfferCondition)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                  >
+                    {CONDITIONS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              {/* Vínculo de Fornecedor & Origem do Frete (Melhor Envio) */}
-              <div className="p-4 rounded-2xl bg-[#090e1c] border border-cyan-500/30 space-y-2.5">
+              {/* CARD DE PRECIFICAÇÃO MINIMALISTA */}
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-cyan-400" />
-                    Fornecedor de Origem (Dropshipping / Frete Automático)
-                  </label>
-                  <span className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded font-mono font-bold border border-cyan-500/20">
-                    Origem Melhor Envio
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-[#00D287]" /> Precificação no Atacado
                   </span>
+                  <div className="flex items-center gap-1">
+                    {[30, 40, 45, 50].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMarginPercent(m)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                          marginPercent === m
+                            ? 'bg-[#00D287] text-slate-950'
+                            : 'bg-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {m}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <select
-                  value={selectedSupplierId}
-                  onChange={(e) => setSelectedSupplierId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
-                >
-                  <option value="">Selecione o fornecedor deste produto...</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Custo no Fornecedor (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={supplierCost}
+                      onChange={(e) => setSupplierCost(e.target.value)}
+                      placeholder="4.50"
+                      className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-[#00D287]"
+                    />
+                  </div>
 
-                {(() => {
-                  const sup = suppliers.find((s) => s.id === selectedSupplierId);
-                  if (sup) {
-                    return (
-                      <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-cyan-300 font-bold flex items-center gap-1">
-                            <Tag className="w-3 h-3" /> Tag Vinculada: <span className="font-mono text-white">{sup.tag}</span>
-                          </span>
-                          <span className="text-[11px] text-slate-300 font-mono font-bold">
-                            CEP Origem: {sup.postalCode}
-                          </span>
-                        </div>
-                        <p className="text-slate-300 text-[11px]">
-                          Endereço de envio: {sup.street}, {sup.number} • {sup.neighborhood} • <strong>{sup.city} - {sup.state}</strong>
-                        </p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Selecione o fornecedor responsável por despachar este produto. O endereço e CEP dele serão usados para calcular o frete exato de origem até o comprador.
-                    </p>
-                  );
-                })()}
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Preço Sugerido (R$)</label>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={price}
+                        onChange={(e) => {
+                          setPrice(e.target.value);
+                          setPricingMode('manual');
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-[#00D287]/40 text-[#00D287] text-xs font-black focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
+                  <span>Lucro por unidade vendida:</span>
+                  <span className="font-bold text-[#00D287]">+ R$ {profitMargin.toFixed(2)} ({profitPercent}%)</span>
+                </div>
               </div>
 
-              {/* Imagens do Produto */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-300">
-                    Fotos do Produto <span className="text-rose-400">*</span>
+              {/* FORNECEDOR DROPSHIPPING */}
+              {suppliers.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Fornecedor de Origem (Melhor Envio)
                   </label>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {images.length} foto{images.length !== 1 ? 's' : ''} adicionada{images.length !== 1 ? 's' : ''}
+                  <select
+                    value={selectedSupplierId}
+                    onChange={(e) => setSelectedSupplierId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                  >
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ABA 2: MODELOS & VARIAÇÕES */}
+          {activeTab === 'modelos' && (
+            <div className="space-y-4 animate-in fade-in duration-100">
+              {/* SELEÇÃO DE MARCA */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Marca do Aparelho</label>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Outros'].map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => handleSelectBrand(b)}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                        selectedBrand.toLowerCase() === b.toLowerCase()
+                          ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm font-black'
+                          : 'bg-slate-950/80 text-slate-300 border-white/10 hover:bg-slate-900'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* VARIAÇÕES DE COR MINIMALISTAS */}
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-[#00D287]" /> Cores da Capinha:
                   </span>
+                  <span className="text-[10px] text-slate-400">Ativa sub-linhas na grade</span>
                 </div>
 
-                {/* Upload Fotos */}
-                <label
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${
-                    isDragging
-                      ? 'border-[#00D287] bg-[#00D287]/15 scale-[1.01]'
-                      : 'border-white/15 bg-slate-950/80 hover:border-[#00D287]/50 hover:bg-slate-900/60'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/jpg, image/webp"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="w-10 h-10 rounded-2xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center mb-2 shadow-md shadow-[#00D287]/10">
-                    <UploadCloud className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-white text-center">
-                    Clique para selecionar fotos do seu dispositivo
-                  </span>
-                  <span className="text-[11px] text-slate-400 text-center mt-0.5">
-                    ou arraste e solte arquivos aqui (PNG, JPG, WEBP até 10MB)
-                  </span>
-                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVariationFeminino(!variationFeminino)}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      variationFeminino
+                        ? 'bg-pink-950/40 border-pink-500/50 text-pink-300'
+                        : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span>👩 Cores \Feminina</span>
+                    {variationFeminino && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  </button>
 
-                {/* Inserir Link */}
+                  <button
+                    type="button"
+                    onClick={() => setVariationMasculino(!variationMasculino)}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      variationMasculino
+                        ? 'bg-blue-950/40 border-blue-500/50 text-blue-300'
+                        : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span>👨 Cores \Masculina</span>
+                    {variationMasculino && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* CONTROLES DE PREÇO EM MASSA */}
+              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-950 border border-white/5 text-xs">
+                <span className="text-slate-400">Preço padrão: <strong className="text-white">R$ {parsedPrice.toFixed(2)}</strong></span>
+                <button
+                  type="button"
+                  onClick={handleApplyBasePriceToAll}
+                  className="px-2.5 py-1 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287]/25 text-[#00D287] text-[11px] font-bold flex items-center gap-1 transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3" /> Aplicar a todos os modelos
+                </button>
+              </div>
+
+              {/* LISTAGEM DE MODELOS (APPLE OU OUTRAS MARCAS) */}
+              {selectedBrand === 'Apple' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+                      <input
+                        type="text"
+                        value={modelSearch}
+                        onChange={(e) => setModelSearch(e.target.value)}
+                        placeholder="Buscar iPhone..."
+                        className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAppleModels([...appleModelsList])}
+                      className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold"
+                    >
+                      Todos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAppleModels([])}
+                      className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-semibold"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1 divide-y divide-white/5">
+                    {filteredAppleModels.map((m) => {
+                      const isChecked = selectedAppleModels.includes(m);
+                      return (
+                        <div
+                          key={m}
+                          className={`pt-1.5 pb-1.5 px-2.5 rounded-xl flex items-center justify-between gap-2 transition-colors ${
+                            isChecked ? 'bg-white/5' : 'opacity-50'
+                          }`}
+                        >
+                          <label className="flex items-center gap-2 text-xs text-white cursor-pointer select-none flex-1 truncate">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() =>
+                                setSelectedAppleModels((prev) =>
+                                  prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
+                                )
+                              }
+                              className="accent-[#00D287] rounded"
+                            />
+                            <span className="truncate">{m}</span>
+                          </label>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-[10px] text-slate-400">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={modelPrices[m] || price || '6.53'}
+                              onChange={(e) => handleSetModelPrice(m, e.target.value)}
+                              className="w-16 px-1.5 py-0.5 bg-slate-900 border border-white/15 rounded text-xs text-[#00D287] font-bold text-right outline-none"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* OUTRAS MARCAS: POPULARES + INPUT MANUAL */
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={manualModelInput}
+                      onChange={(e) => setManualModelInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddManualModel())}
+                      placeholder={`Adicionar modelo ${selectedBrand} (ex: ${selectedBrand === 'Realme' ? 'Realme C55' : 'Galaxy A15'})...`}
+                      className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddManualModel}
+                      className="px-3 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold"
+                    >
+                      + Adicionar
+                    </button>
+                  </div>
+
+                  {BRAND_POPULAR_MODELS[selectedBrand] && (
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-400 font-medium">Modelos sugeridos:</span>
+                      <button
+                        type="button"
+                        onClick={handleLoadPopularBrandModels}
+                        className="text-[10px] text-[#00D287] hover:underline font-bold"
+                      >
+                        + Carregar Populares {selectedBrand}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                    {manualModels.map((m, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2 rounded-xl bg-slate-950 border border-white/5 flex items-center justify-between text-xs text-white"
+                      >
+                        <span className="font-semibold">{m}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-400 font-bold">R$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={modelPrices[m] || price || '6.53'}
+                            onChange={(e) => handleSetModelPrice(m, e.target.value)}
+                            className="w-16 px-1.5 py-0.5 bg-slate-900 border border-white/15 rounded text-xs text-[#00D287] font-bold text-right outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveManualModel(idx)}
+                            className="p-1 hover:text-rose-400 text-slate-500"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ABA 3: FOTOS E ENVIO */}
+          {activeTab === 'fotos' && (
+            <div className="space-y-4 animate-in fade-in duration-100">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  URL da Imagem do Produto
+                </label>
                 <div className="flex gap-2">
                   <input
-                    type="text"
+                    type="url"
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddImage())}
-                    placeholder="Ou cole o link direto da foto na web (URL) aqui..."
-                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddImageUrl())}
+                    placeholder="https://exemplo.com/foto-capinha.jpg"
+                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
                   />
                   <button
                     type="button"
-                    onClick={handleAddImage}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={handleAddImageUrl}
+                    className="px-3.5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Adicionar Link
+                    Adicionar
                   </button>
                 </div>
-
-                {/* Galeria */}
-                {images.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-[10.5px] text-slate-400 font-semibold block">
-                      Fotos selecionadas (clique na estrela para definir a capa):
-                    </span>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
-                      {images.map((img, idx) => (
-                        <div
-                          key={idx}
-                          className={`relative group aspect-square rounded-xl overflow-hidden border bg-slate-950 transition-all ${
-                            idx === 0 ? 'border-[#00D287] ring-2 ring-[#00D287]/30 shadow-lg' : 'border-white/10'
-                          }`}
-                        >
-                          <img src={img} alt="" className="w-full h-full object-contain p-1" />
-                          
-                          {idx === 0 && (
-                            <div className="absolute top-1 left-1 bg-[#00D287] text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded shadow flex items-center gap-0.5 z-10">
-                              <Star className="w-2.5 h-2.5 fill-slate-950" /> CAPA
-                            </div>
-                          )}
-
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
-                            {idx !== 0 && (
-                              <button
-                                type="button"
-                                onClick={() => handleSetCoverImage(idx)}
-                                className="p-1.5 rounded-lg bg-[#00D287] text-slate-950 hover:scale-105 transition-transform"
-                                title="Definir como foto principal"
-                              >
-                                <Star className="w-3 h-3 fill-slate-950" />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(idx)}
-                              className="p-1.5 rounded-lg bg-rose-600 text-white hover:scale-105 transition-transform"
-                              title="Remover foto"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            </>
-          ) : (
-            /* Visualização Prévia */
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-white/10 space-y-3">
-                <div className="flex items-center gap-3">
-                  {images[0] && (
-                    <img src={images[0]} alt="" className="w-20 h-20 rounded-xl object-contain bg-slate-900 border border-white/5" />
-                  )}
-                  <div>
-                    <h4 className="text-sm font-bold text-white">{title}</h4>
-                    <p className="text-xs text-slate-400">{category} • {condition}</p>
-                    <p className="text-base font-black text-[#00D287] mt-1">
-                      A partir de R$ {parsedPrice.toFixed(2)}
-                    </p>
-                  </div>
+
+              {images.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-xl border border-white/15 overflow-hidden group shrink-0 bg-slate-950">
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-1 right-1 p-0.5 rounded-full bg-black/80 text-rose-400 hover:text-rose-300"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Descrição Rápida do Produto
+                </label>
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Material, acabamento, bordas anti-impacto, botões metalizados..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 outline-none focus:border-[#00D287]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Garantia (Dias)</label>
+                  <input
+                    type="number"
+                    value={warrantyDays}
+                    onChange={(e) => setWarrantyDays(Number(e.target.value) || 90)}
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Política de Frete</label>
+                  <select
+                    value={shippingPolicy}
+                    onChange={(e) => setShippingPolicy(e.target.value as ShippingPolicy)}
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                  >
+                    <option value="comprador_paga">Comprador paga o frete</option>
+                    <option value="frete_gratis">Frete Grátis</option>
+                  </select>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:p-5 border-t border-white/10 bg-slate-950/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold transition-colors cursor-pointer"
-          >
-            Cancelar
-          </button>
+        {/* FOOTER MINIMALISTA */}
+        <div className="px-5 py-3 border-t border-white/5 bg-[#060a13] flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
 
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={handleSubmit}
-            className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
-          >
-            {isSubmitting ? (
-              <>Cadastrando...</>
-            ) : (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                Publicar no Catálogo
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            {activeTab !== 'fotos' ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'geral' ? 'modelos' : 'fotos')}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <span>Avançar</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+              <span>{isSubmitting ? 'Publicando...' : 'Publicar no Catálogo'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
