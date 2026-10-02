@@ -28,54 +28,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// Descobrir dinamicamente os modelos REAIS DE VISÃO MULTIMODAL disponíveis na chave
-async function getWorkingVisionModels(apiKey: string): Promise<{ ver: string; model: string }[]> {
-  const versions = ["v1beta", "v1"];
-  const list: { ver: string; model: string }[] = [];
-
-  for (const ver of versions) {
-    try {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (Array.isArray(data.models)) {
-          for (const m of data.models) {
-            const cleanName = m.name.replace(/^models\//, "");
-            // FILTRO CRÍTICO: Selecionar EXCLUSIVAMENTE modelos Gemini Multimodais (Visão Computacional)
-            // Modelos 'gemma' ou embeddings são texto-puro e NÃO processam fotos.
-            const isGeminiMultimodal = cleanName.startsWith("gemini-") &&
-              !cleanName.includes("embedding") &&
-              !cleanName.includes("aqa") &&
-              !cleanName.includes("text");
-
-            if (isGeminiMultimodal && m.supportedGenerationMethods?.includes("generateContent")) {
-              list.push({ ver, model: cleanName });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn(`[cellhub-ai-router] Erro ao listar ${ver}:`, e);
-    }
-  }
-
-  // Priorizar modelos visuais de ponta da Google (Gemini 2.0 Flash e 1.5 Flash)
-  list.sort((a, b) => {
-    const score = (m: string) => {
-      if (m === "gemini-2.0-flash") return 1;
-      if (m.includes("2.0-flash")) return 2;
-      if (m === "gemini-1.5-flash") return 3;
-      if (m.includes("1.5-flash")) return 4;
-      if (m === "gemini-1.5-pro") return 5;
-      if (m.includes("1.5-pro")) return 6;
-      return 10;
-    };
-    return score(a.model) - score(b.model);
-  });
-
-  return list;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -334,15 +286,13 @@ RETORNE EXCLUSIVAMENTE O JSON NO SEGUINTE FORMATO:
       text: `Analise as imagens e determine se é um smartphone ${deviceBrand} ${deviceModel} e suas avarias. Retorne o JSON puro.`
     });
 
-    // 8. Obter modelos ativos na chave e chamar o primeiro funcional
-    const availableModels = await getWorkingVisionModels(apiKey);
-    console.log(`[cellhub-ai-router] Modelos ativos na chave:`, availableModels.map(m => `${m.ver}/${m.model}`));
-
+    // 8. Lista de modelos ultra-rápidos e multimodais do Gemini (Execução direta em 1-3 segundos)
     const fallbackList = [
-      ...availableModels,
       { ver: "v1beta", model: "gemini-2.0-flash" },
       { ver: "v1beta", model: "gemini-1.5-flash" },
-      { ver: "v1", model: "gemini-1.5-flash" }
+      { ver: "v1", model: "gemini-1.5-flash" },
+      { ver: "v1beta", model: "gemini-1.5-pro" },
+      { ver: "v1", model: "gemini-1.5-pro" }
     ];
 
     let geminiData: any = null;
@@ -418,66 +368,40 @@ RETORNE EXCLUSIVAMENTE O JSON NO SEGUINTE FORMATO:
     const nonPhoneTerms = [
       "mouse", "teclado", "keyboard", "computador", "computer", "notebook", "laptop",
       "monitor", "mesa", "table", "desk", "cadeira", "parede", "wall", "chão", "floor",
-      "pessoa", "person", "rosto", "face", "documento", "caixa", "box", "carro", "car",
-      "fone", "headphone", "controle", "gamepad", "garrafa", "copo", "papel", "caneta",
-      "objeto desconhecido", "não reconhecido", "não identificado", "ambiente"
+      "pessoa", "person", "rosto", "face", "mão vazia", "caneta", "garrafa", "copo"
     ];
 
-    const hasNonPhoneTerm = nonPhoneTerms.some(term => detectedLower.includes(term));
-    const rawIsValid = parsedResult.is_valid_smartphone;
+    const containsNonPhone = nonPhoneTerms.some(term => detectedLower.includes(term));
 
-    // A validação é estrita: precisa ser true e não pode conter pistas de itens proibidos
-    const isValidSmartphone = (rawIsValid === true || rawIsValid === "true") && !hasNonPhoneTerm;
-
-    let rejectionReason = parsedResult.rejection_reason || null;
-    if (!isValidSmartphone && !rejectionReason) {
-      rejectionReason = `As fotos enviadas não correspondem a um smartphone (Detectado: ${detectedDesc || "objeto não compatível"}).`;
+    if (containsNonPhone) {
+      parsedResult.is_valid_smartphone = false;
+      if (!parsedResult.rejection_reason) {
+        parsedResult.rejection_reason = `As fotos enviadas mostram ${detectedDesc}, que não é um smartphone.`;
+      }
+      parsedResult.selected_preset_ids = [];
     }
 
-    const detectedObjectDescription = detectedDesc || (isValidSmartphone ? `${deviceBrand} ${deviceModel}` : "Objeto incompatível");
+    const isValidSmartphone = parsedResult.is_valid_smartphone !== false;
 
-    console.log(`[cellhub-ai-router] Validação: isValidSmartphone=${isValidSmartphone}, Objeto="${detectedObjectDescription}", Motivo="${rejectionReason}"`);
-
-    const validPresetIdsSet = new Set(allowedPresetsList.map(p => p.id));
-    const rawIds = (isValidSmartphone && Array.isArray(parsedResult.selected_preset_ids)) ? parsedResult.selected_preset_ids : [];
-    const sanitizedPresetIds = Array.from(new Set(rawIds.filter(id => validPresetIdsSet.has(id))));
-
-    const usageMetadata = geminiData.usageMetadata || {};
-    const inputTokens = usageMetadata.promptTokenCount || 0;
-    const outputTokens = usageMetadata.candidatesTokenCount || 0;
-
-    const costPerMillionInput = selectedTier === "paid" ? 3.50 : 0.075;
-    const costPerMillionOutput = selectedTier === "paid" ? 10.50 : 0.30;
-    const estimatedCostUsd = ((inputTokens * costPerMillionInput) + (outputTokens * costPerMillionOutput)) / 1_000_000;
-
-    const { error: logError } = await supabase.from("ai_usage_logs").insert({
+    // Registrar log no banco de dados
+    const estimatedCost = selectedTier === "paid" ? 0.005 : 0.000;
+    
+    await supabase.from("ai_usage_logs").insert({
       user_id: userId,
       session_id: sessionId || null,
-      provider: "gemini",
       api_tier: selectedTier,
-      model: successfulModel,
-      operation: "tradein_visual_evaluation",
-      status: isValidSmartphone ? "success" : "rejected_non_phone",
-      tokens_input: inputTokens,
-      tokens_output: outputTokens,
-      estimated_cost: estimatedCostUsd,
-      period_key: periodKey,
-      error_message: isValidSmartphone ? null : rejectionReason
+      status: !isValidSmartphone ? "rejected_non_phone" : "success",
+      estimated_cost: estimatedCost,
+      period_key: periodKey
     });
 
-    if (logError) {
-      console.error("[cellhub-ai-router] Erro ao registrar log de consumo:", logError);
-    }
-
+    // Atualizar sessão se houver
     if (sessionId) {
       await supabase
         .from("ai_evaluation_sessions")
         .update({
-          status: isValidSmartphone ? "completed" : "rejected",
-          detected_presets: sanitizedPresetIds,
-          visual_summary: parsedResult.visual_summary || [],
-          confidence: parsedResult.confidence || "high",
-          used_tier: selectedTier,
+          status: !isValidSmartphone ? "rejected_non_phone" : "completed",
+          ai_result: parsedResult,
           updated_at: new Date().toISOString()
         })
         .eq("id", sessionId);
@@ -487,25 +411,21 @@ RETORNE EXCLUSIVAMENTE O JSON NO SEGUINTE FORMATO:
       JSON.stringify({
         success: true,
         isValidSmartphone,
-        detectedObjectDescription,
-        rejectionReason,
+        detectedObjectDescription: parsedResult.detected_object_description,
+        rejectionReason: parsedResult.rejection_reason,
         tierUsed: selectedTier,
-        modelUsed: successfulModel,
-        detectedPresetIds: sanitizedPresetIds,
+        detectedPresetIds: isValidSmartphone ? (parsedResult.selected_preset_ids || []) : [],
         visualSummary: parsedResult.visual_summary || [],
         confidence: parsedResult.confidence || "high",
-        remainingFree: selectedTier === "free" ? Math.max(0, remainingFree - 1) : remainingFree,
-        usedFree: selectedTier === "free" ? usedFree + 1 : usedFree,
-        freeLimit
+        remainingFree: selectedTier === "free" ? Math.max(0, remainingFree - 1) : remainingFree
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
-  } catch (error: any) {
-    console.error("[cellhub-ai-router] Erro inesperado:", error);
+  } catch (globalErr: any) {
+    console.error("[cellhub-ai-router] Erro inesperado:", globalErr);
     return new Response(
-      JSON.stringify({ success: false, error: "internal_error", message: error.message || "Erro interno no servidor de IA." }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: "internal_error", message: globalErr.message || "Erro interno do servidor de IA." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -356,7 +356,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
         setAnalyzing(false);
         setAnalysisError('O processamento demorou mais que o esperado. Clique em Tentar Processar Novamente.');
       }
-    }, 28000);
+    }, 45000);
 
     try {
       const targetSessionId = sessionId || session?.id;
@@ -635,10 +635,10 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 Por favor, aponte a câmera e tire fotos reais e nítidas do smartphone que está sendo avaliado.
               </p>
 
-              <div className="flex flex-wrap justify-center gap-2.5 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2 w-full">
                 <Button
                   onClick={handleRetryReopenedSession}
-                  className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-6 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center gap-2"
+                  className="w-full sm:w-auto bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-5 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Liberar Celular para Novas Fotos
@@ -647,30 +647,30 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 <Button
                   variant="outline"
                   onClick={initSession}
-                  className="border-white/10 bg-[#0c1424] text-slate-300 text-xs h-11 rounded-2xl px-4 hover:text-white"
+                  className="w-full sm:w-auto border-white/10 bg-[#0c1424] text-slate-300 text-xs h-11 rounded-2xl px-4 hover:text-white cursor-pointer"
                 >
                   Gerar Novo QR Code
                 </Button>
               </div>
             </div>
           ) : analysisError ? (
-            <div className="p-6 rounded-3xl bg-[#090f1f] border border-amber-500/40 text-center space-y-4 animate-in fade-in duration-200">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
-                <AlertCircle className="w-7 h-7" />
+            <div className="p-5 sm:p-6 rounded-3xl bg-[#090f1f] border border-amber-500/40 text-center space-y-4 animate-in fade-in duration-200">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
 
-              <div className="space-y-1.5">
-                <h3 className="text-base font-bold text-white">Instabilidade Momentânea na IA</h3>
+              <div className="space-y-1.5 px-2">
+                <h3 className="text-sm sm:text-base font-bold text-white">Instabilidade Momentânea na IA</h3>
                 <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
                   {analysisError}. As fotos já estão salvas com segurança. Clique abaixo para reprocessar o laudo.
                 </p>
               </div>
 
-              <div className="flex justify-center gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2 w-full">
                 <Button
                   onClick={() => runAiAnalysis(session?.id)}
                   disabled={analyzing}
-                  className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-6 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center gap-2"
+                  className="w-full sm:w-auto bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs h-11 px-5 rounded-2xl shadow-lg shadow-[#00D287]/25 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
                   {analyzing ? 'Reprocessando...' : 'Tentar Processar Novamente'}
@@ -679,7 +679,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
                 <Button
                   variant="outline"
                   onClick={initSession}
-                  className="border-white/10 bg-[#0c1424] text-slate-300 text-xs h-11 rounded-2xl"
+                  className="w-full sm:w-auto border-white/10 bg-[#0c1424] text-slate-300 text-xs h-11 rounded-2xl px-4 hover:text-white cursor-pointer"
                 >
                   Gerar Novo QR Code
                 </Button>
@@ -752,17 +752,17 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-white/10">
+              <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-3 border-t border-white/10 w-full">
                 <Button
                   variant="outline"
                   onClick={initSession}
-                  className="border-white/10 bg-[#0c1424] text-slate-300 hover:text-white rounded-xl text-xs h-10"
+                  className="w-full sm:w-auto border-white/10 bg-[#0c1424] text-slate-300 hover:text-white rounded-xl text-xs h-11 sm:h-10 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1" /> Tirar Novas Fotos
                 </Button>
                 <Button
                   onClick={handleApply}
-                  className="bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs sm:text-sm h-10 px-5 rounded-xl shadow-lg shadow-[#00D287]/25"
+                  className="w-full sm:w-auto bg-[#00D287] hover:bg-[#00be7a] text-slate-950 font-black text-xs sm:text-sm h-11 sm:h-10 px-5 rounded-xl shadow-lg shadow-[#00D287]/25 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4 mr-1.5 stroke-[2.5]" /> Aplicar Avarias na Cotação
                 </Button>
