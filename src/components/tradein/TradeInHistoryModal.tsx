@@ -142,10 +142,7 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
 
       {/* Main Body */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:p-0 print:overflow-visible">
-        <div className="max-w-5xl mx-auto">
-
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 scrollbar-thin print:p-0 print:overflow-visible pb-24 md:pb-6">
+        <div className="max-w-5xl mx-auto space-y-4">
           {selectedEvaluation ? (
             /* DETAILED VIEW & PRINTABLE DOCUMENT OF A PAST EVALUATION */
             <div className="space-y-4 animate-in fade-in duration-150">
