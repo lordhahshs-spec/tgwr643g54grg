@@ -112,6 +112,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [editManualModelInput, setEditManualModelInput] = useState<string>('');
   const [editVariationMasculino, setEditVariationMasculino] = useState<boolean>(true);
   const [editVariationFeminino, setEditVariationFeminino] = useState<boolean>(true);
+  const [editVariationSortidas, setEditVariationSortidas] = useState<boolean>(true);
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -260,8 +261,12 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     const hasFem = product.variationOptions && product.variationOptions.length > 0
       ? product.variationOptions.some((v) => v.toLowerCase().includes('fem'))
       : false;
+    const hasSort = product.variationOptions && product.variationOptions.length > 0
+      ? product.variationOptions.some((v) => v.toLowerCase().includes('sortid'))
+      : true;
     setEditVariationMasculino(hasMasc);
     setEditVariationFeminino(hasFem);
+    setEditVariationSortidas(hasSort);
 
     // Calculate current implied margin
     const costNum = product.supplierCost || 0;
@@ -293,6 +298,11 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     if (!hasVar) {
       setEditVariationFeminino(false);
       setEditVariationMasculino(false);
+      setEditVariationSortidas(false);
+    } else {
+      setEditVariationFeminino(true);
+      setEditVariationMasculino(true);
+      setEditVariationSortidas(true);
     }
   };
 
@@ -371,10 +381,11 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         images: editImages,
         compatibleBrand: categorySupportsModelGrid(editCategory) ? (editCompatibleBrand || undefined) : undefined,
         compatibleModels: categorySupportsModelGrid(editCategory) ? editCompatibleModels : [],
-        variationType: (categorySupportsVariations(editCategory) && (editVariationMasculino || editVariationFeminino)) ? 'masculino_feminino' : 'nenhum',
+        variationType: (categorySupportsVariations(editCategory) && (editVariationMasculino || editVariationFeminino || editVariationSortidas)) ? 'masculino_feminino' : 'nenhum',
         variationOptions: categorySupportsVariations(editCategory) ? [
           ...(editVariationFeminino ? ['Cores \\Feminina'] : []),
-          ...(editVariationMasculino ? ['Cores \\Masculina'] : [])
+          ...(editVariationMasculino ? ['Cores \\Masculina'] : []),
+          ...(editVariationSortidas ? ['Cores / Sortidas'] : [])
         ] : [],
       });
 
@@ -1072,10 +1083,13 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
                   {/* Variações Cores (somente se a categoria suportar, ex: Capinhas) */}
                   {categorySupportsVariations(editCategory) && (
-                    <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-[11px] text-slate-400 font-semibold">Variações de Cor:</span>
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none">
+                    <div className="pt-2.5 pb-1 border-t border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400 font-semibold">Variações de Cor (Atacado):</span>
+                        <span className="text-[10px] text-slate-500">Opções disponíveis para o comprador</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-pink-500/40 transition-colors">
                           <input
                             type="checkbox"
                             checked={editVariationFeminino}
@@ -1084,7 +1098,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           />
                           <span>👩 Cores \Feminina</span>
                         </label>
-                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none">
+                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-blue-500/40 transition-colors">
                           <input
                             type="checkbox"
                             checked={editVariationMasculino}
@@ -1092,6 +1106,16 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                             className="accent-blue-500 rounded"
                           />
                           <span>👨 Cores \Masculina</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-amber-500/40 transition-colors" title="Pode ir qualquer cor variada / sortimento misto">
+                          <input
+                            type="checkbox"
+                            checked={editVariationSortidas}
+                            onChange={(e) => setEditVariationSortidas(e.target.checked)}
+                            className="accent-amber-500 rounded"
+                          />
+                          <span>🎨 Cores / Sortidas</span>
+                          <span className="text-[10px] text-slate-400 font-normal ml-0.5">(Qualquer cor)</span>
                         </label>
                       </div>
                     </div>

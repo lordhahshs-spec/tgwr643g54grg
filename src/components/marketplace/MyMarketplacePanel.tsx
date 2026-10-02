@@ -485,7 +485,12 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                             <div className="flex items-center gap-2 flex-wrap">
                               {order.selectedVariation && (
                                 <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
-                                  {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
+                                  {order.selectedVariation.toLowerCase().includes('sortid')
+                                    ? '🎨'
+                                    : order.selectedVariation.toLowerCase().includes('masc')
+                                    ? '👨'
+                                    : '👩'}{' '}
+                                  {order.selectedVariation}
                                 </span>
                               )}
                               {order.totalUnits && order.totalUnits > 1 && (
@@ -739,7 +744,12 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                               <div className="flex items-center gap-2 flex-wrap">
                                 {order.selectedVariation && (
                                   <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
-                                    {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
+                                    {order.selectedVariation.toLowerCase().includes('sortid')
+                                      ? '🎨'
+                                      : order.selectedVariation.toLowerCase().includes('masc')
+                                      ? '👨'
+                                      : '👩'}{' '}
+                                    {order.selectedVariation}
                                   </span>
                                 )}
                                 {order.totalUnits && order.totalUnits > 1 && (

@@ -165,6 +165,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   // Variações de Cores
   const [variationFeminino, setVariationFeminino] = useState(true);
   const [variationMasculino, setVariationMasculino] = useState(true);
+  const [variationSortidas, setVariationSortidas] = useState(true);
 
   // Precificação
   const [pricingMode, setPricingMode] = useState<'margin' | 'manual'>('margin');
@@ -228,9 +229,11 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     if (!hasVar) {
       setVariationFeminino(false);
       setVariationMasculino(false);
+      setVariationSortidas(false);
     } else {
       setVariationFeminino(true);
       setVariationMasculino(true);
+      setVariationSortidas(true);
     }
   };
 
@@ -367,6 +370,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     if (isVariationSupported) {
       if (variationFeminino) variationOptions.push('Cores \\Feminina');
       if (variationMasculino) variationOptions.push('Cores \\Masculina');
+      if (variationSortidas) variationOptions.push('Cores / Sortidas');
     }
 
     try {
@@ -531,10 +535,13 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
               {/* VARIAÇÕES DE CORES (SOMENTE PARA CAPINHAS) */}
               {isVariationSupported && (
-                <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-400 font-semibold">Variações de Cor:</span>
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none">
+                <div className="pt-2.5 pb-1 border-t border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-semibold">Variações de Cor (Atacado):</span>
+                    <span className="text-[10px] text-slate-500">Selecione quais opções estarão disponíveis para o comprador</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-pink-500/40 transition-colors">
                       <input
                         type="checkbox"
                         checked={variationFeminino}
@@ -544,7 +551,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                       <span>👩 Cores \Feminina</span>
                     </label>
 
-                    <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none">
+                    <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-blue-500/40 transition-colors">
                       <input
                         type="checkbox"
                         checked={variationMasculino}
@@ -552,6 +559,17 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                         className="accent-blue-500 rounded"
                       />
                       <span>👨 Cores \Masculina</span>
+                    </label>
+
+                    <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-amber-500/40 transition-colors" title="Pode ir qualquer cor variada / sortimento misto">
+                      <input
+                        type="checkbox"
+                        checked={variationSortidas}
+                        onChange={(e) => setVariationSortidas(e.target.checked)}
+                        className="accent-amber-500 rounded"
+                      />
+                      <span>🎨 Cores / Sortidas</span>
+                      <span className="text-[10px] text-slate-400 font-normal ml-0.5">(Qualquer cor)</span>
                     </label>
                   </div>
                 </div>

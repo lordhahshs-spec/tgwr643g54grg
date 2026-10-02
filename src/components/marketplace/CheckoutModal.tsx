@@ -547,7 +547,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <div className="flex flex-wrap items-center gap-2">
                       {chosenVariation && (
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-white font-bold">
-                          <span>{chosenVariation.toLowerCase().includes('masc') ? '👨' : '👩'}</span>
+                          <span>
+                            {chosenVariation.toLowerCase().includes('sortid')
+                              ? '🎨'
+                              : chosenVariation.toLowerCase().includes('masc')
+                              ? '👨'
+                              : '👩'}
+                          </span>
                           <span className="text-blue-300">Variação:</span>
                           <span>{chosenVariation}</span>
                         </div>

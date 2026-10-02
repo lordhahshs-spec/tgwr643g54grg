@@ -64,12 +64,13 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
     return offer.price;
   };
 
-  // Normalização das variações cadastradas pelo admin (ex: 'Cores \\Feminina', 'Cores \\Masculina')
+  // Normalização das variações cadastradas pelo admin (ex: 'Cores \\Feminina', 'Cores \\Masculina', 'Cores / Sortidas')
   const rawVariations = offer.variationOptions || [];
   const effectiveVariations = useMemo(() => {
     if (rawVariations.length === 0) return [];
     return rawVariations.map((v) => {
       const lower = v.toLowerCase();
+      if (lower.includes('sortid')) return 'Cores / Sortidas';
       if (lower.includes('fem')) return 'Cores \\Feminina';
       if (lower.includes('masc')) return 'Cores \\Masculina';
       return v;
@@ -438,13 +439,16 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                                 const key = `${modelName}__${varName}`;
                                 const currentQty = quantities[key] || 0;
                                 const isFem = varName.toLowerCase().includes('fem');
+                                const isSortidas = varName.toLowerCase().includes('sortid');
 
                                 return (
                                   <div
                                     key={key}
                                     className={`py-1.5 px-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors ${
                                       currentQty > 0
-                                        ? isFem
+                                        ? isSortidas
+                                          ? 'bg-amber-950/30 border border-amber-500/40'
+                                          : isFem
                                           ? 'bg-pink-950/30 border border-pink-500/30'
                                           : 'bg-blue-950/30 border border-blue-500/30'
                                         : 'hover:bg-white/5'
@@ -453,7 +457,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                                     {/* Nome da Variação com badge sutil */}
                                     <div className="flex items-center gap-1.5 min-w-[120px] sm:min-w-[160px]">
                                       <span className="text-xs font-semibold text-slate-200">
-                                        {varName}
+                                        {isSortidas ? '🎨 ' : ''}{varName}
                                       </span>
                                     </div>
 
