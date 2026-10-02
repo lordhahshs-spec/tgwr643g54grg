@@ -381,34 +381,30 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Modal Passo a Passo iOS */}
+              {showIosGuide && (
+                <div className="p-4 rounded-2xl bg-slate-900 border border-white/15 space-y-2.5 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Apple className="w-4 h-4" /> Passo a Passo no iPhone
+                    </span>
+                    <button onClick={() => setShowIosGuide(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    1. Toque em <strong>Compartilhar</strong> (<Share className="w-3 h-3 inline text-blue-400" />) na barra inferior do Safari.
+                  </p>
+                  <p className="text-[11px] text-slate-300">
+                    2. Escolha <strong>Adicionar à Tela de Início</strong> (<PlusSquare className="w-3 h-3 inline text-[#00D287]" />).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </main>
-    </div>
-  );
-};
-
-        {/* Modal Passo a Passo iOS */}
-        {showIosGuide && (
-          <div className="p-4 rounded-2xl bg-slate-900 border border-white/15 space-y-2.5 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Apple className="w-4 h-4" /> Passo a Passo no iPhone
-              </span>
-              <button onClick={() => setShowIosGuide(false)} className="text-slate-400 hover:text-white">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-300">
-              1. Toque em <strong>Compartilhar</strong> (<Share className="w-3 h-3 inline text-blue-400" />) na barra inferior do Safari.
-            </p>
-            <p className="text-[11px] text-slate-300">
-              2. Escolha <strong>Adicionar à Tela de Início</strong> (<PlusSquare className="w-3 h-3 inline text-[#00D287]" />).
-            </p>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
