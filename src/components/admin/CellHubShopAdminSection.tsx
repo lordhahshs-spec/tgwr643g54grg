@@ -107,7 +107,6 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Model Compatibility & Variations in Edit Modal
-  const [editTab, setEditTab] = useState<'geral' | 'modelos' | 'fotos'>('geral');
   const [editCompatibleBrand, setEditCompatibleBrand] = useState<string>('Apple');
   const [editCompatibleModels, setEditCompatibleModels] = useState<string[]>([]);
   const [editManualModelInput, setEditManualModelInput] = useState<string>('');
@@ -263,7 +262,6 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
       : false;
     setEditVariationMasculino(hasMasc);
     setEditVariationFeminino(hasFem);
-    setEditTab('geral');
 
     // Calculate current implied margin
     const costNum = product.supplierCost || 0;
@@ -290,10 +288,6 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         const calculated = pricingRulesService.calculatePriceFromCost(costNum, suggested);
         setEditPrice(calculated.toFixed(2));
       }
-    }
-    const hasGrid = categorySupportsModelGrid(newCat);
-    if (!hasGrid && editTab === 'modelos') {
-      setEditTab('geral');
     }
     const hasVar = categorySupportsVariations(newCat);
     if (!hasVar) {
@@ -982,17 +976,17 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
       {/* 7. MODAL DE EDIÇÃO DE PRODUTO OFICIAL (MINIMALISTA E DINÂMICO) */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-0 md:p-4 overflow-hidden animate-in fade-in duration-150">
-          <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl bg-[#090e1a] border-0 md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 md:p-5 overflow-hidden animate-in fade-in duration-150">
+          <div className="relative w-full max-h-[92vh] max-w-2xl bg-[#090e1c] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between bg-[#060a13] shrink-0">
+            <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between bg-[#060912] shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
                   <Edit className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white leading-none">Editar Produto Oficial</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Ajuste preços, modelos e fornecedor</p>
+                  <h3 className="text-sm font-bold text-white leading-tight">Editar Produto Oficial</h3>
+                  <p className="text-[11px] text-slate-400">CellHub Shop • {editCategory}</p>
                 </div>
               </div>
 
@@ -1004,234 +998,108 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
               </button>
             </div>
 
-            {/* Tabs Dinâmicas */}
-            <div className="px-5 pt-3 pb-2 flex items-center gap-2 border-b border-white/5 bg-[#080d17] shrink-0">
-              <button
-                type="button"
-                onClick={() => setEditTab('geral')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  editTab === 'geral'
-                    ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span>1. Geral & Preço</span>
-              </button>
-
-              {categorySupportsModelGrid(editCategory) && (
-                <button
-                  type="button"
-                  onClick={() => setEditTab('modelos')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    editTab === 'modelos'
-                      ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <span>{categorySupportsVariations(editCategory) ? '2. Modelos & Cores' : '2. Grade de Modelos'}</span>
-                  <span className="text-[10px] opacity-80 font-normal">({editCompatibleModels.length})</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setEditTab('fotos')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  editTab === 'fotos'
-                    ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span>{categorySupportsModelGrid(editCategory) ? '3. Fornecedor & Fotos' : '2. Fornecedor & Fotos'}</span>
-              </button>
-            </div>
-
             {/* Body */}
             <div className="p-5 overflow-y-auto flex-1 space-y-4">
-              {/* TAB 1: GERAL E PREÇO */}
-              {editTab === 'geral' && (
-                <div className="space-y-4 animate-in fade-in duration-100">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Título do Produto</label>
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
+              {/* Título */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Título do Produto</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Categoria</label>
-                      <select
-                        value={editCategory}
-                        onChange={(e) => handleEditCategoryChange(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                      >
-                        {activeCategories.map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Condição</label>
-                      <select
-                        value={editCondition}
-                        onChange={(e) => setEditCondition(e.target.value as OfferCondition)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                      >
-                        {CONDITIONS.map((cond) => (
-                          <option key={cond} value={cond}>{cond}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Bloco de Precificação & Margem Minimalista */}
-                  <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <DollarSign className="w-3.5 h-3.5 text-[#00D287]" /> Precificação & Margem
-                      </span>
-
-                      <div className="flex items-center gap-1">
-                        {[30, 40, 45, 50].map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => handleEditMarginPercentChange(m)}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                              editMarginPercent === m
-                                ? 'bg-[#00D287] text-slate-950'
-                                : 'bg-white/5 text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            {m}%
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Custo no Fornecedor (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={editSupplierCost}
-                          onChange={(e) => handleEditSupplierCostChange(e.target.value)}
-                          placeholder="4.50"
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Preço Final (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={editPrice}
-                          onChange={(e) => setEditPrice(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-[#00D287]/40 text-[#00D287] text-xs font-black focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10.5px] text-slate-400 mb-1">
-                        Preço Original De: (Opcional p/ Promoção)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editOriginalPrice}
-                        onChange={(e) => setEditOriginalPrice(e.target.value)}
-                        placeholder="Ex: 12.00"
-                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 text-xs focus:outline-none focus:border-[#00D287]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Descrição</label>
-                    <textarea
-                      rows={2}
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
+              {/* Categoria e Condição */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Categoria</label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => handleEditCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                  >
+                    {activeCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
 
-              {/* TAB 2: MODELOS E CORES (SE SUPORTADO PELA CATEGORIA) */}
-              {editTab === 'modelos' && categorySupportsModelGrid(editCategory) && (
-                <div className="space-y-4 animate-in fade-in duration-100">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Marca Compatível</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                      {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Outros'].map((bName) => (
-                        <button
-                          key={bName}
-                          type="button"
-                          onClick={() => setEditCompatibleBrand(bName)}
-                          className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
-                            editCompatibleBrand.toLowerCase() === bName.toLowerCase()
-                              ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm font-black'
-                              : 'bg-slate-950/80 text-slate-300 border-white/10 hover:bg-slate-900'
-                          }`}
-                        >
-                          {bName}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Condição</label>
+                  <select
+                    value={editCondition}
+                    onChange={(e) => setEditCondition(e.target.value as OfferCondition)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                  >
+                    {CONDITIONS.map((cond) => (
+                      <option key={cond} value={cond}>{cond}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Modelos e Variações (se a categoria suportar) */}
+              {categorySupportsModelGrid(editCategory) && (
+                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Smartphone className="w-3.5 h-3.5 text-[#00D287]" /> Grade de Modelos Compatíveis
+                    </span>
+                    <span className="text-[10px] text-[#00D287] font-bold bg-[#00D287]/10 px-2 py-0.5 rounded">
+                      {editCompatibleModels.length} modelo(s)
+                    </span>
                   </div>
 
-                  {/* Variações Cores Feminina / Cores Masculina (SOMENTE PARA CAPINHAS) */}
+                  {/* Marcas */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Outros'].map((bName) => (
+                      <button
+                        key={bName}
+                        type="button"
+                        onClick={() => setEditCompatibleBrand(bName)}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all text-center ${
+                          editCompatibleBrand.toLowerCase() === bName.toLowerCase()
+                            ? 'bg-[#00D287] text-slate-950 border-[#00D287] font-black'
+                            : 'bg-slate-900 text-slate-300 border-white/10 hover:bg-slate-800'
+                        }`}
+                      >
+                        {bName}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Variações Cores (somente se a categoria suportar, ex: Capinhas) */}
                   {categorySupportsVariations(editCategory) && (
-                    <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-[#00D287]" /> Cores da Capinha:
-                        </span>
-                        <span className="text-[10px] text-slate-400">Ativa sub-linhas na grade</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditVariationFeminino(!editVariationFeminino)}
-                          className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                            editVariationFeminino
-                              ? 'bg-pink-950/40 border-pink-500/50 text-pink-300'
-                              : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                          }`}
-                        >
+                    <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] text-slate-400 font-semibold">Variações de Cor:</span>
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={editVariationFeminino}
+                            onChange={(e) => setEditVariationFeminino(e.target.checked)}
+                            className="accent-pink-500 rounded"
+                          />
                           <span>👩 Cores \Feminina</span>
-                          {editVariationFeminino && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setEditVariationMasculino(!editVariationMasculino)}
-                          className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                            editVariationMasculino
-                              ? 'bg-blue-950/40 border-blue-500/50 text-blue-300'
-                              : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
-                          }`}
-                        >
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={editVariationMasculino}
+                            onChange={(e) => setEditVariationMasculino(e.target.checked)}
+                            className="accent-blue-500 rounded"
+                          />
                           <span>👨 Cores \Masculina</span>
-                          {editVariationMasculino && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        </button>
+                        </label>
                       </div>
                     </div>
                   )}
 
-                  {/* Adição e Tags de Modelos */}
+                  {/* Adicionar Modelo */}
                   <div className="space-y-2">
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                       <input
                         type="text"
                         value={editManualModelInput}
@@ -1247,7 +1115,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           }
                         }}
                         placeholder="Adicionar modelo compatível..."
-                        className="flex-1 px-3 py-1.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#00D287]"
+                        className="flex-1 px-3 py-1.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#00D287]"
                       />
                       <button
                         type="button"
@@ -1264,8 +1132,8 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                       </button>
                     </div>
 
-                    {editCompatibleModels.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 bg-slate-950/60 rounded-xl border border-white/5">
+                    {editCompatibleModels.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-white/5">
                         {editCompatibleModels.map((m, idx) => (
                           <span
                             key={idx}
@@ -1282,142 +1150,204 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                           </span>
                         ))}
                       </div>
-                    ) : (
-                      <div className="p-3 text-center text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-dashed border-white/10">
-                        Nenhum modelo específico cadastrado para este produto.
-                      </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* TAB 3: FORNECEDOR E FOTOS */}
-              {editTab === 'fotos' && (
-                <div className="space-y-4 animate-in fade-in duration-100">
-                  {/* Fornecedor de Origem */}
+              {/* Fornecedor de Origem (Melhor Envio) */}
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-cyan-400" /> Fornecedor de Origem (Melhor Envio)
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-mono font-bold">Origem do Frete</span>
+                </div>
+
+                <select
+                  value={editSupplierId}
+                  onChange={(e) => setEditSupplierId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="">Nenhum fornecedor vinculado (Usar padrão CellHub)</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Precificação & Margem */}
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-[#00D287]" /> Precificação & Margem de Venda
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    {[20, 30, 35, 45, 50].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => handleEditMarginPercentChange(m)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                          editMarginPercent === m
+                            ? 'bg-[#00D287] text-slate-950'
+                            : 'bg-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {m}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Fornecedor de Origem (Melhor Envio)
-                    </label>
-                    <select
-                      value={editSupplierId}
-                      onChange={(e) => setEditSupplierId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                    <label className="block text-[11px] text-slate-400 mb-1">Custo no Fornecedor (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editSupplierCost}
+                      onChange={(e) => handleEditSupplierCostChange(e.target.value)}
+                      placeholder="4.50"
+                      className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Preço Final de Venda (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-[#00D287]/40 text-[#00D287] text-xs font-black focus:outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10.5px] text-slate-400 mb-1">
+                    Preço Original "De: R$" (Opcional p/ Promoção com % OFF)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editOriginalPrice}
+                    onChange={(e) => setEditOriginalPrice(e.target.value)}
+                    placeholder="Ex: 12.00"
+                    className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 text-xs focus:outline-none focus:border-[#00D287]"
+                  />
+                </div>
+              </div>
+
+              {/* Fotos, Garantia & Frete */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">URL da Foto do Produto</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={editImageUrlInput}
+                      onChange={(e) => setEditImageUrlInput(e.target.value)}
+                      placeholder="https://exemplo.com/foto.jpg"
+                      className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddEditImage}
+                      className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold rounded-xl"
                     >
-                      <option value="">Nenhum fornecedor vinculado (Usar padrão CellHub)</option>
-                      {suppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
-                        </option>
-                      ))}
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+
+                {editImages.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {editImages.map((img, idx) => (
+                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-slate-950 group shrink-0">
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEditImage(idx)}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-black/80 text-rose-400 hover:text-rose-300"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Garantia (Dias)</label>
+                    <input
+                      type="number"
+                      value={editWarrantyDays}
+                      onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Política de Frete</label>
+                    <select
+                      value={editShippingPolicy}
+                      onChange={(e) => setEditShippingPolicy(e.target.value as ShippingPolicy)}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                    >
+                      <option value="comprador_paga">Calculado no Checkout</option>
+                      <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
                     </select>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Garantia (Dias)</label>
-                      <input
-                        type="number"
-                        value={editWarrantyDays}
-                        onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Política de Frete</label>
-                      <select
-                        value={editShippingPolicy}
-                        onChange={(e) => setEditShippingPolicy(e.target.value as ShippingPolicy)}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
-                      >
-                        <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
-                        <option value="comprador_paga">Calculado no Checkout</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Fotos */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-300">Fotos do Produto</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={editImageUrlInput}
-                        onChange={(e) => setEditImageUrlInput(e.target.value)}
-                        placeholder="URL da imagem (https://...)"
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddEditImage}
-                        className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold rounded-xl"
-                      >
-                        Adicionar
-                      </button>
-                    </div>
-
-                    {editImages.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-2 pt-1">
-                        {editImages.map((img, idx) => (
-                          <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-slate-950 group shrink-0">
-                            <img src={img} alt="" className="w-full h-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveEditImage(idx)}
-                              className="absolute top-1 right-1 p-0.5 rounded-full bg-black/80 text-rose-400 hover:text-rose-300"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
-              )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Descrição</label>
+                  <textarea
+                    rows={2}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-white/5 bg-[#060a13] flex items-center justify-between gap-3 shrink-0">
+            <div className="px-5 py-3.5 border-t border-white/5 bg-[#060912] flex items-center justify-between gap-3 shrink-0">
               <button
                 onClick={() => setEditingProduct(null)}
-                className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors"
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
 
-              <div className="flex items-center gap-2">
-                {editTab !== 'fotos' && (
-                  <button
-                    type="button"
-                    onClick={() => setEditTab(editTab === 'geral' ? 'modelos' : 'fotos')}
-                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
-                  >
-                    <span>Avançar</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit}
+                className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-black shadow-lg shadow-[#00D287]/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSavingEdit ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                    <span>Salvar Alterações</span>
+                  </>
                 )}
-
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isSavingEdit}
-                  className="px-5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-black shadow-lg shadow-[#00D287]/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isSavingEdit ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                      <span>Salvar Alterações</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              </button>
             </div>
+          </div>
+        </div>
+      )}
           </div>
         </div>
       )}
