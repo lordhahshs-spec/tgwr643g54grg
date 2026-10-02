@@ -364,6 +364,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         orderStatus: 'aguardando_envio',
         selectedModel: chosenModel || undefined,
         selectedVariation: chosenVariation || undefined,
+        orderItems: (offer as any).orderItems || [],
+        totalUnits: (offer as any).totalUnits || 1,
         
         // Separação contábil estrita
         productAmount: productPrice,
@@ -541,20 +543,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 {/* Model & Variation Badges */}
                 {(chosenModel || chosenVariation || (offer.compatibleModels && offer.compatibleModels.length > 0)) && (
-                  <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-2 text-xs">
-                    {chosenModel && (
+                  <div className="pt-2 border-t border-white/5 space-y-1.5 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {chosenVariation && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-white font-bold">
+                          <span>{chosenVariation.toLowerCase().includes('masc') ? '👨' : '👩'}</span>
+                          <span className="text-blue-300">Variação:</span>
+                          <span>{chosenVariation}</span>
+                        </div>
+                      )}
+                      {(offer as any).totalUnits && (offer as any).totalUnits > 1 && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] font-bold">
+                          <span>📦 Total: {(offer as any).totalUnits} unidades</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Breakdown de Itens do Atacado */}
+                    {Array.isArray((offer as any).orderItems) && (offer as any).orderItems.length > 0 ? (
+                      <div className="p-2.5 rounded-xl bg-slate-950 border border-white/5 space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                          Grade de Modelos Selecionada:
+                        </span>
+                        <div className="divide-y divide-white/5 max-h-28 overflow-y-auto">
+                          {(offer as any).orderItems.map((item: any, idx: number) => (
+                            <div key={idx} className="py-1 flex items-center justify-between text-[11px]">
+                              <span className="text-slate-200 font-medium">
+                                <strong className="text-[#00D287]">{item.quantity}x</strong> {item.model}
+                              </span>
+                              <span className="text-white font-mono font-semibold">
+                                {formatBRL(item.price * item.quantity)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : chosenModel ? (
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-white font-bold">
                         <span className="text-[#00D287]">📱 Modelo:</span>
                         <span>{chosenModel}</span>
                       </div>
-                    )}
-                    {chosenVariation && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-white font-bold">
-                        <span>{chosenVariation.toLowerCase().includes('masc') ? '👨' : '👩'}</span>
-                        <span className="text-blue-300">Variação:</span>
-                        <span>{chosenVariation}</span>
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>

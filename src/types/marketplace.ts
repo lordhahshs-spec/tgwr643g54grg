@@ -111,6 +111,18 @@ export interface CategoryPackageDefault {
   description?: string;
 }
 
+export interface ModelPriceItem {
+  model: string;
+  price: number;
+  active?: boolean;
+}
+
+export interface OrderItem {
+  model: string;
+  price: number;
+  quantity: number;
+}
+
 export interface MarketplaceOffer {
   id: string;
   sellerId: string;
@@ -158,6 +170,7 @@ export interface MarketplaceOffer {
   supplierTag?: string;
   compatibleBrand?: string;
   compatibleModels?: string[];
+  modelPricing?: ModelPriceItem[];
   variationType?: string;
   variationOptions?: string[];
   createdAt: string;
@@ -187,6 +200,8 @@ export interface MarketplaceOrder {
   orderStatus: OrderStatus;
   selectedModel?: string;
   selectedVariation?: string;
+  orderItems?: OrderItem[];
+  totalUnits?: number;
   
   // Financial breakdown
   productAmount?: number;

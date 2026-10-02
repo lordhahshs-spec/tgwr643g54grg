@@ -25,14 +25,17 @@ import {
   CheckSquare,
   Square,
   Search,
-  Users
+  Users,
+  RefreshCw,
+  Layers
 } from 'lucide-react';
 import {
   OfferCategory,
   OfferCondition,
   ShippingPolicy,
   CategoryPackageDefault,
-  MarketplaceSupplier
+  MarketplaceSupplier,
+  ModelPriceItem
 } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
@@ -65,10 +68,17 @@ const PRESET_MARGINS = [10, 15, 20, 25, 30, 35, 40, 50];
 
 // Fallback robusto de modelos Apple organizados por geração decrescente
 const DEFAULT_APPLE_MODELS = [
+  'iPhone 18 Pro Max',
+  'iPhone 18 Pro',
+  'iPhone 17 Pro Max',
+  'iPhone 17 Pro',
+  'iPhone 17 Air',
+  'iPhone 17',
   'iPhone 16 Pro Max',
   'iPhone 16 Pro',
   'iPhone 16 Plus',
   'iPhone 16',
+  'iPhone 16e',
   'iPhone 15 Pro Max',
   'iPhone 15 Pro',
   'iPhone 15 Plus',
@@ -124,6 +134,9 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const [selectedAppleModels, setSelectedAppleModels] = useState<string[]>(DEFAULT_APPLE_MODELS);
   const [appleSearchFilter, setAppleSearchFilter] = useState('');
   
+  // Preços individuais por modelo (ex: { 'iPhone 11': '6.65', 'iPhone 17': '7.77' })
+  const [modelPrices, setModelPrices] = useState<Record<string, string>>({});
+
   // Modelos Manuais para Outras Marcas (Samsung, Motorola, Xiaomi, etc.)
   const [manualModels, setManualModels] = useState<string[]>([]);
   const [manualModelInput, setManualModelInput] = useState('');
@@ -135,9 +148,9 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   // Pricing Mode & Margins
   const [pricingMode, setPricingMode] = useState<'margin' | 'manual'>('margin');
   const [marginPercent, setMarginPercent] = useState<number>(45);
-  const [price, setPrice] = useState('');
+  const [price, setPrice] = useState('6.65');
   const [originalPrice, setOriginalPrice] = useState('');
-  const [supplierCost, setSupplierCost] = useState('');
+  const [supplierCost, setSupplierCost] = useState('4.50');
   const [warrantyDays, setWarrantyDays] = useState<number>(90);
   const [badgeText, setBadgeText] = useState('Garantia Oficial CellHub');
 
@@ -175,7 +188,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       try {
         const tradeinModels = await tradeinService.getModels('Apple', currentUser?.id, true);
         if (tradeinModels && tradeinModels.length > 0) {
-          // Extrai nomes únicos de modelos de iPhone da tabela de avaliação
           const uniqueNames = Array.from(
             new Set(
               tradeinModels
@@ -184,10 +196,9 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             )
           );
 
-          // Mescla com a lista padrão para garantir cobertura completa
           const merged = Array.from(new Set([...uniqueNames, ...DEFAULT_APPLE_MODELS]));
           setAppleModelsList(merged);
-          // Por padrão, todos vêm marcados conforme instrução
+          // Por padrão, todos vêm marcados conforme solicitado pelo usuário
           setSelectedAppleModels(merged);
         } else {
           setAppleModelsList(DEFAULT_APPLE_MODELS);
@@ -202,6 +213,24 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
     loadTradeInAppleModels();
   }, [currentUser?.id]);
+
+  // Sincroniza preço base em todos os modelos que não possuem preço customizado
+  const handleApplyBasePriceToAll = () => {
+    const baseP = parseFloat(price) || 0;
+    if (baseP <= 0) {
+      toast.error('Informe um preço de venda base válido primeiro.');
+      return;
+    }
+    const updated: Record<string, string> = {};
+    appleModelsList.forEach((m) => {
+      updated[m] = baseP.toFixed(2);
+    });
+    manualModels.forEach((m) => {
+      updated[m] = baseP.toFixed(2);
+    });
+    setModelPrices(updated);
+    toast.success(`Preço R$ ${baseP.toFixed(2)} aplicado a todos os modelos!`);
+  };
 
   // Auto-update default suggested margin when Category changes
   useEffect(() => {
@@ -220,7 +249,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       }
     }
 
-    // Se for Capinhas ou Acessórios, ativa compatibilidade por padrão
     const isCapinhaOrAcc = ['capinhas', 'acessórios', 'telas', 'películas'].includes(category.toLowerCase());
     setEnableCompatibility(isCapinhaOrAcc);
   }, [category]);
@@ -271,6 +299,14 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     toast.info('Todos os modelos foram desmarcados.');
   };
 
+  // Atualiza preço de um modelo específico
+  const handleSetModelPrice = (modelName: string, val: string) => {
+    setModelPrices((prev) => ({
+      ...prev,
+      [modelName]: val,
+    }));
+  };
+
   // Modelos Manuais (Outras Marcas): Adicionar
   const handleAddManualModel = () => {
     const clean = manualModelInput.trim();
@@ -282,6 +318,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     }
 
     setManualModels((prev) => [...prev, clean]);
+    setModelPrices((prev) => ({
+      ...prev,
+      [clean]: price || '6.65',
+    }));
     setManualModelInput('');
   };
 
@@ -449,7 +489,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     }
 
     if (!variationMasculino && !variationFeminino) {
-      toast.error('Selecione ao menos uma opção de variação (Masculino ou Feminino).');
+      toast.error('Selecione ao menos uma opção de kit (Masculino ou Feminino).');
       return false;
     }
 
@@ -466,14 +506,23 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
     const matchedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
 
-    // Determina lista final de modelos compatíveis
+    // Determina lista final de modelos compatíveis e preços específicos por modelo
     const finalCompatibleModels = enableCompatibility
       ? selectedBrand === 'Apple'
         ? selectedAppleModels
         : manualModels
       : [];
 
-    // Determina opções de variação
+    const finalModelPricing: ModelPriceItem[] = finalCompatibleModels.map((m) => {
+      const specificPrice = parseFloat(modelPrices[m]) || parsedPrice;
+      return {
+        model: m,
+        price: specificPrice,
+        active: true,
+      };
+    });
+
+    // Determina opções de variação (Masculino / Feminino)
     const variationOptions: string[] = [];
     if (variationMasculino) variationOptions.push('Masculino');
     if (variationFeminino) variationOptions.push('Feminino');
@@ -517,6 +566,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         packageLength,
         compatibleBrand: enableCompatibility ? selectedBrand : undefined,
         compatibleModels: finalCompatibleModels,
+        modelPricing: finalModelPricing,
         variationType: variationOptions.length > 0 ? 'masculino_feminino' : 'nenhum',
         variationOptions: variationOptions,
       });
@@ -543,7 +593,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         {/* Header */}
         <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-950/80 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Botão Voltar no Mobile */}
             <button
               onClick={step === 'preview' ? () => setStep('form') : onClose}
               className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
@@ -557,12 +606,12 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xs sm:text-base font-bold text-white">Cadastrar Produto Oficial</h3>
+                <h3 className="text-xs sm:text-base font-bold text-white">Cadastrar Produto Atacado</h3>
                 <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
                   CELLHUB SHOP
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[220px] sm:max-w-none">Catálogo Atacado com modelos e variações Masc/Fem</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[220px] sm:max-w-none">Catálogo Atacado com grade por modelo e kits Masc/Fem</p>
             </div>
           </div>
 
@@ -622,7 +671,137 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                 </div>
               </div>
 
-              {/* SEÇÃO: MARCAS & MODELOS COMPATÍVEIS (CAPINHAS / ACESSÓRIOS) */}
+              {/* Bloco de Precificação Base & Margem */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-[#00D287]/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-[#00D287]" />
+                    Precificação Base de Venda no Atacado
+                  </span>
+
+                  {/* Pricing Mode Toggle */}
+                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/5 self-start">
+                    <button
+                      type="button"
+                      onClick={() => setPricingMode('margin')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                        pricingMode === 'margin'
+                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Percent className="w-3 h-3" />
+                      Por Porcentagem (%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPricingMode('manual')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                        pricingMode === 'manual'
+                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Sliders className="w-3 h-3" />
+                      Manual (Fixo)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mode A: Porcentagem Automática */}
+                {pricingMode === 'margin' ? (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Custo Base no Fornecedor (R$) <span className="text-rose-400">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={supplierCost}
+                          onChange={(e) => handleSupplierCostChange(e.target.value)}
+                          placeholder="Ex: 4.50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-300">
+                            Margem de Lucro (%)
+                          </label>
+                          <span className="text-[10px] text-[#00D287] font-bold">
+                            Padrão de {category}: {pricingRulesService.getSuggestedMargin(category)}%
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="1"
+                            value={marginPercent}
+                            onChange={(e) => handleMarginPercentChange(parseFloat(e.target.value) || 0)}
+                            className="w-full px-3.5 py-2.5 pr-8 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Preço Base Sugerido por Unidade:</span>
+                        <span className="text-lg font-black text-[#00D287]">
+                          R$ {parsedPrice > 0 ? parsedPrice.toFixed(2) : '0,00'}
+                        </span>
+                      </div>
+                      {parsedCost > 0 && (
+                        <div className="text-right">
+                          <span className="text-slate-400 block text-[11px]">Lucro Unitário Estimado:</span>
+                          <span className="font-bold text-white">
+                            + R$ {profitMargin.toFixed(2)} ({profitPercent}%)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Mode B: Manual (Preço Fixo) */
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Preço Base Padrão de Venda (R$) <span className="text-rose-400">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                          placeholder="Ex: 6.65"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                          Custo no Fornecedor (R$) - Opcional
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={supplierCost}
+                          onChange={(e) => setSupplierCost(e.target.value)}
+                          placeholder="Ex: 4.50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-sm focus:outline-none focus:border-[#00D287]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SEÇÃO: MARCAS & GRADE DE MODELOS COM PREÇO UNITÁRIO POR MODELO */}
               <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e172e] to-[#090e1c] border border-[#00D287]/30 space-y-4 shadow-lg">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
@@ -631,13 +810,13 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     </div>
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                        Marca & Modelos Compatíveis
+                        Marca & Grade de Modelos (Atacado)
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
-                          Catálogo Atacado
+                          Preço por Modelo
                         </span>
                       </h4>
                       <p className="text-[11px] text-slate-400">
-                        Selecione a marca e os modelos compatíveis com este produto.
+                        Cada modelo pode ter seu valor customizado (ex: iPhone 11 por R$ 6,65 / iPhone 17 por R$ 7,77 / iPhone 18 Pro por R$ 9,99).
                       </p>
                     </div>
                   </div>
@@ -649,7 +828,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                       onChange={(e) => setEnableCompatibility(e.target.checked)}
                       className="rounded accent-[#00D287] w-4 h-4"
                     />
-                    <span>Ativar compatibilidade de modelos</span>
+                    <span>Ativar grade de modelos</span>
                   </label>
                 </div>
 
@@ -682,6 +861,21 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                       </div>
                     </div>
 
+                    {/* Botão Global: Aplicar preço base a todos */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-white/10 text-xs">
+                      <span className="text-slate-300 font-medium">
+                        Preço base atual: <strong className="text-[#00D287]">R$ {parsedPrice.toFixed(2)}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleApplyBasePriceToAll}
+                        className="px-3 py-1.5 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287]/25 text-[#00D287] border border-[#00D287]/30 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Aplicar R$ {parsedPrice.toFixed(2)} a todos os modelos
+                      </button>
+                    </div>
+
                     {/* CASO 1: APPLE (Utiliza modelos do Trade-in com tudo marcado por padrão) */}
                     {selectedBrand === 'Apple' ? (
                       <div className="p-3.5 rounded-xl bg-slate-950/90 border border-[#00D287]/20 space-y-3">
@@ -689,10 +883,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                           <div>
                             <span className="text-xs font-bold text-white flex items-center gap-1.5">
                               <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
-                              Modelos Apple (Cadastrados na Avaliação Trade-In)
+                              Modelos Apple (Cadastrados no Trade-In)
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              Todos os modelos vêm marcados por padrão. Desmarque apenas os que não possuem essa capinha.
+                              Todos os modelos vêm marcados por padrão. Ajuste os preços específicos por modelo na grade abaixo.
                             </span>
                           </div>
 
@@ -721,40 +915,56 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                             type="text"
                             value={appleSearchFilter}
                             onChange={(e) => setAppleSearchFilter(e.target.value)}
-                            placeholder="Buscar modelo de iPhone (ex: 14 Pro, 15, 13)..."
+                            placeholder="Buscar modelo de iPhone (ex: 14 Pro, 15, 16, 17)..."
                             className="w-full pl-8 pr-3.5 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
                           />
                         </div>
 
-                        {/* Contador de selecionados */}
-                        <div className="flex items-center justify-between text-[11px] px-1 text-slate-400">
-                          <span>{selectedAppleModels.length} de {appleModelsList.length} modelos selecionados</span>
-                          {selectedAppleModels.length === 0 && (
-                            <span className="text-rose-400 font-semibold">Selecione ao menos 1 modelo</span>
-                          )}
-                        </div>
+                        {/* Grade com Lista de Modelos, Checkbox e Preço Unitário */}
+                        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1 bg-slate-900/60 rounded-lg">
+                            <div className="col-span-7">Modelo</div>
+                            <div className="col-span-5 text-right">Preço Unitário (R$)</div>
+                          </div>
 
-                        {/* Grid de Modelos com Checkbox */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto pr-1">
                           {filteredAppleModels.map((modelName) => {
                             const isChecked = selectedAppleModels.includes(modelName);
+                            const currentModelPrice = modelPrices[modelName] || price || '6.65';
+
                             return (
-                              <label
+                              <div
                                 key={modelName}
-                                onClick={() => handleToggleAppleModel(modelName)}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs cursor-pointer select-none transition-all border ${
+                                className={`grid grid-cols-12 items-center gap-2 px-3 py-2 rounded-xl text-xs border transition-all ${
                                   isChecked
-                                    ? 'bg-[#00D287]/15 border-[#00D287]/40 text-white font-semibold'
-                                    : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                                    ? 'bg-[#00D287]/10 border-[#00D287]/40 text-white'
+                                    : 'bg-slate-900/30 border-white/5 text-slate-500 opacity-60'
                                 }`}
                               >
-                                {isChecked ? (
-                                  <CheckSquare className="w-4 h-4 text-[#00D287] shrink-0" />
-                                ) : (
-                                  <Square className="w-4 h-4 text-slate-600 shrink-0" />
-                                )}
-                                <span className="truncate">{modelName}</span>
-                              </label>
+                                <label
+                                  onClick={() => handleToggleAppleModel(modelName)}
+                                  className="col-span-7 flex items-center gap-2 cursor-pointer select-none truncate"
+                                >
+                                  {isChecked ? (
+                                    <CheckSquare className="w-4 h-4 text-[#00D287] shrink-0" />
+                                  ) : (
+                                    <Square className="w-4 h-4 text-slate-600 shrink-0" />
+                                  )}
+                                  <span className="truncate font-semibold">{modelName}</span>
+                                </label>
+
+                                <div className="col-span-5 flex items-center justify-end gap-1.5">
+                                  <span className="text-[11px] text-slate-400 font-bold">R$</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    disabled={!isChecked}
+                                    value={currentModelPrice}
+                                    onChange={(e) => handleSetModelPrice(modelName, e.target.value)}
+                                    placeholder={price || '6.65'}
+                                    className="w-20 px-2 py-1 bg-slate-900 border border-white/15 rounded-lg text-xs text-[#00D287] font-black text-right outline-none focus:border-[#00D287] disabled:opacity-30"
+                                  />
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
@@ -767,7 +977,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                             Adicionar Modelos para {selectedBrand}
                           </span>
                           <span className="text-[11px] text-slate-400">
-                            Digite o nome do modelo (ex: Galaxy S24 Ultra, Moto G84, Redmi Note 13) e clique em Adicionar.
+                            Digite o nome do modelo e defina o valor unitário.
                           </span>
                         </div>
 
@@ -789,29 +999,34 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                           </button>
                         </div>
 
-                        {/* Lista de Modelos Adicionados */}
+                        {/* Lista de Modelos Adicionados com Preço */}
                         {manualModels.length > 0 ? (
-                          <div className="space-y-1.5 pt-1">
-                            <span className="text-[11px] text-slate-400 font-semibold">
-                              {manualModels.length} modelo(s) configurado(s):
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {manualModels.map((m, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-white text-xs font-medium"
-                                >
-                                  {m}
+                          <div className="space-y-1.5 pt-1 max-h-56 overflow-y-auto">
+                            {manualModels.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs text-white"
+                              >
+                                <span className="font-semibold">{m}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-400 font-bold text-[11px]">R$</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={modelPrices[m] || price || '6.65'}
+                                    onChange={(e) => handleSetModelPrice(m, e.target.value)}
+                                    className="w-20 px-2 py-1 bg-slate-950 border border-white/15 rounded-lg text-xs text-[#00D287] font-black text-right outline-none focus:border-[#00D287]"
+                                  />
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveManualModel(idx)}
-                                    className="p-0.5 hover:text-rose-400 transition-colors"
+                                    className="p-1 hover:text-rose-400 transition-colors"
                                   >
-                                    <X className="w-3 h-3" />
+                                    <X className="w-4 h-4" />
                                   </button>
-                                </span>
-                              ))}
-                            </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <div className="p-3 rounded-xl bg-slate-900/40 border border-dashed border-white/10 text-center text-xs text-slate-400">
@@ -877,212 +1092,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     </label>
                   </div>
                 </div>
-              </div>
-
-              {/* Bloco de Precificação Dinâmica & Margem */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-[#00D287]/20 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-[#00D287]" />
-                    Precificação & Margem de Lucro (Privado)
-                  </span>
-
-                  {/* Pricing Mode Toggle */}
-                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/5 self-start">
-                    <button
-                      type="button"
-                      onClick={() => setPricingMode('margin')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                        pricingMode === 'margin'
-                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Percent className="w-3 h-3" />
-                      Por Porcentagem (%)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPricingMode('manual')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
-                        pricingMode === 'manual'
-                          ? 'bg-[#00D287] text-slate-950 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Sliders className="w-3 h-3" />
-                      Manual (Fixo)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mode A: Porcentagem Automática */}
-                {pricingMode === 'margin' ? (
-                  <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Custo no Fornecedor (R$) <span className="text-rose-400">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={supplierCost}
-                          onChange={(e) => handleSupplierCostChange(e.target.value)}
-                          placeholder="Ex: 6.65"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-semibold text-slate-300">
-                            Margem de Lucro (%)
-                          </label>
-                          <span className="text-[10px] text-[#00D287] font-bold">
-                            Padrão de {category}: {pricingRulesService.getSuggestedMargin(category)}%
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            step="1"
-                            value={marginPercent}
-                            onChange={(e) => handleMarginPercentChange(parseFloat(e.target.value) || 0)}
-                            className="w-full px-3.5 py-2.5 pr-8 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Preset Margin Pills */}
-                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                      <span className="text-[10px] text-slate-400 mr-1">Atalhos:</span>
-                      {PRESET_MARGINS.map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => handleMarginPercentChange(m)}
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                            marginPercent === m
-                              ? 'bg-[#00D287] text-slate-950 font-black'
-                              : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-white/5'
-                          }`}
-                        >
-                          +{m}%
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Calculated Output */}
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Preço de Venda Final Calculado:</span>
-                        <span className="text-lg font-black text-[#00D287]">
-                          R$ {parsedPrice > 0 ? parsedPrice.toFixed(2) : '0,00'}
-                        </span>
-                      </div>
-                      {parsedCost > 0 && (
-                        <div className="text-right">
-                          <span className="text-slate-400 block text-[11px]">Lucro Líquido Estimado:</span>
-                          <span className="font-bold text-white">
-                            + R$ {profitMargin.toFixed(2)} ({profitPercent}%)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  /* Mode B: Manual (Preço Fixo) */
-                  <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Preço de Venda Final (R$) <span className="text-rose-400">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
-                          placeholder="Ex: 12.90"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                          Custo no Fornecedor (R$) - Opcional
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={supplierCost}
-                          onChange={(e) => setSupplierCost(e.target.value)}
-                          placeholder="Ex: 6.65"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-sm focus:outline-none focus:border-[#00D287]"
-                        />
-                      </div>
-                    </div>
-
-                    {parsedCost > 0 && parsedPrice > parsedCost && (
-                      <div className="p-3 rounded-xl bg-slate-900/90 border border-white/5 flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Margem Estimada CellHub:</span>
-                        <span className="text-[#00D287] font-black">
-                          + R$ {profitMargin.toFixed(2)} ({profitPercent}%)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Preço Original / Promoção com Desconto */}
-                {(() => {
-                  const origPriceNum = parseFloat(originalPrice.replace(/\./g, '').replace(',', '.')) || 0;
-                  const isDiscountActive = origPriceNum > parsedPrice && parsedPrice > 0;
-                  const discountPct = isDiscountActive ? Math.round(((origPriceNum - parsedPrice) / origPriceNum) * 100) : 0;
-
-                  return (
-                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
-                          <Tag className="w-3.5 h-3.5 text-rose-400" />
-                          Preço Original "De: R$" (Opcional - Ativa Selo de Desconto)
-                        </label>
-                        {isDiscountActive && (
-                          <span className="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
-                            <ArrowDown className="w-2.5 h-2.5 stroke-[3]" />
-                            -{discountPct}% OFF
-                          </span>
-                        )}
-                      </div>
-
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={originalPrice}
-                        onChange={(e) => setOriginalPrice(e.target.value)}
-                        placeholder="Ex: 25.00 (Valor de tabela antes do desconto)"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-[#00D287]"
-                      />
-
-                      {isDiscountActive && (
-                        <div className="p-3 rounded-xl bg-gradient-to-r from-red-600/20 via-rose-600/15 to-transparent border border-red-500/30 text-xs text-rose-200 flex items-center gap-2">
-                          <ArrowDown className="w-4 h-4 text-red-400 stroke-[3] flex-shrink-0 animate-bounce" />
-                          <div>
-                            <span className="font-black text-white block">
-                              Gatilho de Urgência Ativo: Redução de -{discountPct}%!
-                            </span>
-                            <span className="text-[10.5px] text-rose-300">
-                              O anúncio exibirá o selo vermelho de <strong>{discountPct}% OFF</strong> no catálogo da CellHub Shop.
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
 
               {/* Descrição e Detalhes */}
@@ -1155,27 +1164,27 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
                 {(() => {
                   const sup = suppliers.find((s) => s.id === selectedSupplierId);
-                  if (!sup) {
+                  if (sup) {
                     return (
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Selecione o fornecedor responsável por despachar este produto. O endereço e CEP dele serão usados para calcular o frete exato de origem até o comprador.
-                      </p>
+                      <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-cyan-300 font-bold flex items-center gap-1">
+                            <Tag className="w-3 h-3" /> Tag Vinculada: <span className="font-mono text-white">{sup.tag}</span>
+                          </span>
+                          <span className="text-[11px] text-slate-300 font-mono font-bold">
+                            CEP Origem: {sup.postalCode}
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-[11px]">
+                          Endereço de envio: {sup.street}, {sup.number} • {sup.neighborhood} • <strong>{sup.city} - {sup.state}</strong>
+                        </p>
+                      </div>
                     );
                   }
                   return (
-                    <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-cyan-300 font-bold flex items-center gap-1">
-                          <Tag className="w-3 h-3" /> Tag Vinculada: <span className="font-mono text-white">{sup.tag}</span>
-                        </span>
-                        <span className="text-[11px] text-slate-300 font-mono font-bold">
-                          CEP Origem: {sup.postalCode}
-                        </span>
-                      </div>
-                      <p className="text-slate-300 text-[11px]">
-                        Endereço de envio: {sup.street}, {sup.number} • {sup.neighborhood} • <strong>{sup.city} - {sup.state}</strong>
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Selecione o fornecedor responsável por despachar este produto. O endereço e CEP dele serão usados para calcular o frete exato de origem até o comprador.
+                    </p>
                   );
                 })()}
               </div>
@@ -1300,25 +1309,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     <h4 className="text-sm font-bold text-white">{title}</h4>
                     <p className="text-xs text-slate-400">{category} • {condition}</p>
                     <p className="text-base font-black text-[#00D287] mt-1">
-                      R$ {parsedPrice.toFixed(2)}
+                      A partir de R$ {parsedPrice.toFixed(2)}
                     </p>
                   </div>
                 </div>
-
-                {enableCompatibility && (
-                  <div className="pt-2 border-t border-white/10 text-xs">
-                    <span className="text-slate-400 block mb-1">
-                      Marca: <strong className="text-white">{selectedBrand}</strong> • Modelos compatíveis:
-                    </span>
-                    <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                      {(selectedBrand === 'Apple' ? selectedAppleModels : manualModels).map((m, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-slate-200 text-[10.5px]">
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}

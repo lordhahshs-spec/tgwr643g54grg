@@ -224,6 +224,7 @@ export const marketplaceService = {
         supplierTag: item.supplier_tag || undefined,
         compatibleBrand: item.compatible_brand || undefined,
         compatibleModels: Array.isArray(item.compatible_models) ? item.compatible_models : [],
+        modelPricing: Array.isArray(item.model_pricing) ? item.model_pricing : [],
         variationType: item.variation_type || undefined,
         variationOptions: Array.isArray(item.variation_options) ? item.variation_options : [],
         createdAt: item.created_at,
@@ -382,6 +383,7 @@ export const marketplaceService = {
       supplierTag: item.supplier_tag || undefined,
       compatibleBrand: item.compatible_brand || undefined,
       compatibleModels: Array.isArray(item.compatible_models) ? item.compatible_models : [],
+      modelPricing: Array.isArray(item.model_pricing) ? item.model_pricing : [],
       variationType: item.variation_type || undefined,
       variationOptions: Array.isArray(item.variation_options) ? item.variation_options : [],
       createdAt: item.created_at,
@@ -462,6 +464,7 @@ export const marketplaceService = {
         supplier_tag: offerData.supplierTag || null,
         compatible_brand: offerData.compatibleBrand || null,
         compatible_models: offerData.compatibleModels || [],
+        model_pricing: offerData.modelPricing || [],
         variation_type: offerData.variationType || 'nenhum',
         variation_options: offerData.variationOptions || [],
         views: 0
@@ -511,6 +514,7 @@ export const marketplaceService = {
     if ('supplierTag' in updates) payload.supplier_tag = updates.supplierTag || null;
     if (updates.compatibleBrand !== undefined) payload.compatible_brand = updates.compatibleBrand;
     if (updates.compatibleModels !== undefined) payload.compatible_models = updates.compatibleModels;
+    if (updates.modelPricing !== undefined) payload.model_pricing = updates.modelPricing;
     if (updates.variationType !== undefined) payload.variation_type = updates.variationType;
     if (updates.variationOptions !== undefined) payload.variation_options = updates.variationOptions;
     if (updates.images !== undefined) payload.images = updates.images;
@@ -646,6 +650,8 @@ export const marketplaceService = {
         shipping_address: order.shippingAddress,
         selected_model: order.selectedModel || null,
         selected_variation: order.selectedVariation || null,
+        order_items: order.orderItems || [],
+        total_units: order.totalUnits || 1,
 
         // Campos financeiros separados e auditados
         product_amount: productAmount,
@@ -1304,6 +1310,8 @@ export const marketplaceService = {
       shippingAddress: item.shipping_address,
       selectedModel: item.selected_model || undefined,
       selectedVariation: item.selected_variation || undefined,
+      orderItems: Array.isArray(item.order_items) ? item.order_items : [],
+      totalUnits: Number(item.total_units || 1),
       
       // Detalhes financeiros segregados
       productAmount: Number(item.product_amount || item.product_price),

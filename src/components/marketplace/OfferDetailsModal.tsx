@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MarketplaceOffer, MarketplaceReport } from '@/types/marketplace';
+import React, { useState, useMemo } from 'react';
+import { MarketplaceOffer, MarketplaceReport, OrderItem } from '@/types/marketplace';
 import {
   X,
   Heart,
@@ -14,7 +14,11 @@ import {
   Smartphone,
   CheckCircle2,
   Users,
-  Check
+  Check,
+  Plus,
+  Minus,
+  Layers,
+  Package
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,11 +53,25 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
 
   // Model & Variation Selection (B2B wholesale flow)
   const hasCompatibleModels = Boolean(offer.compatibleModels && offer.compatibleModels.length > 0);
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (offer.compatibleModels && offer.compatibleModels.length > 0) {
-      return offer.compatibleModels[0];
+  const compatibleList = offer.compatibleModels || [];
+
+  // Helper para buscar preço de cada modelo
+  const getModelPrice = (modelName: string): number => {
+    const match = offer.modelPricing?.find((mp) => mp.model.toLowerCase() === modelName.toLowerCase());
+    if (match && typeof match.price === 'number' && match.price > 0) {
+      return match.price;
     }
-    return '';
+    return offer.price;
+  };
+
+  // Quantidades por modelo no formato atacado: { 'iPhone 11': 0, 'iPhone 14 Pro': 5, ... }
+  const [quantities, setQuantities] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    compatibleList.forEach((m, idx) => {
+      // Começa com 0 ou 1 unidade no primeiro item
+      init[m] = 0;
+    });
+    return init;
   });
 
   const variationOptions = (offer.variationOptions && offer.variationOptions.length > 0)
@@ -74,6 +92,66 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
       currency: 'BRL',
     }).format(val);
   };
+
+  // Funções de manipulação de quantidade por modelo
+  const handleSetQuantity = (modelName: string, val: number) => {
+    const safe = Math.max(0, Math.floor(val || 0));
+    setQuantities((prev) => ({
+      ...prev,
+      [modelName]: safe,
+    }));
+  };
+
+  const handleIncrement = (modelName: string) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [modelName]: (prev[modelName] || 0) + 1,
+    }));
+  };
+
+  const handleDecrement = (modelName: string) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [modelName]: Math.max(0, (prev[modelName] || 0) - 1),
+    }));
+  };
+
+  // Total de unidades e valor total calculado
+  const { totalUnits, totalProductAmount, selectedItemsList } = useMemo(() => {
+    let units = 0;
+    let total = 0;
+    const items: OrderItem[] = [];
+
+    if (hasCompatibleModels) {
+      compatibleList.forEach((modelName) => {
+        const q = quantities[modelName] || 0;
+        if (q > 0) {
+          const unitP = getModelPrice(modelName);
+          units += q;
+          total += q * unitP;
+          items.push({
+            model: modelName,
+            price: unitP,
+            quantity: q,
+          });
+        }
+      });
+    } else {
+      units = 1;
+      total = offer.price;
+      items.push({
+        model: offer.title,
+        price: offer.price,
+        quantity: 1,
+      });
+    }
+
+    return {
+      totalUnits: units,
+      totalProductAmount: total > 0 ? total : offer.price,
+      selectedItemsList: items,
+    };
+  }, [quantities, compatibleList, hasCompatibleModels, offer.price, offer.modelPricing]);
 
   const hasDiscount = Boolean(
     (offer.originalPrice && offer.originalPrice > offer.price) ||
@@ -132,15 +210,19 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
   };
 
   const handleCheckoutClick = () => {
-    if (hasCompatibleModels && !selectedModel) {
-      toast.error('Selecione o modelo do aparelho desejado antes de continuar.');
+    if (hasCompatibleModels && totalUnits === 0) {
+      toast.error('Selecione a quantidade de pelo menos um modelo de aparelho para comprar.');
       return;
     }
 
     const payloadOffer = {
       ...offer,
-      selectedModel: selectedModel || undefined,
+      price: totalProductAmount,
+      productPrice: totalProductAmount,
+      selectedModel: selectedItemsList.map(i => `${i.quantity}x ${i.model}`).join(', '),
       selectedVariation: selectedVariation || undefined,
+      orderItems: selectedItemsList,
+      totalUnits: totalUnits > 0 ? totalUnits : 1,
     };
 
     if (onInitiateCheckout) {
@@ -212,7 +294,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 custom-scrollbar pb-32 md:pb-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 custom-scrollbar pb-36 md:pb-8">
           
           {/* Coluna Esquerda: Foto Limpa & Galeria (5 cols) */}
           <div className="md:col-span-5 flex flex-col gap-3">
@@ -265,7 +347,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
             </div>
           </div>
 
-          {/* Coluna Direita: Informações & Compra (7 cols) */}
+          {/* Coluna Direita: Informações, Grade de Modelos e Compra (7 cols) */}
           <div className="md:col-span-7 flex flex-col justify-between space-y-4">
             <div className="space-y-3.5">
               
@@ -287,84 +369,23 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 {offer.title}
               </h1>
 
-              {/* Preço & Parcelamento */}
+              {/* Preço de Referência Unitário */}
               <div className="pt-2 pb-3 border-y border-white/5 space-y-1">
-                {hasDiscount && offer.originalPrice && offer.originalPrice > offer.price && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 line-through font-normal">
-                      {formatBRL(offer.originalPrice)}
-                    </span>
-                    <span className="text-xs font-black text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30 flex items-center gap-1">
-                      <ArrowDown className="w-3 h-3 stroke-[3]" />
-                      -{discountPercent}% OFF
-                    </span>
-                  </div>
-                )}
-
                 <div className="flex items-baseline gap-2">
-                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                  <span className="text-xs text-slate-400">A partir de:</span>
+                  <div className="text-2xl font-bold text-white tracking-tight">
                     {formatBRL(offer.price)}
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">/ unidade atacado</span>
+                  <span className="text-xs text-[#00D287] font-semibold">/ unidade atacado</span>
                 </div>
 
-                <div className="text-xs sm:text-sm text-emerald-400 font-medium">
-                  em <span className="font-bold">12x de {formatBRL(offer.price / 12)}</span> sem juros
-                </div>
-
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold pt-1">
-                  <span>Frete calculado no checkout</span>
+                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold pt-0.5">
+                  <span>Envio rápido com frete calculado no checkout</span>
                   <span className="inline-flex items-center gap-0.5 text-[#00D287] font-black italic tracking-tighter text-[10px] bg-[#00D287]/15 px-1.5 py-0.2 rounded">
-                    <Zap className="w-2.5 h-2.5 fill-[#00D287]" /> PRONTA ENTREGA
+                    <Zap className="w-2.5 h-2.5 fill-[#00D287]" /> ATACADO FULL
                   </span>
                 </div>
               </div>
-
-              {/* SELEÇÃO DE MODELOS COMPATÍVEIS (SE EXISTIR) */}
-              {hasCompatibleModels && (
-                <div className="p-3.5 rounded-2xl bg-[#090e1c] border border-white/10 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Smartphone className="w-3.5 h-3.5 text-[#00D287]" />
-                      Selecione o Modelo ({offer.compatibleBrand || 'Aparelho'}):
-                    </label>
-                    <span className="text-[10px] text-[#00D287] font-bold">
-                      {offer.compatibleModels?.length} disponíveis
-                    </span>
-                  </div>
-
-                  {/* Lista de Modelos estilo Catálogo Atacado */}
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                    {offer.compatibleModels?.map((modelName) => {
-                      const isSelected = selectedModel === modelName;
-                      return (
-                        <button
-                          key={modelName}
-                          type="button"
-                          onClick={() => setSelectedModel(modelName)}
-                          className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs border transition-all ${
-                            isSelected
-                              ? 'bg-[#00D287]/15 border-[#00D287] text-white font-bold shadow-sm'
-                              : 'bg-slate-900/40 border-white/5 text-slate-300 hover:bg-slate-900 hover:text-white'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                              isSelected ? 'border-[#00D287] bg-[#00D287] text-slate-950' : 'border-slate-600'
-                            }`}>
-                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                            </div>
-                            <span className="text-left font-medium">{modelName}</span>
-                          </div>
-                          <span className="text-[11px] font-bold text-[#00D287]">
-                            {formatBRL(offer.price)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* SELEÇÃO DE VARIAÇÃO (MASCULINO / FEMININO) */}
               {hasVariations && (
@@ -372,7 +393,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-white flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-[#00D287]" />
-                      Variação de Estilo / Kit:
+                      Escolha a Variação do Kit:
                     </label>
                     <span className="text-[10px] text-slate-400">Cores sortidas atacado</span>
                   </div>
@@ -404,13 +425,112 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                 </div>
               )}
 
+              {/* TABELA DE MODELOS & QUANTIDADE EM ATACADO (EXATAMENTE COMO NA PRINT DO USUÁRIO) */}
+              {hasCompatibleModels && (
+                <div className="p-3.5 rounded-2xl bg-[#080c18] border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-white/5">
+                    <div className="flex items-center gap-1.5">
+                      <Smartphone className="w-4 h-4 text-[#00D287]" />
+                      <span className="text-xs font-bold text-white">Modelos Disponíveis:</span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {totalUnits} un. selecionada{totalUnits !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {/* Lista de Modelos com Preço e Contador de Unidades */}
+                  <div className="divide-y divide-white/5 max-h-64 overflow-y-auto pr-1">
+                    {compatibleList.map((modelName) => {
+                      const unitPrice = getModelPrice(modelName);
+                      const currentQty = quantities[modelName] || 0;
+
+                      return (
+                        <div
+                          key={modelName}
+                          className={`py-2.5 px-2 flex items-center justify-between gap-3 transition-colors ${
+                            currentQty > 0 ? 'bg-[#00D287]/5 rounded-xl' : ''
+                          }`}
+                        >
+                          {/* Nome do Modelo */}
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-medium text-slate-200 block truncate">
+                              {modelName} -
+                            </span>
+                          </div>
+
+                          {/* Preço Unitário */}
+                          <div className="text-right whitespace-nowrap">
+                            <span className="text-xs font-bold text-white font-mono">
+                              {formatBRL(unitPrice)}
+                            </span>
+                          </div>
+
+                          {/* Seletor de Quantidade com Botões e Input */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(modelName)}
+                              disabled={currentQty <= 0}
+                              className="w-6 h-6 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+
+                            <input
+                              type="number"
+                              min="0"
+                              value={currentQty === 0 ? '' : currentQty}
+                              placeholder="0"
+                              onChange={(e) => handleSetQuantity(modelName, parseInt(e.target.value, 10) || 0)}
+                              className="w-12 h-6 px-1 rounded-lg bg-slate-950 border border-white/20 text-white font-black text-xs text-center outline-none focus:border-[#00D287]"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(modelName)}
+                              className="w-6 h-6 rounded-lg bg-slate-900 border border-white/10 text-[#00D287] hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+
+                            <span className="text-[11px] text-slate-400 font-medium pl-1 hidden sm:inline">
+                              Unidades
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Resumo do Pedido de Atacado */}
+                  {totalUnits > 0 && (
+                    <div className="p-3 rounded-xl bg-[#00D287]/10 border border-[#00D287]/30 flex items-center justify-between text-xs animate-in fade-in duration-150">
+                      <div>
+                        <span className="text-slate-300 font-medium block">
+                          Total: <strong className="text-white">{totalUnits} unidades</strong> selecionadas ({selectedVariation})
+                        </span>
+                        <span className="text-[10px] text-slate-400 truncate max-w-[220px] sm:max-w-none block">
+                          {selectedItemsList.slice(0, 3).map(i => `${i.quantity}x ${i.model}`).join(' • ')}
+                          {selectedItemsList.length > 3 ? ` e mais ${selectedItemsList.length - 3} modelo(s)` : ''}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-base font-black text-[#00D287]">
+                          {formatBRL(totalProductAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Descrição do Produto */}
               {offer.description && (
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                     Detalhes do Produto
                   </span>
-                  <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-white/[0.02] p-3.5 rounded-2xl border border-white/5 max-h-32 overflow-y-auto">
+                  <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-white/[0.02] p-3 rounded-2xl border border-white/5 max-h-24 overflow-y-auto">
                     {offer.description}
                   </div>
                 </div>
@@ -435,7 +555,9 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
                   >
                     <ShoppingBag className="w-4 h-4 text-slate-950 stroke-[2.5]" />
                     <span>
-                      Comprar {selectedModel ? `(${selectedModel})` : ''} • {formatBRL(offer.price)}
+                      {totalUnits > 0
+                        ? `Comprar Agora • ${formatBRL(totalProductAmount)} (${totalUnits} un.)`
+                        : `Comprar Agora • A partir de ${formatBRL(offer.price)}`}
                     </span>
                   </button>
 
@@ -451,7 +573,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
 
               <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
                 <span>⚡ Envio imediato em até 24h</span>
-                <span>🔒 Pagamento 100% protegido</span>
+                <span>🔒 Pagamento 100% protegido em custódia</span>
               </div>
             </div>
 

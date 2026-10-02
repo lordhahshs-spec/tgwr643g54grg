@@ -480,18 +480,34 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                           {getOrderStatusBadge(order.orderStatus, order.shippingStatus)}
                         </div>
                         <h4 className="text-sm font-bold text-white mt-1">{order.productTitle}</h4>
-                        {(order.selectedModel || order.selectedVariation) && (
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {order.selectedModel && (
+                        {(order.selectedModel || order.selectedVariation || (order.orderItems && order.orderItems.length > 0)) && (
+                          <div className="space-y-1.5 mt-1.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {order.selectedVariation && (
+                                <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
+                                  {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
+                                </span>
+                              )}
+                              {order.totalUnits && order.totalUnits > 1 && (
+                                <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/15 border border-[#00D287]/30 px-2 py-0.5 rounded-md">
+                                  📦 {order.totalUnits} unidades
+                                </span>
+                              )}
+                            </div>
+
+                            {order.orderItems && order.orderItems.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {order.orderItems.map((it, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-950 border border-white/10 text-[11px] text-slate-200">
+                                    <strong className="text-[#00D287]">{it.quantity}x</strong> {it.model}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : order.selectedModel ? (
                               <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/15 border border-[#00D287]/30 px-2 py-0.5 rounded-md">
                                 📱 Modelo: {order.selectedModel}
                               </span>
-                            )}
-                            {order.selectedVariation && (
-                              <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
-                                {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
-                              </span>
-                            )}
+                            ) : null}
                           </div>
                         )}
                       </div>
@@ -717,18 +733,34 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                             {getOrderStatusBadge(order.orderStatus, order.shippingStatus)}
                           </div>
                           <h4 className="text-sm font-bold text-white mt-0.5">{order.productTitle}</h4>
-                          {(order.selectedModel || order.selectedVariation) && (
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                              {order.selectedModel && (
+                          {(order.selectedModel || order.selectedVariation || (order.orderItems && order.orderItems.length > 0)) && (
+                            <div className="space-y-1.5 mt-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {order.selectedVariation && (
+                                  <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
+                                    {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
+                                  </span>
+                                )}
+                                {order.totalUnits && order.totalUnits > 1 && (
+                                  <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/15 border border-[#00D287]/30 px-2 py-0.5 rounded-md">
+                                    📦 {order.totalUnits} unidades
+                                  </span>
+                                )}
+                              </div>
+
+                              {order.orderItems && order.orderItems.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {order.orderItems.map((it, idx) => (
+                                    <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-950 border border-white/10 text-[11px] text-slate-200">
+                                      <strong className="text-[#00D287]">{it.quantity}x</strong> {it.model}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : order.selectedModel ? (
                                 <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/15 border border-[#00D287]/30 px-2 py-0.5 rounded-md">
                                   📱 Modelo: {order.selectedModel}
                                 </span>
-                              )}
-                              {order.selectedVariation && (
-                                <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
-                                  {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
-                                </span>
-                              )}
+                              ) : null}
                             </div>
                           )}
                           <p className="text-xs text-slate-400">Vendedor: {order.sellerCompany}</p>
