@@ -833,59 +833,60 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <CreditCard className="w-4 h-4 text-[#00D287]" /> Método de Pagamento B2B
                 </h4>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('PIX')}
-                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
+                    className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left flex items-center gap-2 sm:gap-3 transition-all cursor-pointer ${
                       paymentMethod === 'PIX'
                         ? 'border-[#00D287] bg-[#00D287]/10 text-white'
                         : 'border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    <QrCode className="w-5 h-5 text-[#00D287]" />
+                    <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-[#00D287] shrink-0" />
                     <div>
                       <span className="text-xs font-bold block text-white">PIX Imediato</span>
-                      <span className="text-[10px] text-slate-400">Liberação instantânea</span>
+                      <span className="text-[10px] text-slate-400 hidden sm:block">Liberação instantânea</span>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('Cartao')}
-                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
+                    className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left flex items-center gap-2 sm:gap-3 transition-all cursor-pointer ${
                       paymentMethod === 'Cartao'
                         ? 'border-[#00D287] bg-[#00D287]/10 text-white'
                         : 'border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/20'
                     }`}
                   >
-                    <CreditCard className="w-5 h-5 text-[#00D287]" />
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-[#00D287] shrink-0" />
                     <div>
                       <span className="text-xs font-bold block text-white">Cartão Corporativo</span>
-                      <span className="text-[10px] text-slate-400">Até 12x via Gateway</span>
+                      <span className="text-[10px] text-slate-400 hidden sm:block">Até 12x via Gateway</span>
                     </div>
                   </button>
                 </div>
 
                 {paymentMethod === 'PIX' ? (
-                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-3 text-center">
-                    <div className="w-32 h-32 mx-auto bg-white p-2 rounded-xl flex items-center justify-center">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-2.5 sm:space-y-3 text-center">
+                    {/* QR Code apenas em telas desktop / tablets */}
+                    <div className="hidden sm:flex w-32 h-32 mx-auto bg-white p-2 rounded-xl items-center justify-center">
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixCode)}`}
                         alt="QR Code PIX"
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-400 hidden sm:block">
                       Escaneie o QR Code ou copie o código PIX para efetuar o pagamento seguro com custódia CellHub.
                     </p>
                     <button
                       type="button"
                       onClick={handleCopyPix}
-                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-white/10 flex items-center gap-2 mx-auto transition-colors"
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-white/10 flex items-center justify-center gap-2 mx-auto transition-colors cursor-pointer active:scale-95"
                     >
-                      {copiedPix ? <Check className="w-4 h-4 text-[#00D287]" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                      {copiedPix ? 'Código PIX Copiado!' : 'Copiar Código PIX'}
+                      {copiedPix ? <Check className="w-4 h-4 text-[#00D287]" /> : <Copy className="w-4 h-4 text-[#00D287]" />}
+                      <span>{copiedPix ? 'Código PIX Copiado!' : 'Copiar Código PIX (Copia e Cola)'}</span>
                     </button>
                   </div>
                 ) : (

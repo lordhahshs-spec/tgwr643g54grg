@@ -117,7 +117,7 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-md animate-in fade-in duration-150"
+      className="fixed inset-0 z-[80] flex items-center justify-center md:p-5 bg-black/95 md:backdrop-blur-md animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
@@ -312,8 +312,8 @@ export const OfferDetailsModal: React.FC<OfferDetailsModalProps> = ({
               )}
             </div>
 
-            {/* Ações de Compra (Fixado na base no Mobile estilo Mercado Livre / Shopee) */}
-            <div className="fixed md:static bottom-0 left-0 right-0 bg-[#060911]/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/10 md:border-t md:border-white/5 p-3.5 md:p-0 md:pt-3 z-30 pb-[max(env(safe-area-inset-bottom,0px),12px)] md:pb-0 space-y-2 shadow-[0_-4px_25px_rgba(0,0,0,0.8)] md:shadow-none">
+            {/* Ações de Compra (Fixado na base no Mobile com fundo sólido para cobrir a navegação) */}
+            <div className="fixed md:static bottom-0 left-0 right-0 bg-[#070b14] border-t border-white/10 md:border-t md:border-white/5 p-3.5 md:p-0 md:pt-3 z-50 pb-[max(env(safe-area-inset-bottom,0px),12px)] md:pb-0 space-y-2 shadow-[0_-8px_30px_rgba(0,0,0,0.9)] md:shadow-none">
               {isOwner ? (
                 <div className="w-full p-3 text-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
                   Você é o administrador responsável por este produto no catálogo oficial.

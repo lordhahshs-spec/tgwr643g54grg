@@ -311,35 +311,36 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
   return (
     <div className="w-full bg-[#040711] text-slate-100 p-3 sm:p-5 pb-32 sm:pb-6 space-y-4 flex flex-col justify-start">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#060a16] p-3.5 sm:p-4 rounded-2xl border border-white/10 shadow-xl shadow-black/40 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-[#00D287]/25">
-            <Repeat className="w-5 h-5 stroke-[2.5]" />
+      <div className="flex flex-row items-center justify-between gap-2.5 bg-[#060a16] p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl shadow-black/40 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md sm:shadow-lg shadow-[#00D287]/25">
+            <Repeat className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
-                Avaliação de Aparelho <span className="text-[#00D287]">(Seminovos & Troca)</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h1 className="text-sm sm:text-lg font-black text-white tracking-tight truncate">
+                Avaliação <span className="text-[#00D287]">Trade-In</span>
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30">
                 <Sparkles className="w-3 h-3" /> CellHub IA
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">
               Calcule o valor de compra do seminovo com laudo visual por inteligência artificial
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsHistoryModalOpen(true)}
-            className="flex-1 sm:flex-initial border-white/10 bg-[#0c1424] text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 h-9 px-3.5 transition-colors"
+            className="border-white/10 bg-[#0c1424] text-slate-300 hover:text-white hover:bg-slate-800 text-[11px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3.5 transition-colors cursor-pointer"
           >
             <History className="w-3.5 h-3.5 text-[#00D287]" />
-            Histórico de Termos
+            <span className="hidden sm:inline">Histórico de Termos</span>
+            <span className="sm:hidden">Termos</span>
           </Button>
 
           <Button
@@ -349,10 +350,11 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
               setAdminModalTab('models');
               setIsAdminModalOpen(true);
             }}
-            className="flex-1 sm:flex-initial border-[#00D287]/30 bg-[#00D287]/10 text-[#00D287] hover:text-slate-950 hover:bg-[#00D287] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 h-9 px-3.5 transition-all shadow-sm shadow-[#00D287]/10"
+            className="border-[#00D287]/30 bg-[#00D287]/10 text-[#00D287] hover:text-slate-950 hover:bg-[#00D287] text-[11px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3.5 transition-all shadow-sm shadow-[#00D287]/10 cursor-pointer"
           >
             <Settings className="w-3.5 h-3.5" />
-            Minha Tabela
+            <span className="hidden sm:inline">Minha Tabela</span>
+            <span className="sm:hidden">Tabela</span>
           </Button>
         </div>
       </div>

@@ -110,17 +110,17 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
   return (
     <div className="w-full min-h-full flex-1 bg-[#040711] text-slate-100 flex flex-col pb-16">
       {/* Top Header Bar Estilo Loja Oficial Mercado Livre Full Width */}
-      <header className="sticky top-0 z-30 bg-[#060a16]/95 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 shadow-lg shadow-black/40 w-full">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center flex-shrink-0 shadow-md shadow-[#00D287]/30">
-            <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
+      <header className="sticky top-0 z-30 bg-[#060a16]/95 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 shadow-lg shadow-black/40 w-full">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 flex items-center justify-center flex-shrink-0 shadow-md shadow-[#00D287]/30">
+            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-black text-white tracking-tight">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm sm:text-lg font-black text-white tracking-tight truncate">
                 CellHub <span className="text-[#00D287]">Shop</span>
               </span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider flex items-center gap-1">
+              <span className="hidden sm:inline-flex text-[10px] font-black px-2 py-0.5 rounded bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 uppercase tracking-wider items-center gap-1">
                 <Zap className="w-3 h-3 fill-[#00D287]" /> Full Oficial
               </span>
             </div>
@@ -134,18 +134,19 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
         {currentUser?.role === 'admin' && (
           <button
             onClick={() => setIsCreateOfficialModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Adicionar Produto Oficial</span>
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+            <span className="hidden sm:inline">Adicionar Produto Oficial</span>
+            <span className="sm:hidden text-[11px]">Novo Produto</span>
           </button>
         )}
       </header>
 
       {/* Main Catalog Body - Full Width Edge to Edge */}
-      <main className="flex-1 px-4 sm:px-8 py-4 sm:py-6 w-full space-y-5">
-        {/* Banner Oficial Mercado Livre / Full CellHub (Full Width) */}
-        <div className="w-full rounded-2xl bg-gradient-to-r from-emerald-950/50 via-[#071322] to-slate-950 border border-[#00D287]/30 p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+      <main className="flex-1 px-3 sm:px-8 py-3 sm:py-6 w-full space-y-4 sm:space-y-5">
+        {/* Banner Oficial Mercado Livre / Full CellHub (Oculto no mobile para liberar espaço) */}
+        <div className="hidden md:flex w-full rounded-2xl bg-gradient-to-r from-emerald-950/50 via-[#071322] to-slate-950 border border-[#00D287]/30 p-4 sm:p-5 flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center flex-shrink-0 shadow-sm">
               <PackageCheck className="w-6 h-6" />
