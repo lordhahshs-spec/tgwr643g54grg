@@ -594,7 +594,7 @@ export const AdminPage: React.FC = () => {
           <div className="h-16 border-b border-white/5 flex items-center justify-between px-4">
             <div className="flex items-center gap-3 overflow-hidden">
               <CellHubLogo size="sm" variant={isSidebarCollapsed && !isMobileSidebarOpen ? 'icon' : 'full'} />
-              {(!isSidebarCollapsed || isMobileOpen) && (
+              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
                 <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-[9px] px-1 py-0">
                   ADMIN
                 </Badge>
@@ -810,56 +810,57 @@ export const AdminPage: React.FC = () => {
         `}
       >
         {/* Top Header */}
-        <header className="h-14 flex-shrink-0 bg-[#080c17]/90 border-b border-white/5 px-4 sm:px-6 flex items-center justify-between backdrop-blur-md z-20">
-          <div className="flex items-center gap-3">
+        <header className="h-14 flex-shrink-0 bg-[#080c17]/95 border-b border-white/5 px-3 sm:px-6 flex items-center justify-between backdrop-blur-md z-20">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="lg:hidden p-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white"
+              className="lg:hidden p-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white shrink-0"
+              title="Menu Admin"
             >
               <Menu className="w-4 h-4" />
             </button>
 
-            <h1 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-xs sm:text-base font-black text-white tracking-tight flex items-center gap-1.5 sm:gap-2 truncate">
               {adminTab === 'users' && (
                 <>
-                  <Users className="w-4 h-4 text-[#00D287]" />
-                  <span>Gestão de Lojistas, Leads & Acessos</span>
+                  <Users className="w-4 h-4 text-[#00D287] shrink-0" />
+                  <span className="truncate">Lojistas, Leads & Acessos</span>
                 </>
               )}
               {adminTab === 'marketplace' && (
                 <>
-                  <Flame className="w-4 h-4 text-[#00D287]" />
-                  <span>Marketplace Super Ofertas (B2B entre Lojistas)</span>
+                  <Flame className="w-4 h-4 text-[#00D287] shrink-0" />
+                  <span className="truncate">Super Ofertas B2B</span>
                 </>
               )}
               {adminTab === 'schematics' && (
                 <>
-                  <Cpu className="w-4 h-4 text-[#00D287]" />
-                  <span>Banco de Esquemas Elétricos (PDF)</span>
+                  <Cpu className="w-4 h-4 text-[#00D287] shrink-0" />
+                  <span className="truncate">Esquemas Elétricos (PDF)</span>
                 </>
               )}
               {adminTab === 'catalog' && (
                 <>
-                  <ShoppingBag className="w-4 h-4 text-[#00D287]" />
-                  <span>Dashboard CellHub Shop (Estoque & Vendas Oficiais)</span>
+                  <ShoppingBag className="w-4 h-4 text-[#00D287] shrink-0" />
+                  <span className="truncate">Loja Oficial CellHub</span>
                 </>
               )}
               {adminTab === 'webhooks' && (
                 <>
-                  <RotateCw className="w-4 h-4 text-[#00D287]" />
-                  <span>Monitoramento de Webhooks & Integrações</span>
+                  <RotateCw className="w-4 h-4 text-[#00D287] shrink-0" />
+                  <span className="truncate">Webhooks & Logs</span>
                 </>
               )}
               {adminTab === 'ai' && (
                 <>
-                  <Sparkles className="w-4 h-4 text-blue-400" />
-                  <span>CellHub IA (Roteamento Dual, Franquias & Consumo)</span>
+                  <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span className="truncate">CellHub IA & Modelos</span>
                 </>
               )}
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               onClick={() => {
                 setAdminEditEmail(currentUser?.email || 'lordhahshs@gmail.com');
@@ -869,30 +870,30 @@ export const AdminPage: React.FC = () => {
               }}
               variant="outline"
               size="sm"
-              className="bg-purple-500/15 border-purple-500/30 text-purple-300 hover:text-white text-xs h-8 px-2.5 rounded-lg"
+              className="bg-purple-500/15 border-purple-500/30 text-purple-300 hover:text-white text-[11px] sm:text-xs h-8 px-2 sm:px-2.5 rounded-lg"
               title="Configurar credenciais do Administrador Master"
             >
-              <KeyRound className="w-3.5 h-3.5 mr-1 text-purple-400" />
-              <span className="hidden sm:inline">Admin: {currentUser?.email || 'lordhahshs@gmail.com'}</span>
+              <KeyRound className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden md:inline ml-1">Admin Master</span>
             </Button>
 
             <Button
               onClick={loadAllData}
               variant="outline"
               size="sm"
-              className="bg-slate-900 border-white/10 text-slate-300 hover:text-white text-xs h-8 px-2.5 rounded-lg"
+              className="bg-slate-900 border-white/10 text-slate-300 hover:text-white text-xs h-8 w-8 sm:w-auto sm:px-2.5 rounded-lg flex items-center justify-center p-0 sm:p-2"
               title="Recarregar dados"
             >
               <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#00D287]' : ''}`} />
             </Button>
 
             {adminTab === 'users' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {isMasterAdmin && (
                   <Button
                     onClick={() => setIsCreateAdminModalOpen(true)}
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 px-3 rounded-lg shadow-sm shadow-purple-600/30 flex items-center gap-1.5"
+                    className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] sm:text-xs h-8 px-2.5 sm:px-3 rounded-lg shadow-sm shadow-purple-600/30 flex items-center gap-1"
                     title="Adicionar Administrador (Apenas E-mail e Senha)"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-purple-200" />
@@ -903,10 +904,11 @@ export const AdminPage: React.FC = () => {
                 <Button
                   onClick={() => setIsCreateModalOpen(true)}
                   size="sm"
-                  className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 px-3 rounded-lg shadow-sm shadow-[#00D287]/20 flex items-center gap-1"
+                  className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-[11px] sm:text-xs h-8 px-2.5 sm:px-3 rounded-lg shadow-sm shadow-[#00D287]/20 flex items-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Cadastrar Lead</span>
+                  <span className="hidden sm:inline">Cadastrar Lead</span>
+                  <span className="sm:hidden">+ Lead</span>
                 </Button>
               </div>
             )}
@@ -915,49 +917,96 @@ export const AdminPage: React.FC = () => {
               <Button
                 onClick={handleOpenAddSchematic}
                 size="sm"
-                className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 px-3 rounded-lg shadow-sm shadow-[#00D287]/20"
+                className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-[11px] sm:text-xs h-8 px-2.5 sm:px-3 rounded-lg shadow-sm shadow-[#00D287]/20 flex items-center gap-1"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Adicionar Esquema Elétrico (PDF)
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Adicionar PDF</span>
+                <span className="sm:hidden">+ PDF</span>
               </Button>
             )}
           </div>
         </header>
 
+        {/* Mobile Horizontal Tabs Navigator (Permite trocar de aba facilmente no celular sem depender de drawer) */}
+        <div className="lg:hidden flex items-center gap-1.5 px-3 py-2 bg-[#060a16] border-b border-white/5 overflow-x-auto no-scrollbar shrink-0">
+          {[
+            { id: 'users', label: 'Lojistas & Leads', icon: Users, count: accounts.length },
+            { id: 'marketplace', label: 'Super Ofertas B2B', icon: Flame, badge: 'B2B' },
+            { id: 'catalog', label: 'Loja Oficial CellHub', icon: ShoppingBag, badge: 'Oficial' },
+            { id: 'schematics', label: 'Esquemas Elétricos', icon: Cpu, count: schematics.length },
+            { id: 'ai', label: 'CellHub IA', icon: Sparkles, badge: 'IA' },
+            { id: 'webhooks', label: 'Webhooks & Logs', icon: RotateCw, badge: 'Live' },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = adminTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setAdminTab(tab.id as any);
+                  setSearchQuery('');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer border ${
+                  isActive
+                    ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-sm shadow-[#00D287]/20 font-black'
+                    : 'bg-[#080d1b] text-slate-300 hover:text-white border-white/5'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                    isActive ? 'bg-slate-950 text-[#00D287]' : 'bg-slate-900 text-slate-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+                {tab.badge && (
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-black uppercase ${
+                    isActive ? 'bg-slate-950 text-[#00D287]' : 'bg-[#00D287]/20 text-[#00D287]'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#050811]">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-[#050811]">
           {/* TAB 1: USERS */}
           {adminTab === 'users' && (
             <>
               {/* Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-[#080c17] border border-white/5 rounded-2xl p-4">
-                  <div className="text-slate-400 text-xs font-semibold">Total de Contas</div>
-                  <div className="text-2xl font-black text-white mt-1">{accounts.length}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+                <div className="bg-[#080c17] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                  <div className="text-slate-400 text-[11px] sm:text-xs font-semibold">Total de Contas</div>
+                  <div className="text-xl sm:text-2xl font-black text-white mt-1">{accounts.length}</div>
                   <div className="text-[10px] text-[#00D287] mt-0.5">Gravadas no Supabase</div>
                 </div>
 
-                <div className="bg-[#080c17] border border-white/5 rounded-2xl p-4">
-                  <div className="text-slate-400 text-xs font-semibold">Contas Ativas</div>
-                  <div className="text-2xl font-black text-[#00D287] mt-1">{totalAtivos}</div>
+                <div className="bg-[#080c17] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                  <div className="text-slate-400 text-[11px] sm:text-xs font-semibold">Contas Ativas</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#00D287] mt-1">{totalAtivos}</div>
                   <div className="text-[10px] text-slate-500 mt-0.5">Acesso Liberado</div>
                 </div>
 
-                <div className="bg-[#080c17] border border-white/5 rounded-2xl p-4">
-                  <div className="text-slate-400 text-xs font-semibold">Contas Bloqueadas</div>
-                  <div className="text-2xl font-black text-rose-400 mt-1">{totalBloqueados}</div>
-                  <div className="text-[10px] text-rose-400/80 mt-0.5">Tela travada no cliente</div>
+                <div className="bg-[#080c17] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                  <div className="text-slate-400 text-[11px] sm:text-xs font-semibold">Contas Bloqueadas</div>
+                  <div className="text-xl sm:text-2xl font-black text-rose-400 mt-1">{totalBloqueados}</div>
+                  <div className="text-[10px] text-rose-400/80 mt-0.5">Tela travada</div>
                 </div>
 
-                <div className="bg-[#080c17] border border-white/5 rounded-2xl p-4">
-                  <div className="text-slate-400 text-xs font-semibold">Sistema de Banimento</div>
-                  <div className="text-2xl font-black text-emerald-400 mt-1">ONLINE</div>
-                  <div className="text-[10px] text-[#00D287] mt-0.5">Trava instantânea ativa</div>
+                <div className="bg-[#080c17] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                  <div className="text-slate-400 text-[11px] sm:text-xs font-semibold">Sistema Banimento</div>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">ONLINE</div>
+                  <div className="text-[10px] text-[#00D287] mt-0.5">Trava em tempo real</div>
                 </div>
               </div>
 
               {/* Search & Filter Toolbar */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#080c17] border border-white/5 rounded-xl p-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 bg-[#080c17] border border-white/5 rounded-xl p-2.5 sm:p-3">
                 <div className="relative flex-1 max-w-md">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
@@ -968,7 +1017,7 @@ export const AdminPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                   {[
                     { id: 'todos', label: 'Todos' },
                     { id: 'ativo', label: 'Ativos' },
@@ -977,7 +1026,7 @@ export const AdminPage: React.FC = () => {
                     <button
                       key={filter.id}
                       onClick={() => setSelectedStatusFilter(filter.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                         selectedStatusFilter === filter.id
                           ? 'bg-[#00D287] text-slate-950 font-bold'
                           : 'text-slate-400 hover:text-white bg-slate-900'
@@ -989,187 +1038,345 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Accounts Table */}
-              <div className="bg-[#080c17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Contas Cadastradas no Banco ({filteredAccounts.length})
-                  </h3>
+              {/* Accounts List on Mobile (Cards format) + Desktop Table */}
+              {loading ? (
+                <div className="text-center py-12 text-slate-400 text-xs bg-[#080c17] rounded-2xl border border-white/5">
+                  Carregando contas do Supabase...
                 </div>
+              ) : filteredAccounts.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-xs bg-[#080c17] rounded-2xl border border-white/5">
+                  Nenhuma conta cadastrada no momento.
+                </div>
+              ) : (
+                <>
+                  {/* MOBILE CARDS VIEW (md:hidden) */}
+                  <div className="md:hidden space-y-2.5">
+                    {filteredAccounts.map((account) => {
+                      const isAccountMaster = account.email?.toLowerCase().trim() === MASTER_ADMIN_EMAIL;
+                      return (
+                        <div
+                          key={account.id}
+                          className={`p-3.5 rounded-2xl bg-[#080c17] border space-y-3 transition-all ${
+                            account.status === 'bloqueado'
+                              ? 'border-rose-500/40 bg-rose-950/10'
+                              : 'border-white/5 hover:border-white/10'
+                          }`}
+                        >
+                          {/* Top Row: Avatar + Names + Badges */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                                isAccountMaster
+                                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                                  : account.status === 'bloqueado'
+                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                  : 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/25'
+                              }`}>
+                                {account.companyName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                                  {account.companyName}
+                                  {isAccountMaster && (
+                                    <span className="text-[9px] bg-purple-500/25 text-purple-300 border border-purple-500/40 px-1 py-0.2 rounded font-black">
+                                      MASTER
+                                    </span>
+                                  )}
+                                </h4>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {account.ownerName}
+                                </p>
+                              </div>
+                            </div>
 
-                {loading ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">
-                    Carregando contas do Supabase...
+                            {/* Status badge */}
+                            <div className="shrink-0">
+                              {account.status === 'ativo' && (
+                                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] font-semibold">
+                                  Ativo
+                                </Badge>
+                              )}
+                              {account.status === 'bloqueado' && (
+                                <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/40 text-[10px] font-bold flex items-center gap-1">
+                                  <Ban className="w-3 h-3 text-rose-400" /> Bloqueado
+                                </Badge>
+                              )}
+                              {account.status === 'analise' && (
+                                <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-semibold">
+                                  Análise
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Info grid */}
+                          <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/70 p-2.5 rounded-xl border border-white/5">
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">E-mail:</span>
+                              <span className="text-slate-300 truncate block font-medium">{account.email}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">WhatsApp:</span>
+                              <span className="text-slate-300 truncate block font-mono">{account.whatsapp || 'Não inf.'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">CNPJ:</span>
+                              <span className="text-slate-400 font-mono block truncate">{account.cnpj || '—'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block text-[10px]">Perfil:</span>
+                              <span className="text-[#00D287] font-semibold block">{account.role === 'admin' ? 'Admin' : 'Lojista'}</span>
+                            </div>
+                          </div>
+
+                          {/* Motivo do banimento se houver */}
+                          {account.banReason && (
+                            <div className="text-[10.5px] text-rose-400 bg-rose-950/30 p-2 rounded-lg border border-rose-500/20">
+                              <strong>Motivo do bloqueio:</strong> {account.banReason}
+                            </div>
+                          )}
+
+                          {/* Action buttons */}
+                          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-white/5">
+                            <button
+                              onClick={() => setSelectedAccountForModal(account)}
+                              className="flex-1 py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-[11px] font-bold flex items-center justify-center gap-1 border border-white/5 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-[#00D287]" /> Detalhes
+                            </button>
+
+                            <button
+                              onClick={() => setSelectedUserIdForTradeInHistory(account.id)}
+                              className="flex-1 py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-[11px] font-bold flex items-center justify-center gap-1 border border-white/5 cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-sky-400" /> Termos
+                            </button>
+
+                            {isMasterAdmin && (
+                              <button
+                                onClick={() => handleOpenEditUser(account)}
+                                className="p-1.5 rounded-lg bg-purple-950/70 border border-purple-500/40 text-purple-300 hover:bg-purple-900 cursor-pointer"
+                                title="Editar Conta"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {!isAccountMaster && (
+                              account.status === 'bloqueado' ? (
+                                <button
+                                  onClick={() => handleUnban(account.id)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Desbanir
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleOpenBanModal(account)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-rose-950/90 border border-rose-800/60 text-rose-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Ban className="w-3.5 h-3.5 text-rose-400" /> Banir
+                                </button>
+                              )
+                            )}
+
+                            {!isAccountMaster && (
+                              <button
+                                onClick={() => handleDelete(account.id)}
+                                className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 cursor-pointer"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ) : filteredAccounts.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">
-                    Nenhuma conta cadastrada no momento.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/5 bg-slate-950/60 text-slate-400 font-bold uppercase text-[10px]">
-                          <th className="p-3.5">Empresa / Loja</th>
-                          <th className="p-3.5">Dono</th>
-                          <th className="p-3.5">CNPJ</th>
-                          <th className="p-3.5">E-mail</th>
-                          <th className="p-3.5">Perfil</th>
-                          <th className="p-3.5">Status</th>
-                          <th className="p-3.5 text-right">Ações de Controle</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {filteredAccounts.map((account) => {
-                          const isAccountMaster = account.email?.toLowerCase().trim() === MASTER_ADMIN_EMAIL;
-                          return (
-                            <tr key={account.id} className="hover:bg-white/[0.02] transition-colors">
-                              <td className="p-3.5 font-bold text-white">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
-                                    isAccountMaster
-                                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                                      : account.status === 'bloqueado'
-                                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                      : 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/25'
-                                  }`}>
-                                    {account.companyName.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="truncate max-w-[170px]">
-                                    <div className="truncate flex items-center gap-1.5">
-                                      <span>{account.companyName}</span>
-                                      {isAccountMaster && (
-                                        <span className="text-[9px] bg-purple-500/25 text-purple-300 border border-purple-500/40 px-1 py-0.2 rounded font-black">
-                                          MASTER
-                                        </span>
+
+                  {/* DESKTOP TABLE VIEW (hidden md:block) */}
+                  <div className="hidden md:block bg-[#080c17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Contas Cadastradas no Banco ({filteredAccounts.length})
+                      </h3>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/5 bg-slate-950/60 text-slate-400 font-bold uppercase text-[10px]">
+                            <th className="p-3.5">Empresa / Loja</th>
+                            <th className="p-3.5">Dono</th>
+                            <th className="p-3.5">CNPJ</th>
+                            <th className="p-3.5">E-mail</th>
+                            <th className="p-3.5">Perfil</th>
+                            <th className="p-3.5">Status</th>
+                            <th className="p-3.5 text-right">Ações de Controle</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {filteredAccounts.map((account) => {
+                            const isAccountMaster = account.email?.toLowerCase().trim() === MASTER_ADMIN_EMAIL;
+                            return (
+                              <tr key={account.id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="p-3.5 font-bold text-white">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
+                                      isAccountMaster
+                                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                                        : account.status === 'bloqueado'
+                                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                        : 'bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/25'
+                                    }`}>
+                                      {account.companyName.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="truncate max-w-[170px]">
+                                      <div className="truncate flex items-center gap-1.5">
+                                        <span>{account.companyName}</span>
+                                        {isAccountMaster && (
+                                          <span className="text-[9px] bg-purple-500/25 text-purple-300 border border-purple-500/40 px-1 py-0.2 rounded font-black">
+                                            MASTER
+                                          </span>
+                                        )}
+                                      </div>
+                                      {account.banReason && (
+                                        <div className="text-[10px] text-rose-400 truncate">
+                                          Motivo: {account.banReason}
+                                        </div>
                                       )}
                                     </div>
-                                    {account.banReason && (
-                                      <div className="text-[10px] text-rose-400 truncate">
-                                        Motivo: {account.banReason}
+                                  </div>
+                                </td>
+
+                                <td className="p-3.5 text-slate-200">
+                                  {account.ownerName}
+                                </td>
+
+                                <td className="p-3.5 font-mono text-slate-400 text-[11px]">
+                                  {account.cnpj}
+                                </td>
+
+                                <td className="p-3.5 text-slate-300">
+                                  {account.email}
+                                </td>
+
+                                <td className="p-3.5">
+                                  {isAccountMaster ? (
+                                    <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/40 text-[10px] font-black uppercase tracking-wider">
+                                      Master Admin
+                                    </Badge>
+                                  ) : account.role === 'admin' ? (
+                                    <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/40 text-[10px] font-bold">
+                                      Admin
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-slate-850 text-slate-400 border-slate-700/60 text-[10px]">
+                                      Lojista (Lead)
+                                    </Badge>
+                                  )}
+                                </td>
+
+                                <td className="p-3.5">
+                                  {account.status === 'ativo' && (
+                                    <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] font-semibold">
+                                      Ativo
+                                    </Badge>
+                                  )}
+                                  {account.status === 'bloqueado' && (
+                                    <div className="space-y-1">
+                                      <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/40 text-[10px] font-bold flex items-center gap-1 w-fit">
+                                        <Ban className="w-3 h-3 text-rose-400" />
+                                        Bloqueado
+                                      </Badge>
+                                      <div className="text-[10px] text-rose-300 font-medium max-w-[200px] truncate" title={account.banReason || 'Irregularidade cadastral'}>
+                                        Motivo: {account.banReason || 'Irregularidade cadastral'}
                                       </div>
+                                    </div>
+                                  )}
+                                  {account.status === 'analise' && (
+                                    <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-semibold">
+                                      Em Análise
+                                    </Badge>
+                                  )}
+                                </td>
+
+                                <td className="p-3.5 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {/* Ver Perfil */}
+                                    <button
+                                      onClick={() => setSelectedAccountForModal(account)}
+                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                                      title="Ver Detalhes do Perfil"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-[#00D287]" />
+                                    </button>
+
+                                    {/* Termos Trade-In */}
+                                    <button
+                                      onClick={() => setSelectedUserIdForTradeInHistory(account.id)}
+                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                                      title="Histórico de Termos Trade-In do Usuário"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-sky-400" />
+                                    </button>
+
+                                    {/* Editar Conta */}
+                                    {isMasterAdmin && (
+                                      <button
+                                        onClick={() => handleOpenEditUser(account)}
+                                        className="p-1.5 rounded-lg bg-purple-950/70 border border-purple-500/40 hover:bg-purple-900 text-purple-300 hover:text-white transition-colors cursor-pointer"
+                                        title="Editar Conta (Exclusivo Master Admin)"
+                                      >
+                                        <Edit className="w-3.5 h-3.5 text-purple-300" />
+                                      </button>
+                                    )}
+
+                                    {/* Banir / Desbanir */}
+                                    {!isAccountMaster && (
+                                      account.status === 'bloqueado' ? (
+                                        <button
+                                          onClick={() => handleUnban(account.id)}
+                                          className="px-2.5 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900 hover:border-emerald-400 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm shadow-emerald-950/40 cursor-pointer"
+                                          title="Desbanir conta e liberar acesso em tempo real"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                          Desbanir
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleOpenBanModal(account)}
+                                          className="px-2.5 py-1.5 rounded-lg bg-rose-950/90 border border-rose-800/60 text-rose-300 hover:bg-rose-900 hover:border-rose-500 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm shadow-rose-950/40 cursor-pointer"
+                                          title="Banir conta e definir motivo em tempo real"
+                                        >
+                                          <Ban className="w-3.5 h-3.5 text-rose-400" />
+                                          Banir
+                                        </button>
+                                      )
+                                    )}
+
+                                    {/* Excluir */}
+                                    {!isAccountMaster && (
+                                      <button
+                                        onClick={() => handleDelete(account.id)}
+                                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 transition-colors cursor-pointer"
+                                        title="Excluir Definitivamente"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     )}
                                   </div>
-                                </div>
-                              </td>
-
-                              <td className="p-3.5 text-slate-200">
-                                {account.ownerName}
-                              </td>
-
-                              <td className="p-3.5 font-mono text-slate-400 text-[11px]">
-                                {account.cnpj}
-                              </td>
-
-                              <td className="p-3.5 text-slate-300">
-                                {account.email}
-                              </td>
-
-                              <td className="p-3.5">
-                                {isAccountMaster ? (
-                                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/40 text-[10px] font-black uppercase tracking-wider">
-                                    Master Admin
-                                  </Badge>
-                                ) : account.role === 'admin' ? (
-                                  <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/40 text-[10px] font-bold">
-                                    Admin
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-slate-850 text-slate-400 border-slate-700/60 text-[10px]">
-                                    Lojista (Lead)
-                                  </Badge>
-                                )}
-                              </td>
-
-                              <td className="p-3.5">
-                                {account.status === 'ativo' && (
-                                  <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] font-semibold">
-                                    Ativo
-                                  </Badge>
-                                )}
-                                {account.status === 'bloqueado' && (
-                                  <div className="space-y-1">
-                                    <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/40 text-[10px] font-bold flex items-center gap-1 w-fit">
-                                      <Ban className="w-3 h-3 text-rose-400" />
-                                      Bloqueado
-                                    </Badge>
-                                    <div className="text-[10px] text-rose-300 font-medium max-w-[200px] truncate" title={account.banReason || 'Irregularidade cadastral'}>
-                                      Motivo: {account.banReason || 'Irregularidade cadastral'}
-                                    </div>
-                                  </div>
-                                )}
-                                {account.status === 'analise' && (
-                                  <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-semibold">
-                                    Em Análise
-                                  </Badge>
-                                )}
-                              </td>
-
-                              <td className="p-3.5 text-right">
-                                <div className="flex items-center justify-end gap-1.5">
-                                  {/* Ver Perfil (Todos os admins podem visualizar) */}
-                                  <button
-                                    onClick={() => setSelectedAccountForModal(account)}
-                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                                    title="Ver Detalhes do Perfil"
-                                  >
-                                    <Eye className="w-3.5 h-3.5 text-[#00D287]" />
-                                  </button>
-
-                                  {/* Editar Conta: APENAS o Master Admin (lordhahshs@gmail.com) tem permissão de editar */}
-                                  {isMasterAdmin && (
-                                    <button
-                                      onClick={() => handleOpenEditUser(account)}
-                                      className="p-1.5 rounded-lg bg-purple-950/70 border border-purple-500/40 hover:bg-purple-900 text-purple-300 hover:text-white transition-colors"
-                                      title="Editar Conta (Exclusivo Master Admin)"
-                                    >
-                                      <Edit className="w-3.5 h-3.5 text-purple-300" />
-                                    </button>
-                                  )}
-
-                                  {/* Banir / Desbanir com troca dinâmica de botão em tempo real */}
-                                  {!isAccountMaster && (
-                                    account.status === 'bloqueado' ? (
-                                      <button
-                                        onClick={() => handleUnban(account.id)}
-                                        className="px-2.5 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-900 hover:border-emerald-400 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm shadow-emerald-950/40"
-                                        title="Desbanir conta e liberar acesso em tempo real"
-                                      >
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                        Desbanir
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => handleOpenBanModal(account)}
-                                        className="px-2.5 py-1.5 rounded-lg bg-rose-950/90 border border-rose-800/60 text-rose-300 hover:bg-rose-900 hover:border-rose-500 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm shadow-rose-950/40"
-                                        title="Banir conta e definir motivo em tempo real"
-                                      >
-                                        <Ban className="w-3.5 h-3.5 text-rose-400" />
-                                        Banir
-                                      </button>
-                                    )
-                                  )}
-
-                                  {/* Excluir (Não permite excluir a conta Master) */}
-                                  {!isAccountMaster && (
-                                    <button
-                                      onClick={() => handleDelete(account.id)}
-                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 transition-colors"
-                                      title="Excluir Definitivamente"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </>
           )}
 
@@ -1212,110 +1419,174 @@ export const AdminPage: React.FC = () => {
                 />
               </div>
 
-              {/* Schematics List */}
-              <div className="bg-[#080c17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Esquemas Elétricos Cadastrados ({filteredSchematics.length})
-                  </h4>
+              {/* Schematics List: Mobile Cards + Desktop Table */}
+              {loading ? (
+                <div className="text-center py-12 text-slate-400 text-xs bg-[#080c17] rounded-2xl border border-white/5">
+                  Carregando esquemas do Supabase...
                 </div>
+              ) : filteredSchematics.length === 0 ? (
+                <div className="text-center py-16 text-slate-400 text-xs flex flex-col items-center bg-[#080c17] rounded-2xl border border-white/5">
+                  <FileText className="w-8 h-8 text-slate-600 mb-2" />
+                  <p className="text-white font-bold">Nenhum esquema elétrico cadastrado ainda.</p>
+                  <p className="text-slate-500 mt-1">Clique em "Novo Esquema (PDF)" para enviar o primeiro arquivo.</p>
+                </div>
+              ) : (
+                <>
+                  {/* MOBILE CARDS VIEW */}
+                  <div className="md:hidden space-y-2.5">
+                    {filteredSchematics.map((s) => (
+                      <div
+                        key={s.id}
+                        className="p-3.5 rounded-2xl bg-[#080c17] border border-white/5 space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-bold text-xs shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-white truncate">{s.title}</h4>
+                              <p className="text-[11px] text-slate-400 truncate">
+                                {s.brand} • <span className="font-mono text-slate-300">{s.model}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] border-white/10 bg-slate-900 text-[#00D287] shrink-0">
+                            {s.brand}
+                          </Badge>
+                        </div>
 
-                {loading ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">
-                    Carregando esquemas do Supabase...
+                        {s.description && (
+                          <p className="text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-xl border border-white/5">
+                            {s.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
+                          <span className="truncate max-w-[140px] text-slate-300">
+                            {s.fileName || 'PDF Document'}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => setPreviewSchematic(s)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[#00D287] font-bold text-xs flex items-center gap-1 border border-white/5"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Ver PDF
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditSchematic(s)}
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-400 border border-white/5"
+                              title="Editar"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSchematic(s.id)}
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 border border-white/5"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : filteredSchematics.length === 0 ? (
-                  <div className="text-center py-16 text-slate-400 text-xs flex flex-col items-center">
-                    <FileText className="w-8 h-8 text-slate-600 mb-2" />
-                    <p className="text-white font-bold">Nenhum esquema elétrico cadastrado ainda.</p>
-                    <p className="text-slate-500 mt-1">Clique em "Novo Esquema (PDF)" para enviar o primeiro arquivo.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/5 bg-slate-950/60 text-slate-400 font-bold uppercase text-[10px]">
-                          <th className="p-3.5">Título do Esquema</th>
-                          <th className="p-3.5">Marca</th>
-                          <th className="p-3.5">Modelo</th>
-                          <th className="p-3.5">Arquivo PDF</th>
-                          <th className="p-3.5">Data Envio</th>
-                          <th className="p-3.5 text-right">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {filteredSchematics.map((s) => (
-                          <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="p-3.5 font-bold text-white">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-bold text-xs flex-shrink-0">
-                                  <FileText className="w-4 h-4" />
-                                </div>
-                                <div className="truncate max-w-[220px]">
-                                  <div className="truncate text-white font-bold">{s.title}</div>
-                                  {s.description && (
-                                    <div className="text-[10px] text-slate-400 truncate">{s.description}</div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
 
-                            <td className="p-3.5">
-                              <Badge variant="outline" className="text-[10px] border-white/10 bg-slate-900 text-slate-300">
-                                {s.brand}
-                              </Badge>
-                            </td>
+                  {/* DESKTOP TABLE VIEW */}
+                  <div className="hidden md:block bg-[#080c17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Esquemas Elétricos Cadastrados ({filteredSchematics.length})
+                      </h4>
+                    </div>
 
-                            <td className="p-3.5 font-mono text-slate-200 text-[11px]">
-                              {s.model}
-                            </td>
-
-                            <td className="p-3.5 text-slate-400 text-[11px]">
-                              <span className="text-[#00D287] font-medium">{s.fileName || 'PDF Document'}</span>
-                              {s.fileSize && <span className="text-slate-500 ml-1.5">({s.fileSize})</span>}
-                            </td>
-
-                            <td className="p-3.5 text-slate-400 text-[11px]">
-                              {new Date(s.createdAt).toLocaleDateString('pt-BR')}
-                            </td>
-
-                            <td className="p-3.5 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {/* Preview PDF */}
-                                <button
-                                  onClick={() => setPreviewSchematic(s)}
-                                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                                  title="Pré-visualizar PDF"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-[#00D287]" />
-                                </button>
-
-                                {/* Edit */}
-                                <button
-                                  onClick={() => handleOpenEditSchematic(s)}
-                                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                                  title="Editar Esquema"
-                                >
-                                  <Edit className="w-3.5 h-3.5 text-amber-400" />
-                                </button>
-
-                                {/* Delete */}
-                                <button
-                                  onClick={() => handleDeleteSchematic(s.id)}
-                                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 transition-colors"
-                                  title="Excluir Esquema"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/5 bg-slate-950/60 text-slate-400 font-bold uppercase text-[10px]">
+                            <th className="p-3.5">Título do Esquema</th>
+                            <th className="p-3.5">Marca</th>
+                            <th className="p-3.5">Modelo</th>
+                            <th className="p-3.5">Arquivo PDF</th>
+                            <th className="p-3.5">Data Envio</th>
+                            <th className="p-3.5 text-right">Ações</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {filteredSchematics.map((s) => (
+                            <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="p-3.5 font-bold text-white">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                    <FileText className="w-4 h-4" />
+                                  </div>
+                                  <div className="truncate max-w-[220px]">
+                                    <div className="truncate text-white font-bold">{s.title}</div>
+                                    {s.description && (
+                                      <div className="text-[10px] text-slate-400 truncate">{s.description}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="p-3.5">
+                                <Badge variant="outline" className="text-[10px] border-white/10 bg-slate-900 text-slate-300">
+                                  {s.brand}
+                                </Badge>
+                              </td>
+
+                              <td className="p-3.5 font-mono text-slate-200 text-[11px]">
+                                {s.model}
+                              </td>
+
+                              <td className="p-3.5 text-slate-400 text-[11px]">
+                                <span className="text-[#00D287] font-medium">{s.fileName || 'PDF Document'}</span>
+                                {s.fileSize && <span className="text-slate-500 ml-1.5">({s.fileSize})</span>}
+                              </td>
+
+                              <td className="p-3.5 text-slate-400 text-[11px]">
+                                {new Date(s.createdAt).toLocaleDateString('pt-BR')}
+                              </td>
+
+                              <td className="p-3.5 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* Preview PDF */}
+                                  <button
+                                    onClick={() => setPreviewSchematic(s)}
+                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                                    title="Pré-visualizar PDF"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-[#00D287]" />
+                                  </button>
+
+                                  {/* Edit */}
+                                  <button
+                                    onClick={() => handleOpenEditSchematic(s)}
+                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                                    title="Editar Esquema"
+                                  >
+                                    <Edit className="w-3.5 h-3.5 text-amber-400" />
+                                  </button>
+
+                                  {/* Delete */}
+                                  <button
+                                    onClick={() => handleDeleteSchematic(s.id)}
+                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-900/60 text-slate-500 hover:text-rose-300 transition-colors cursor-pointer"
+                                    title="Excluir Esquema"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
 

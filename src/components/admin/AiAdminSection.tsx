@@ -229,44 +229,44 @@ export const AiAdminSection: React.FC<AiAdminSectionProps> = ({ users }) => {
       </div>
 
       {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setSubTab('config')}
-          className={`text-xs font-bold rounded-xl h-9 px-4 ${
+          className={`text-xs font-bold rounded-xl h-9 px-3.5 whitespace-nowrap shrink-0 cursor-pointer ${
             subTab === 'config'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Cpu className="w-3.5 h-3.5 mr-1.5" /> Configurações das APIs
+          <Cpu className="w-3.5 h-3.5 mr-1.5" /> Configuração APIs
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setSubTab('logs')}
-          className={`text-xs font-bold rounded-xl h-9 px-4 ${
+          className={`text-xs font-bold rounded-xl h-9 px-3.5 whitespace-nowrap shrink-0 cursor-pointer ${
             subTab === 'logs'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Activity className="w-3.5 h-3.5 mr-1.5" /> Registro de Consumo & Logs
+          <Activity className="w-3.5 h-3.5 mr-1.5" /> Logs & Consumo
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setSubTab('users')}
-          className={`text-xs font-bold rounded-xl h-9 px-4 ${
+          className={`text-xs font-bold rounded-xl h-9 px-3.5 whitespace-nowrap shrink-0 cursor-pointer ${
             subTab === 'users'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Gestão de Acesso dos Lojistas
+          <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Acesso dos Lojistas
         </Button>
       </div>
 

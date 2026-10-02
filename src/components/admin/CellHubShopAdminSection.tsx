@@ -427,28 +427,28 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* 1. TOP HEADER & FINANCIAL STATS DASHBOARD */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-[#090e1c] via-[#0d162d] to-[#090e1c] border border-[#00D287]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+      <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#090e1c] via-[#0d162d] to-[#090e1c] border border-[#00D287]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-xl">
         <div>
-          <div className="flex items-center gap-2 text-xs font-black uppercase text-[#00D287] tracking-wider mb-1">
-            <ShoppingBag className="w-4 h-4" /> Gestão Oficial da Loja
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-black uppercase text-[#00D287] tracking-wider mb-0.5">
+            <ShoppingBag className="w-3.5 h-3.5" /> Gestão Oficial da Loja
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+          <h2 className="text-base sm:text-xl font-black text-white flex items-center gap-2">
             Dashboard CellHub Shop
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 font-bold uppercase tracking-wider">
+            <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 font-bold uppercase tracking-wider">
               Oficial
             </span>
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Catálogo oficial, gestão de fornecedores dropshipping (endereço de origem Melhor Envio) e precificação inteligente.
+          <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+            Catálogo oficial, gestão de fornecedores dropshipping e precificação inteligente.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-[#00D287]/20 transition-all active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Adicionar Produto Oficial</span>
@@ -457,17 +457,17 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
       </div>
 
       {/* 2. SUB-TABS NAVIGATION (Catálogo | Fornecedores & Frete de Origem | Categorias & Margens) */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 border-b border-white/10 pb-2 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveAdminTab('catalogo')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+          className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeAdminTab === 'catalogo'
-              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20 font-black'
               : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
           }`}
         >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Catálogo de Produtos</span>
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Catálogo</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
             activeAdminTab === 'catalogo' ? 'bg-black/20 text-slate-950' : 'bg-white/10 text-slate-400'
           }`}>
@@ -477,14 +477,14 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
         <button
           onClick={() => setActiveAdminTab('fornecedores')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+          className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeAdminTab === 'fornecedores'
-              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20 font-black'
               : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
           }`}
         >
-          <Truck className="w-4 h-4" />
-          <span>Fornecedores & Frete de Origem</span>
+          <Truck className="w-3.5 h-3.5" />
+          <span>Fornecedores</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
             activeAdminTab === 'fornecedores' ? 'bg-black/20 text-slate-950' : 'bg-white/10 text-slate-400'
           }`}>
@@ -494,14 +494,14 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
         <button
           onClick={() => setActiveAdminTab('categorias')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+          className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeAdminTab === 'categorias'
-              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20'
+              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20 font-black'
               : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5'
           }`}
         >
-          <Sliders className="w-4 h-4" />
-          <span>Margens por Categoria</span>
+          <Sliders className="w-3.5 h-3.5" />
+          <span>Margens</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
             activeAdminTab === 'categorias' ? 'bg-black/20 text-slate-950' : 'bg-white/10 text-slate-400'
           }`}>
