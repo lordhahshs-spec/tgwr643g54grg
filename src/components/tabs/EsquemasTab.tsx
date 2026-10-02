@@ -151,44 +151,43 @@ export const EsquemasTab: React.FC<EsquemasTabProps> = ({ isDemo = false, onUnlo
 
   // VIEW 2: SCHEMATICS LIST & SEARCH (When no schematic is open)
   return (
-    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-4 sm:p-6 space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#080c17] border border-[#00D287]/20 rounded-2xl p-5 sm:p-6 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-xs">
-              <Cpu className="w-3.5 h-3.5 mr-1" />
-              Laboratório & Bancada
-            </Badge>
-            <span className="text-xs text-slate-400">Esquemas Elétricos Oficiais em PDF</span>
+    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-3 sm:p-6 space-y-4">
+      {/* Sleek Minimalist Header */}
+      <div className="flex flex-row items-center justify-between gap-3 pb-2 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center shrink-0">
+            <Cpu className="w-4 h-4" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white">
-            Esquemas Elétricos & <span className="text-[#00D287]">Manuais Técnicos</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-            Selecione qualquer esquema cadastrado para abrir e navegar nas páginas do PDF diretamente na plataforma.
-          </p>
+          <div>
+            <h1 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-1.5">
+              Esquemas Elétricos <span className="text-[#00D287] hidden sm:inline">& Manuais Técnicos</span>
+            </h1>
+            <p className="text-[11px] text-slate-400 hidden sm:block">
+              PDFs oficiais de bancada para diagnóstico técnico
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             onClick={loadSchematics}
             variant="outline"
             size="sm"
-            className="bg-slate-900 border-white/10 text-slate-300 hover:text-white text-xs h-9 px-3 rounded-xl"
+            className="bg-slate-900 border-white/10 text-slate-300 hover:text-white text-xs h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl cursor-pointer"
             title="Atualizar lista"
           >
-            <RotateCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#00D287]' : ''}`} />
-            Atualizar
+            <RotateCw className={`w-3.5 h-3.5 sm:mr-1.5 ${loading ? 'animate-spin text-[#00D287]' : ''}`} />
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
 
           <Button
             onClick={() => navigate('/admin')}
             size="sm"
-            className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-9 px-4 rounded-xl shadow-md shadow-[#00D287]/20"
+            className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-bold text-xs h-8 sm:h-9 px-3 sm:px-4 rounded-xl shadow-sm shadow-[#00D287]/20 cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Adicionar via Admin
+            <Plus className="w-3.5 h-3.5 sm:mr-1" />
+            <span className="hidden sm:inline">Adicionar via Admin</span>
+            <span className="sm:hidden">Adicionar</span>
           </Button>
         </div>
       </div>

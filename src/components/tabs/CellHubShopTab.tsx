@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   RefreshCw,
   Zap,
-  PackageCheck,
   CheckCircle2,
   Sparkles,
   SlidersHorizontal
@@ -144,30 +143,7 @@ export const CellHubShopTab: React.FC<CellHubShopTabProps> = ({ isDemo = false, 
       </header>
 
       {/* Main Catalog Body - Full Width Edge to Edge */}
-      <main className="flex-1 px-3 sm:px-8 py-3 sm:py-6 w-full space-y-4 sm:space-y-5">
-        {/* Banner Oficial Mercado Livre / Full CellHub (Oculto no mobile para liberar espaço) */}
-        <div className="hidden md:flex w-full rounded-2xl bg-gradient-to-r from-emerald-950/50 via-[#071322] to-slate-950 border border-[#00D287]/30 p-4 sm:p-5 flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center flex-shrink-0 shadow-sm">
-              <PackageCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
-                Loja Oficial CellHub
-                <CheckCircle2 className="w-4 h-4 text-[#00D287]" />
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                Garantia técnica de 90 dias • Envio direto dos nossos galpões • Pagamento seguro em até 12x
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 self-start md:self-auto flex-shrink-0">
-            <span className="text-xs font-bold text-[#00D287] bg-[#00D287]/10 px-3 py-1.5 rounded-xl border border-[#00D287]/20 flex items-center gap-1.5">
-              <Truck className="w-4 h-4" /> Envio Expresso para todo o Brasil
-            </span>
-          </div>
-        </div>
-
+      <main className="flex-1 px-3 sm:px-8 py-3 sm:py-5 w-full space-y-4">
         {/* Category Navigation Pills (Categorias Dinâmicas) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           <button

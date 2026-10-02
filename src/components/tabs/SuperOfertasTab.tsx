@@ -10,10 +10,7 @@ import {
   Search,
   X,
   SlidersHorizontal,
-  Layers,
-  ShieldCheck,
-  Truck,
-  CheckCircle2
+  Layers
 } from 'lucide-react';
 import { MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService, clearMarketplaceCache } from '@/services/marketplaceService';
@@ -286,35 +283,6 @@ export const SuperOfertasTab: React.FC<SuperOfertasTabProps> = ({
 
       {/* Main Content Area */}
       <main className="w-full px-3 sm:px-6 py-2.5 sm:py-3.5 space-y-3 sm:space-y-4 flex-1">
-        {/* Banner de Intermediação Segura Marketplace B2B (Oculto no mobile para liberar espaço) */}
-        <div className="hidden md:flex p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#080c17] to-teal-950/30 border border-[#00D287]/25 flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-black/40">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#00D287]/20 border border-[#00D287]/40 text-[#00D287] flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-black text-white flex items-center gap-1.5">
-                Marketplace B2B entre Técnicos e Fornecedores
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 uppercase">
-                  Intermediação Segura
-                </span>
-              </span>
-              <p className="text-[10.5px] text-slate-400 mt-0.5">
-                Compre e venda celulares, peças e ferramentas direto com lojistas parceiros em todo o Brasil.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-300 font-semibold sm:justify-end border-t sm:border-t-0 border-white/5 pt-1.5 sm:pt-0">
-            <span className="flex items-center gap-1 text-[#00D287]">
-              <Truck className="w-3.5 h-3.5" /> Envio Expresso
-            </span>
-            <span className="text-slate-600">•</span>
-            <span className="flex items-center gap-1 text-slate-200">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#00D287]" /> Compra Segura
-            </span>
-          </div>
-        </div>
-
         {/* VIEW: PAINEL DO ADMIN (se logado como admin e clicado na aba) */}
         {currentUser?.role === 'admin' && activeView === 'painel' && (
           <div>

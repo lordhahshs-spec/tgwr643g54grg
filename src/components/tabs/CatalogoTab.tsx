@@ -101,41 +101,41 @@ export const CatalogoTab: React.FC<CatalogoTabProps> = ({ onGoToAurusSimulator }
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#080c17] border border-[#00D287]/20 rounded-2xl p-5 sm:p-6 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Badge className="bg-[#00D287]/20 text-[#00D287] border-[#00D287]/30 text-xs">
-              <ShoppingBag className="w-3.5 h-3.5 mr-1" />
-              Estoque da Loja
-            </Badge>
-            <span className="text-xs text-slate-400">Banco de Dados Supabase em Tempo Real</span>
+    <div className="h-full overflow-y-auto bg-[#050811] text-slate-100 p-3 sm:p-6 space-y-4">
+      {/* Sleek Minimalist Header */}
+      <div className="flex flex-row items-center justify-between gap-3 pb-2 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center shrink-0">
+            <ShoppingBag className="w-4 h-4" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white">
-            Catálogo de Aparelhos <span className="text-[#00D287]">& Vendas</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-            Aparelhos cadastrados no estoque para apresentação de propostas e parcelamento.
-          </p>
+          <div>
+            <h1 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-1.5">
+              Catálogo de Aparelhos <span className="text-[#00D287] hidden sm:inline">& Vendas</span>
+            </h1>
+            <p className="text-[11px] text-slate-400 hidden sm:block">
+              Estoque sincronizado em tempo real para propostas e parcelamento
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             onClick={() => setIsAddModalOpen(true)}
             variant="outline"
-            className="bg-slate-900 border-white/10 hover:border-[#00D287]/40 text-slate-200 text-xs h-9 px-3 rounded-xl"
+            className="bg-slate-900 border-white/10 hover:border-[#00D287]/40 text-slate-200 text-xs h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5 mr-1 text-[#00D287]" />
-            Cadastrar Aparelho
+            <Plus className="w-3.5 h-3.5 sm:mr-1 text-[#00D287]" />
+            <span className="hidden sm:inline">Cadastrar Aparelho</span>
+            <span className="sm:hidden">Cadastrar</span>
           </Button>
 
           <Button
             onClick={onGoToAurusSimulator}
-            className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-extrabold text-xs h-9 px-4 rounded-xl shadow-lg shadow-[#00D287]/20"
+            className="bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-extrabold text-xs h-8 sm:h-9 px-3 sm:px-4 rounded-xl shadow-sm shadow-[#00D287]/20 cursor-pointer"
           >
-            <Zap className="w-3.5 h-3.5 mr-1.5 fill-current" />
-            Simulador Android
+            <Zap className="w-3.5 h-3.5 sm:mr-1.5 fill-current" />
+            <span className="hidden sm:inline">Simulador Android</span>
+            <span className="sm:hidden">Simulador</span>
           </Button>
         </div>
       </div>
