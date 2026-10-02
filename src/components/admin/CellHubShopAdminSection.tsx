@@ -1295,7 +1295,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                         type="file"
                         accept="image/*"
                         multiple
-                        onChange={handleImageUpload}
+                        onChange={handleEditFileUpload}
                         className="hidden"
                       />
                     </label>
