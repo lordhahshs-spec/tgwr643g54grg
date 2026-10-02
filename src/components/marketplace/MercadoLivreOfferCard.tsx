@@ -104,7 +104,6 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
             </span>
           )}
         </div>
-        </div>
 
         {/* Linha 2: Título do Produto */}
         <h3 className="text-xs sm:text-sm font-semibold text-slate-100 leading-snug line-clamp-2 group-hover:text-[#00D287] transition-colors min-h-[34px] sm:min-h-[38px]">
