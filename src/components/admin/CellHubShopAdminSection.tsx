@@ -354,6 +354,17 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
     const matchedSupplier = suppliers.find((s) => s.id === editSupplierId);
 
+    let finalImages = [...editImages];
+    if (editImageUrlInput.trim()) {
+      let clean = editImageUrlInput.trim();
+      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
+        clean = `https://${clean}`;
+      }
+      if (!finalImages.includes(clean)) {
+        finalImages.push(clean);
+      }
+    }
+
     setIsSavingEdit(true);
     try {
       const success = await marketplaceService.updateOffer(editingProduct.id, {
@@ -378,7 +389,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         description: editDescription.trim(),
         shippingPolicy: editShippingPolicy,
         freeShipping: editShippingPolicy === 'frete_gratis',
-        images: editImages,
+        images: finalImages,
         compatibleBrand: categorySupportsModelGrid(editCategory) ? (editCompatibleBrand || undefined) : undefined,
         compatibleModels: categorySupportsModelGrid(editCategory) ? editCompatibleModels : [],
         variationType: (categorySupportsVariations(editCategory) && (editVariationMasculino || editVariationFeminino || editVariationSortidas)) ? 'masculino_feminino' : 'nenhum',
@@ -1138,7 +1149,7 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                             }
                           }
                         }}
-                        placeholder="Adicionar modelo compatível..."
+                        placeholder={`Adicionar modelo compatível de ${editCompatibleBrand}...`}
                         className="flex-1 px-3 py-1.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#00D287]"
                       />
                       <button
@@ -1150,13 +1161,13 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                             setEditManualModelInput('');
                           }
                         }}
-                        className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold rounded-xl"
+                        className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold rounded-xl cursor-pointer"
                       >
                         + Adicionar
                       </button>
                     </div>
 
-                    {editCompatibleModels.length > 0 && (
+                    {editCompatibleModels.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-white/5">
                         {editCompatibleModels.map((m, idx) => (
                           <span
@@ -1167,12 +1178,16 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                             <button
                               type="button"
                               onClick={() => setEditCompatibleModels(editCompatibleModels.filter((_, i) => i !== idx))}
-                              className="hover:text-rose-400 text-slate-500"
+                              className="hover:text-rose-400 text-slate-500 cursor-pointer"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </span>
                         ))}
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-slate-900/40 rounded-xl border border-white/5 text-slate-400 text-[11px] italic text-center">
+                        Nenhum modelo específico selecionado para {editCompatibleBrand}. Digite acima para adicionar.
                       </div>
                     )}
                   </div>
@@ -1269,31 +1284,51 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
 
               {/* Fotos, Garantia & Frete */}
               <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">URL da Foto do Produto</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={editImageUrlInput}
-                      onChange={(e) => setEditImageUrlInput(e.target.value)}
-                      placeholder="https://exemplo.com/foto.jpg"
-                      className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddEditImage}
-                      className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold rounded-xl"
-                    >
-                      Adicionar
-                    </button>
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-300">Fotos do Produto ({editImages.length})</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-[#00D287]/40 bg-[#00D287]/5 hover:bg-[#00D287]/10 text-slate-200 hover:text-white cursor-pointer transition-colors text-xs font-semibold">
+                      <UploadCloud className="w-4 h-4 text-[#00D287]" />
+                      <span>Escolher foto do computador</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="flex gap-1.5">
+                      <input
+                        type="url"
+                        value={editImageUrlInput}
+                        onChange={(e) => setEditImageUrlInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddEditImage())}
+                        placeholder="Ou cole a URL https://..."
+                        className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddEditImage}
+                        className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold rounded-xl cursor-pointer"
+                      >
+                        + Link
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {editImages.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {editImages.map((img, idx) => (
-                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-slate-950 group shrink-0">
+                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-slate-950 group shrink-0 shadow-md">
                         <img src={img} alt="" className="w-full h-full object-cover" />
+                        {idx === 0 && (
+                          <span className="absolute bottom-0 inset-x-0 bg-[#00D287] text-slate-950 text-[7.5px] font-black text-center py-0.5">
+                            CAPA
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleRemoveEditImage(idx)}
