@@ -1042,6 +1042,7 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
       <ResponsibilityTermModal
         isOpen={isTermModalOpen}
         onClose={() => setIsTermModalOpen(false)}
+        currentUser={currentUser}
         evaluation={{
           brand: selectedBrand,
           model_name: currentModel?.model_name || '',
@@ -1060,6 +1061,11 @@ export const TradeInTab: React.FC<TradeInTabProps> = () => {
         }}
         settings={settings}
         onSaveWithCustomer={handleSaveEvaluationWithCustomer}
+        onOpenStoreSettings={() => {
+          setIsTermModalOpen(false);
+          setAdminModalTab('settings');
+          setIsAdminModalOpen(true);
+        }}
         onSavedSuccessfully={() => {
           setSelectedModelId('');
           setSelectedFaults({});

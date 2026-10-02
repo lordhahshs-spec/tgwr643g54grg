@@ -12,12 +12,17 @@ import { FaultDefinition } from '@/types/tradein';
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_64AtuXy469nIF-4h-oLvKQ_SV9o41Kl";
 const EDGE_FUNCTION_URL = 'https://hhqerjxkptknwudsnlgh.supabase.co/functions/v1/cellhub-ai-router';
 
-// Helper seguro de invocação da Edge Function
+// Helper seguro de invocação da Edge Function com timeout garantido de 25s
 async function invokeEdgeFunction(body: Record<string, any>): Promise<any> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
+
   try {
     const { data, error } = await supabase.functions.invoke('cellhub-ai-router', {
       body
     });
+
+    clearTimeout(timeoutId);
 
     if (data && typeof data === 'object') {
       return data;
@@ -30,14 +35,19 @@ async function invokeEdgeFunction(body: Record<string, any>): Promise<any> {
         if (errorJson) return errorJson;
       }
     }
-  } catch (err) {
+  } catch (err: any) {
+    clearTimeout(timeoutId);
     console.warn('[tradeinAiService] supabase.functions.invoke exceção, tentando fallback direto com apikey...', err);
   }
 
-  // Fallback com cabeçalhos autorizados completos
+  // Fallback com cabeçalhos autorizados completos e timeout
+  const fallbackController = new AbortController();
+  const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 20000);
+
   try {
     const response = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
+      signal: fallbackController.signal,
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_PUBLISHABLE_KEY,
@@ -46,12 +56,21 @@ async function invokeEdgeFunction(body: Record<string, any>): Promise<any> {
       body: JSON.stringify(body)
     });
 
+    clearTimeout(fallbackTimeoutId);
+
     const resJson = await response.json().catch(() => null);
     if (resJson) return resJson;
     return { success: false, message: `Erro HTTP ${response.status} na Edge Function.` };
   } catch (fetchErr: any) {
+    clearTimeout(fallbackTimeoutId);
     console.error('[tradeinAiService] Falha na chamada HTTP:', fetchErr);
-    return { success: false, message: 'Falha de conexão com a Edge Function: ' + (fetchErr?.message || '') };
+    const isAbort = fetchErr?.name === 'AbortError';
+    return {
+      success: false,
+      message: isAbort
+        ? 'O servidor de IA demorou para responder. Por favor, tente novamente.'
+        : 'Falha de conexão com a Edge Function: ' + (fetchErr?.message || '')
+    };
   }
 }
 

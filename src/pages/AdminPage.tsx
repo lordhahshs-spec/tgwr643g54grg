@@ -40,6 +40,7 @@ import { MarketplaceAdminSection } from '@/components/admin/MarketplaceAdminSect
 import { CellHubShopAdminSection } from '@/components/admin/CellHubShopAdminSection';
 import { WebhooksAdminSection } from '@/components/admin/WebhooksAdminSection';
 import { AiAdminSection } from '@/components/admin/AiAdminSection';
+import { TradeInHistoryModal } from '@/components/tradein/TradeInHistoryModal';
 import { CellHubLogo } from '@/components/CellHubLogo';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -57,6 +58,7 @@ export const AdminPage: React.FC = () => {
 
   // Users Modals
   const [selectedAccountForModal, setSelectedAccountForModal] = useState<UserAccount | null>(null);
+  const [selectedUserIdForTradeInHistory, setSelectedUserIdForTradeInHistory] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [accountToBan, setAccountToBan] = useState<UserAccount | null>(null);
   const [banReasonInput, setBanReasonInput] = useState<string>('Violação dos termos de conformidade e irregularidade cadastral.');
@@ -1758,6 +1760,18 @@ export const AdminPage: React.FC = () => {
                 )}
                 <Button
                   onClick={() => {
+                    const uid = selectedAccountForModal.id;
+                    setSelectedAccountForModal(null);
+                    setSelectedUserIdForTradeInHistory(uid);
+                  }}
+                  className="bg-blue-600/90 hover:bg-blue-600 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
+                >
+                  <FileText className="w-3.5 h-3.5 text-white" />
+                  Ver Histórico de Termos Trade-In
+                </Button>
+
+                <Button
+                  onClick={() => {
                     leadAuthService.setCurrentUser(selectedAccountForModal);
                     navigate('/app');
                   }}
@@ -2311,6 +2325,13 @@ export const AdminPage: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Trade-In History Inspection Modal for Selected User in Admin */}
+      <TradeInHistoryModal
+        isOpen={!!selectedUserIdForTradeInHistory}
+        onClose={() => setSelectedUserIdForTradeInHistory(null)}
+        userId={selectedUserIdForTradeInHistory || undefined}
+      />
     </div>
   );
 };

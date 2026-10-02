@@ -100,6 +100,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredRef = useRef<boolean>(false);
+  const isAnalyzingRef = useRef<boolean>(false);
   const currentSessionIdRef = useRef<string | null>(null);
   const isSessionCompletedRef = useRef<boolean>(false);
 
@@ -342,18 +343,32 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
   };
 
   const runAiAnalysis = async (sessionId?: string) => {
+    if (isAnalyzingRef.current) return;
+    isAnalyzingRef.current = true;
     setAnalyzing(true);
     setAnalysisError(null);
     setRejectionData(null);
 
+    // Timeout de segurança no front-end para NUNCA travar infinitamente
+    const safetyTimeout = setTimeout(() => {
+      if (isAnalyzingRef.current) {
+        isAnalyzingRef.current = false;
+        setAnalyzing(false);
+        setAnalysisError('O processamento demorou mais que o esperado. Clique em Tentar Processar Novamente.');
+      }
+    }, 28000);
+
     try {
+      const targetSessionId = sessionId || session?.id;
       const res = await tradeinAiService.triggerEvaluation({
-        sessionId: sessionId || session?.id,
+        sessionId: targetSessionId,
         userId,
         brand: currentModel?.brand,
         modelName: currentModel?.model_name,
         allowedPresets: brandPresets
       });
+
+      clearTimeout(safetyTimeout);
 
       if (res.success) {
         if (res.isValidSmartphone === false) {
@@ -378,8 +393,11 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
         setAnalysisError(res.message || 'Instabilidade momentânea no processamento visual.');
       }
     } catch (err: any) {
+      clearTimeout(safetyTimeout);
       setAnalysisError(err?.message || 'Instabilidade momentânea no processamento da IA.');
     } finally {
+      clearTimeout(safetyTimeout);
+      isAnalyzingRef.current = false;
       setAnalyzing(false);
     }
   };

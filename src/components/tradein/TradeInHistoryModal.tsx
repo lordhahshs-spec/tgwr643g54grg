@@ -22,9 +22,10 @@ import { leadAuthService } from '@/services/leadAuthService';
 interface TradeInHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userId?: string;
 }
 
-export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen, onClose }) => {
+export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen, onClose, userId: propUserId }) => {
   const [evaluations, setEvaluations] = useState<TradeInEvaluation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,14 +33,14 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
   const [settings, setSettings] = useState<ValuationSettings | null>(null);
 
   const currentUser = leadAuthService.getCurrentUser();
-  const userId = currentUser?.id;
+  const targetUserId = propUserId || currentUser?.id;
 
   const loadEvaluations = async () => {
     setLoading(true);
     try {
       const [data, st] = await Promise.all([
-        tradeinService.getEvaluations(userId, searchQuery),
-        tradeinService.getSettings(userId)
+        tradeinService.getEvaluations(targetUserId, searchQuery),
+        tradeinService.getSettings(targetUserId)
       ]);
       setEvaluations(data);
       setSettings(st);
@@ -55,7 +56,7 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
       loadEvaluations();
       setSelectedEvaluation(null);
     }
-  }, [isOpen]);
+  }, [isOpen, targetUserId]);
 
   if (!isOpen) return null;
 
@@ -141,7 +142,7 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
               </div>
 
               {/* Printable Term Container (Black text on white paper) */}
-              <div className="bg-white text-black p-6 sm:p-8 rounded-xl shadow-lg border border-slate-200 print:border-none print:shadow-none print:p-0 font-sans text-xs sm:text-sm leading-relaxed">
+              <div className="printable-term-document bg-white text-black p-6 sm:p-8 rounded-xl shadow-lg border border-slate-200 font-sans text-xs sm:text-sm leading-relaxed">
                 
                 {/* Store Header */}
                 <div className="border-b-2 border-slate-900 pb-3 mb-4 flex items-center justify-between">
@@ -232,38 +233,41 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
                 </div>
 
                 {/* Signature Box */}
-                <div className="mt-6 pt-4 border-t border-slate-300 grid grid-cols-2 gap-6">
-                  <div className="text-center">
-                    <div className="h-16 flex items-center justify-center border-b border-slate-900">
-                      {selectedEvaluation.signature_data ? (
-                        <img 
-                          src={selectedEvaluation.signature_data} 
-                          alt="Assinatura do Vendedor" 
-                          className="max-h-14 max-w-full object-contain" 
+                <div className="mt-8 pt-4 border-t-2 border-slate-900 grid grid-cols-2 gap-8">
+                  <div className="text-center space-y-1.5">
+                    <div className="h-14 border-b border-dashed border-slate-900 flex items-center justify-center">
+                      {selectedEvaluation.signature_data && selectedEvaluation.signature_data.startsWith('data:image') ? (
+                        <img
+                          src={selectedEvaluation.signature_data}
+                          alt="Assinatura do Vendedor"
+                          className="max-h-12 max-w-full object-contain"
                         />
-                      ) : (
-                        <span className="text-xs italic text-slate-400">Assinatura Digital Registrada</span>
-                      )}
+                      ) : null}
                     </div>
-                    <span className="text-xs font-bold text-slate-800 block mt-1">
+                    <strong className="text-xs text-slate-900 block font-black uppercase">
                       {selectedEvaluation.customer_data?.name || 'Vendedor(a)'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">
+                    </strong>
+                    <p className="text-[10px] text-slate-600 font-mono">
                       CPF: {selectedEvaluation.customer_data?.cpf || '---'}
+                    </p>
+                    <span className="text-[10px] text-slate-500 italic block">
+                      Assinatura do Vendedor (Cliente)
                     </span>
                   </div>
 
-                  <div className="text-center">
-                    <div className="h-16 flex items-center justify-center border-b border-slate-900">
-                      <span className="text-xs font-bold text-slate-800">
-                        {settings?.store_name || 'Lojista Responsável'}
-                      </span>
+                  <div className="text-center space-y-1.5">
+                    <div className="h-14 border-b border-dashed border-slate-900 flex items-center justify-center">
                     </div>
-                    <span className="text-xs font-bold text-slate-800 block mt-1">
-                      Responsável / Vistoriador
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      {selectedEvaluation.created_by_name || 'CellHub'}
+                    <strong className="text-xs text-slate-900 block font-black uppercase">
+                      {settings?.store_name || 'Loja / Comprador'}
+                    </strong>
+                    {settings?.store_cnpj && (
+                      <p className="text-[10px] text-slate-600 font-mono">
+                        CNPJ: {settings.store_cnpj}
+                      </p>
+                    )}
+                    <span className="text-[10px] text-slate-500 italic block">
+                      Assinatura do Responsável da Loja
                     </span>
                   </div>
                 </div>
