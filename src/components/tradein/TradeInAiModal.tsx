@@ -574,10 +574,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
 
       {/* Main Body */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
-
-        {/* Modal Body Container */}
-        <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 pb-24 md:pb-6">
+        <div className="max-w-3xl mx-auto space-y-5">
           {loading ? (
             <div className="py-16 text-center space-y-3">
               <RefreshCw className="w-8 h-8 text-[#00D287] animate-spin mx-auto" />
