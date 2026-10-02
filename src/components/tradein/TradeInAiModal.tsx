@@ -526,47 +526,55 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
     : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-sm overflow-hidden animate-in fade-in duration-150">
-      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-2xl bg-[#060a16] md:border md:border-white/10 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
-        
-        {/* Modal Top Header */}
-        <div className="p-3.5 sm:p-5 border-b border-white/10 bg-[#090f1f]/95 backdrop-blur-md flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Botão Voltar no Mobile */}
-            <button
-              onClick={handleCancelSession}
-              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
-              <span className="text-xs">Voltar</span>
-            </button>
+    <div className="fixed inset-0 z-50 bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200">
+      {/* Header Superior Minimalista */}
+      <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCancelSession}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+            title="Voltar"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
 
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#00D287] to-emerald-400 text-slate-950 hidden sm:flex items-center justify-center shadow-lg shadow-[#00D287]/20 shrink-0">
-              <Sparkles className="w-5 h-5 stroke-[2.5]" />
+          <div className="h-5 w-px bg-white/10" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-[#00D287]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xs sm:text-base font-black text-white tracking-tight">
-                  Avaliação com IA
+                <h2 className="text-sm sm:text-base font-bold text-white leading-none">
+                  Vistoria Visual com IA
                 </h2>
-                <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 font-black uppercase">
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#00D287]/15 text-[#00D287] border border-[#00D287]/30 font-black uppercase">
                   CellHub IA
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[220px] sm:max-w-none">
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
                 {currentModel?.brand} {currentModel?.model_name} ({currentModel?.storage})
               </p>
             </div>
           </div>
-
-          <button
-            onClick={handleCancelSession}
-            className="hidden md:flex w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 items-center justify-center text-slate-400 hover:text-white transition-colors"
-            title="Fechar e cancelar sessão no celular"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={handleCancelSession}
+          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/5"
+          title="Fechar"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </header>
+
+      {/* Main Body */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-3xl mx-auto">
 
         {/* Modal Body Container */}
         <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-5 pb-24 md:pb-6">
@@ -1048,7 +1056,7 @@ export const TradeInAiModal: React.FC<TradeInAiModalProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

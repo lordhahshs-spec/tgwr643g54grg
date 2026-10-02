@@ -332,58 +332,62 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-6 bg-black/90 md:backdrop-blur-md animate-in fade-in duration-200">
-      <div
-        className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-4xl bg-[#070b16] md:border md:border-[#00D287]/30 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/5 bg-[#080c17]/95 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2">
-            {/* Botão Voltar no Mobile */}
-            <button
-              onClick={step === 'preview' ? () => setStep('form') : onClose}
-              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
-              <span className="text-xs">Voltar</span>
-            </button>
+    <div className="fixed inset-0 z-50 bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200">
+      {/* Header Superior Minimalista */}
+      <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={step === 'preview' ? () => setStep('form') : onClose}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+            title="Voltar"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
 
-            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] hidden sm:flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
+          <div className="h-5 w-px bg-white/10" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-[#00D287]" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-base font-bold text-white leading-none">
-                Anunciar no Marketplace
+              <h2 className="text-sm sm:text-base font-bold text-white leading-none">
+                Anunciar no Marketplace B2B
               </h2>
               <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate max-w-[220px] sm:max-w-none">
                 Venda celulares, peças ou ferramentas para outros lojistas
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs">
-              <span className={`px-2.5 py-1 rounded-md font-semibold ${step === 'form' ? 'bg-[#00D287]/20 text-[#00D287]' : 'text-slate-500'}`}>
-                1. Produto & Frete
-              </span>
-              <span className="text-slate-600">→</span>
-              <span className={`px-2.5 py-1 rounded-md font-semibold ${step === 'preview' ? 'bg-[#00D287]/20 text-[#00D287]' : 'text-slate-500'}`}>
-                2. Revisão & Publicação
-              </span>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="hidden md:flex p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6 text-white text-sm pb-24 md:pb-6">
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-xs">
+            <span className={`px-3 py-1 rounded-xl font-bold transition-colors ${step === 'form' ? 'bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30' : 'text-slate-500'}`}>
+              1. Produto & Frete
+            </span>
+            <span className="text-slate-600">→</span>
+            <span className={`px-3 py-1 rounded-xl font-bold transition-colors ${step === 'preview' ? 'bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30' : 'text-slate-500'}`}>
+              2. Revisão & Publicação
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/5"
+            title="Fechar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Body */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto space-y-6 text-white text-sm">
           {step === 'form' ? (
             <form onSubmit={handleGoToPreview} className="space-y-6">
               {/* Fotos (Mínimo 3) */}
@@ -947,7 +951,7 @@ export const CreateOfferModal: React.FC<CreateOfferModalProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

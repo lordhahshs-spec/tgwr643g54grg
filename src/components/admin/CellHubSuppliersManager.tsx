@@ -12,7 +12,8 @@ import {
   Copy,
   RefreshCw,
   X,
-  Boxes
+  Boxes,
+  ArrowLeft
 } from 'lucide-react';
 import { MarketplaceSupplier, MarketplaceOffer } from '@/types/marketplace';
 import { marketplaceService } from '@/services/marketplaceService';
@@ -310,95 +311,122 @@ export const CellHubSuppliersManager: React.FC<CellHubSuppliersManagerProps> = (
         </div>
       )}
 
-      {/* Modal Ultra Simplificado (Apenas Nome e CEP) */}
+      {/* Tela Cheia de Criação / Edição de Fornecedor (Estilo Mercado Livre / Enterprise) */}
       {isModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
-          onClick={() => setIsModalOpen(false)}
-        >
-          <div 
-            className="relative w-full max-w-sm bg-[#0a0f1d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl p-5 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200">
+          {/* Header Superior Minimalista */}
+          <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+                title="Voltar"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+                <span className="hidden sm:inline">Voltar</span>
+              </button>
+
+              <div className="h-5 w-px bg-white/10" />
+
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
                   <Truck className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-white">
-                  {editingSupplier ? 'Editar Fornecedor' : 'Cadastrar Fornecedor'}
-                </h3>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white leading-none">
+                    {editingSupplier ? 'Editar Fornecedor' : 'Cadastrar Novo Fornecedor'}
+                  </h3>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
+                    Origem de expedição para cálculo no Melhor Envio
+                  </p>
+                </div>
               </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSave} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nome do Fornecedor *
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Fornecedor Boss SP"
-                  className="w-full bg-[#050811] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                />
-              </div>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/5"
+              title="Fechar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </header>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  CEP de Origem *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    maxLength={9}
-                    value={postalCode}
-                    onChange={(e) => handleCepChange(e.target.value)}
-                    placeholder="00000-000"
-                    className="w-full bg-[#050811] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287]"
-                  />
-                  {isLoadingCep && (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00D287] absolute right-3 top-1/2 -translate-y-1/2" />
-                  )}
-                </div>
-                {resolvedCity && (
-                  <span className="text-[11px] text-emerald-400 mt-1 block">
-                    ✓ {resolvedCity} - {resolvedState}
+          {/* Main Body */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="max-w-2xl mx-auto">
+              <div className="p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-5 shadow-xl">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-[#00D287]" /> Dados de Origem Logística
                   </span>
-                )}
-              </div>
+                  <span className="text-xs text-[#00D287] font-bold">Melhor Envio</span>
+                </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs shadow-md shadow-[#00D287]/20 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
-                </button>
+                <form onSubmit={handleSave} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Nome do Fornecedor / Empresa *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ex: Fornecedor Boss SP"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287] transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      CEP de Origem (Expedição) *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        maxLength={9}
+                        value={postalCode}
+                        onChange={(e) => handleCepChange(e.target.value)}
+                        placeholder="00000-000"
+                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#00D287] transition-colors"
+                      />
+                      {isLoadingCep && (
+                        <RefreshCw className="w-4 h-4 animate-spin text-[#00D287] absolute right-3.5 top-1/2 -translate-y-1/2" />
+                      )}
+                    </div>
+                    {resolvedCity && (
+                      <span className="text-xs text-emerald-400 mt-1.5 block font-semibold">
+                        ✓ Cidade detectada: {resolvedCity} - {resolvedState}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs shadow-lg shadow-[#00D287]/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{isSaving ? 'Salvando...' : 'Salvar Fornecedor'}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
-          </div>
+            </div>
+          </main>
         </div>
       )}
     </div>

@@ -18,7 +18,8 @@ import {
   MapPin,
   CheckCircle2,
   Edit3,
-  Plus
+  Plus,
+  ShoppingBag
 } from 'lucide-react';
 import {
   MarketplaceOffer,
@@ -411,53 +412,56 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center md:p-6 bg-black/90 md:backdrop-blur-md animate-in fade-in duration-200"
-      onClick={handleCloseModal}
+      className="fixed inset-0 z-50 bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200"
     >
-      <div
-        className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-3xl bg-[#070b16] md:border md:border-[#00D287]/30 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/5 bg-[#080c17]/95 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2">
-            {/* Botão Voltar no Mobile */}
-            <button
-              onClick={handleCloseModal}
-              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
-              <span className="text-xs">Voltar</span>
-            </button>
+      {/* Header Superior Minimalista */}
+      <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCloseModal}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+            title="Voltar"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
 
-            <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 text-[#00D287] hidden sm:flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-[#00D287]" />
+          <div className="h-5 w-px bg-white/10" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-[#00D287]" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-sm font-bold text-white leading-none">
+              <h2 className="text-sm sm:text-base font-bold text-white leading-none">
                 Checkout B2B Seguro • CellHub Custódia
               </h2>
               <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
-                Logística automatizada via Melhor Envio com rastreamento oficial
+                Logística com rastreamento oficial via Melhor Envio
               </p>
             </div>
           </div>
-
-          <button
-            onClick={handleCloseModal}
-            className="hidden md:flex p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar pb-24 md:pb-6">
+        <button
+          type="button"
+          onClick={handleCloseModal}
+          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/5"
+          title="Fechar"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
           {orderCompletedId ? (
             /* Order Success View */
-            <div className="text-center py-8 space-y-6">
-              <div className="w-16 h-16 rounded-full bg-[#00D287]/20 border-2 border-[#00D287] text-[#00D287] mx-auto flex items-center justify-center">
-                <PackageCheck className="w-8 h-8" />
+            <div className="max-w-xl mx-auto text-center py-12 space-y-6 bg-[#090e1d] p-8 rounded-3xl border border-white/10 shadow-2xl">
+              <div className="w-20 h-20 rounded-full bg-[#00D287]/20 border-2 border-[#00D287] text-[#00D287] mx-auto flex items-center justify-center">
+                <PackageCheck className="w-10 h-10" />
               </div>
 
               <div>
@@ -472,7 +476,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 max-w-md mx-auto text-left text-xs space-y-2.5">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-white/10 text-left text-xs space-y-2.5">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Produto:</span>
                   <span className="text-white font-semibold truncate max-w-[200px]">{offer.title}</span>
@@ -508,72 +512,479 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   onSuccess(orderCompletedId);
                   handleCloseModal();
                 }}
-                className="px-8 py-3 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-sm shadow-lg shadow-[#00D287]/20 transition-all"
+                className="px-8 py-3 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer"
               >
                 Ver Pedido em Minhas Compras
               </button>
             </div>
           ) : (
-            /* Checkout Form */
-            <form onSubmit={handleConfirmOrder} className="space-y-6">
-              {/* Product Summary Mini Card */}
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 space-y-2.5">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-950 border border-white/5 flex-shrink-0">
-                    <img
-                      src={offer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400'}
-                      alt={offer.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold text-[#00D287] uppercase tracking-wider">
-                      {offer.category} • {offer.condition} {offer.compatibleBrand ? `• ${offer.compatibleBrand}` : ''}
+            /* Checkout Form em 2 Colunas */
+            <form onSubmit={handleConfirmOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Coluna Esquerda: Endereço, Frete e Pagamento (lg:col-span-7) */}
+              <div className="lg:col-span-7 space-y-6">
+                
+                {/* 1. Endereço de Entrega */}
+                <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#00D287]" /> 1. Endereço de Entrega
                     </span>
-                    <h4 className="text-sm font-bold text-white truncate">{offer.title}</h4>
-                    <p className="text-xs text-slate-400">Vendedor: {offer.sellerCompany}</p>
+                    {hasSavedAddress && !isEditingAddress && (
+                      <span className="text-[10px] bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 px-2.5 py-0.5 rounded-full font-bold">
+                        Endereço Padrão
+                      </span>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm font-black text-white">{formatBRL(productPrice)}</span>
-                    <span className="text-[11px] text-emerald-400 block font-semibold">
-                      {isFreeShipping ? 'Frete Grátis' : `+ ${formatBRL(shippingAmountCharged)} frete`}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Model & Variation Badges */}
-                {(chosenModel || chosenVariation || (offer.compatibleModels && offer.compatibleModels.length > 0)) && (
-                  <div className="pt-2 border-t border-white/5 space-y-1.5 text-xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {chosenVariation && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-white font-bold">
-                          <span>
-                            {chosenVariation.toLowerCase().includes('sortid')
-                              ? '🎨'
-                              : chosenVariation.toLowerCase().includes('masc')
-                              ? '👨'
-                              : '👩'}
-                          </span>
-                          <span className="text-blue-300">Variação:</span>
-                          <span>{chosenVariation}</span>
+                  {hasSavedAddress && !isEditingAddress ? (
+                    /* Card de Endereço Já Cadastrado */
+                    <div className="p-4 rounded-xl bg-slate-950 border border-[#00D287]/30 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                            <span>{address.street}, {address.number || 'S/N'}</span>
+                            {address.complement && <span className="text-slate-400 font-normal">({address.complement})</span>}
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {address.neighborhood ? `${address.neighborhood} • ` : ''}
+                            {address.city}/{address.state}
+                          </div>
+                          <div className="text-xs font-mono text-[#00D287] pt-0.5">
+                            CEP: {address.zipCode.replace(/^(\d{5})(\d{3})$/, '$1-$2')}
+                          </div>
                         </div>
-                      )}
-                      {(offer as any).totalUnits && (offer as any).totalUnits > 1 && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] font-bold">
-                          <span>📦 Total: {(offer as any).totalUnits} unidades</span>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingAddress(true)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-[#00D287]" />
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddress({
+                                ...address,
+                                zipCode: '',
+                                street: '',
+                                number: '',
+                                complement: '',
+                                neighborhood: '',
+                                city: '',
+                                state: '',
+                              });
+                              setQuotes([]);
+                              setSelectedQuote(null);
+                              setIsEditingAddress(true);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-[#00D287]" />
+                            Novo
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
+                  ) : (
+                    /* Formulário de Digitação / Edição de Endereço */
+                    <div className="space-y-3">
+                      {hasSavedAddress && (
+                        <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                          <span className="text-xs text-slate-400">Preencha os campos para alterar o endereço:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (savedAddress) {
+                                setAddress({ ...savedAddress });
+                                if (savedAddress.zipCode) fetchQuotes(savedAddress.zipCode);
+                              }
+                              setIsEditingAddress(false);
+                              setCepError(null);
+                            }}
+                            className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                          >
+                            Cancelar e manter salvo
+                          </button>
+                        </div>
+                      )}
 
-                    {/* Breakdown de Itens do Atacado */}
-                    {Array.isArray((offer as any).orderItems) && (offer as any).orderItems.length > 0 ? (
-                      <div className="p-2.5 rounded-xl bg-slate-950 border border-white/5 space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                          Grade de Modelos Selecionada:
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-300 font-medium mb-1">
+                            CEP de Destino * {isValidatingCep && <span className="text-[#00D287] animate-pulse">(Validando...)</span>}
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={9}
+                            value={address.zipCode}
+                            onChange={(e) => handleCepChange(e.target.value)}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="00000-000"
+                            className={`w-full bg-slate-950 border rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-600 outline-none font-mono ${
+                              cepError ? 'border-rose-500 focus:border-rose-500 text-rose-300' : 'border-white/10 focus:border-[#00D287]'
+                            }`}
+                            required
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs text-slate-300 font-medium mb-1">
+                            Rua / Logradouro *
+                          </label>
+                          <input
+                            type="text"
+                            value={address.street}
+                            onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="Ex: Av. Paulista"
+                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {cepError && (
+                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                          <span>{cepError}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-300 font-medium mb-1">Número *</label>
+                          <input
+                            type="text"
+                            value={address.number}
+                            onChange={(e) => setAddress({ ...address, number: e.target.value })}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="1000"
+                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-slate-300 font-medium mb-1">Complemento</label>
+                          <input
+                            type="text"
+                            value={address.complement}
+                            onChange={(e) => setAddress({ ...address, complement: e.target.value })}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="Sala 12"
+                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-slate-300 font-medium mb-1">Bairro *</label>
+                          <input
+                            type="text"
+                            value={address.neighborhood}
+                            onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
+                            onBlur={() => handleSaveCurrentAddress()}
+                            placeholder="Centro"
+                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-slate-300 font-medium mb-1">Cidade / UF *</label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              value={address.city}
+                              onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                              onBlur={() => handleSaveCurrentAddress()}
+                              placeholder="São Paulo"
+                              className="w-2/3 bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                              required
+                            />
+                            <input
+                              type="text"
+                              maxLength={2}
+                              value={address.state}
+                              onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })}
+                              onBlur={() => handleSaveCurrentAddress()}
+                              placeholder="SP"
+                              className="w-1/3 bg-slate-950 border border-white/10 rounded-xl px-1 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none text-center font-bold"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-between border-t border-white/5">
+                        <span className="text-[11px] text-slate-400">
+                          O endereço digitado será salvo automaticamente no seu perfil.
                         </span>
-                        <div className="divide-y divide-white/5 max-h-28 overflow-y-auto">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!address.street.trim() || !address.number.trim()) {
+                              toast.error('Preencha ao menos Rua e Número antes de salvar.');
+                              return;
+                            }
+                            await handleSaveCurrentAddress(address, true);
+                            setIsEditingAddress(false);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-[#00D287]/20 hover:bg-[#00D287]/30 border border-[#00D287]/40 text-[#00D287] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Salvar como Padrão
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                {/* 2. Opções de Frete (Melhor Envio) */}
+                <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-[#00D287]" /> 2. Modalidade de Envio
+                    </span>
+                    {isLoadingQuotes && (
+                      <span className="text-xs text-[#00D287] flex items-center gap-1 font-semibold">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cotando transportadoras...
+                      </span>
+                    )}
+                  </div>
+
+                  {isFreeShipping ? (
+                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white">Frete Grátis Oferecido pelo Vendedor</div>
+                          <div className="text-[11px] text-slate-400">O vendedor cobrirá o custo da etiqueta no Melhor Envio.</div>
+                        </div>
+                      </div>
+                      <span className="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
+                    </div>
+                  ) : quoteError ? (
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{quoteError}</span>
+                    </div>
+                  ) : quotes.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {quotes.map((q) => {
+                        const isSelected = selectedQuote?.id === q.id;
+                        const formattedService = formatShippingServiceName(q.company?.name, q.name);
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => setSelectedQuote(q)}
+                            className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                              isSelected
+                                ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md shadow-[#00D287]/15'
+                                : 'border-white/10 bg-slate-950/60 hover:border-white/20 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#00D287] bg-[#00D287]' : 'border-slate-500'}`}>
+                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-white">
+                                  {formattedService.fullName}
+                                </div>
+                                <div className="text-[11px] text-slate-400">
+                                  Previsão: {q.delivery_time} {q.delivery_time === 1 ? 'dia útil' : 'dias úteis'}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <div className="text-sm font-black text-[#00D287]">{formatBRL(q.price)}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-slate-950 border border-white/5 text-xs text-slate-400 text-center">
+                      Informe o CEP de entrega acima para calcular o frete oficial.
+                    </div>
+                  )}
+                </section>
+
+                {/* 3. Forma de Pagamento */}
+                <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-[#00D287]" /> 3. Método de Pagamento
+                    </span>
+                    <span className="text-xs text-[#00D287] font-bold">Custódia Protegida</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('PIX')}
+                      className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                        paymentMethod === 'PIX'
+                          ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md shadow-[#00D287]/15'
+                          : 'border-white/10 bg-slate-950 text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      <QrCode className="w-5 h-5 text-[#00D287] shrink-0" />
+                      <div>
+                        <span className="text-xs font-bold block text-white">PIX Imediato</span>
+                        <span className="text-[10.5px] text-slate-400">Liberação instantânea</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('Cartao')}
+                      className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                        paymentMethod === 'Cartao'
+                          ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md shadow-[#00D287]/15'
+                          : 'border-white/10 bg-slate-950 text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      <CreditCard className="w-5 h-5 text-[#00D287] shrink-0" />
+                      <div>
+                        <span className="text-xs font-bold block text-white">Cartão Corporativo</span>
+                        <span className="text-[10.5px] text-slate-400">Até 12x no cartão</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {paymentMethod === 'PIX' ? (
+                    <div className="p-4 rounded-xl bg-slate-950 border border-white/10 space-y-3 text-center">
+                      <div className="w-36 h-36 mx-auto bg-white p-2 rounded-xl flex items-center justify-center shadow-md">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixCode)}`}
+                          alt="QR Code PIX"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        Escaneie o QR Code ou copie o código PIX para efetuar o pagamento seguro sob custódia CellHub.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleCopyPix}
+                        className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-white/10 flex items-center justify-center gap-2 mx-auto transition-colors cursor-pointer"
+                      >
+                        {copiedPix ? <Check className="w-4 h-4 text-[#00D287]" /> : <Copy className="w-4 h-4 text-[#00D287]" />}
+                        <span>{copiedPix ? 'Código PIX Copiado!' : 'Copiar Código PIX (Copia e Cola)'}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-slate-950 border border-white/10 space-y-3">
+                      <div>
+                        <label className="block text-xs text-slate-400 font-medium mb-1">
+                          Número do Cartão
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={19}
+                          value={cardData.number}
+                          onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
+                          placeholder="0000 0000 0000 0000"
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            Validade (MM/AA)
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={5}
+                            value={cardData.expiry}
+                            onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
+                            placeholder="12/28"
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            CVV
+                          </label>
+                          <input
+                            type="password"
+                            maxLength={4}
+                            value={cardData.cvv}
+                            onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
+                            placeholder="123"
+                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              {/* Coluna Direita: Resumo do Pedido & Confirmação (lg:col-span-5) */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className="sticky top-6 p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-5 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-[#00D287]" /> Resumo do Pedido
+                    </span>
+                    <span className="text-xs text-[#00D287] font-bold">Atacado B2B</span>
+                  </div>
+
+                  {/* Informações do Produto */}
+                  <div className="flex items-start gap-3.5 p-3 rounded-xl bg-slate-950 border border-white/5">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 border border-white/5 shrink-0">
+                      <img
+                        src={offer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400'}
+                        alt={offer.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-[#00D287] uppercase tracking-wider block">
+                        {offer.category} • {offer.condition} {offer.compatibleBrand ? `• ${offer.compatibleBrand}` : ''}
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-bold text-white truncate">{offer.title}</h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Vendedor: {offer.sellerCompany}</p>
+                    </div>
+                  </div>
+
+                  {/* Detalhamento de Modelos / Variações */}
+                  {(chosenModel || chosenVariation || (offer.compatibleModels && offer.compatibleModels.length > 0)) && (
+                    <div className="p-3.5 rounded-xl bg-slate-950 border border-white/5 space-y-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {chosenVariation && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-white font-bold text-[11px]">
+                            <span>
+                              {chosenVariation.toLowerCase().includes('sortid')
+                                ? '🎨'
+                                : chosenVariation.toLowerCase().includes('masc')
+                                ? '👨'
+                                : '👩'}
+                            </span>
+                            <span>{chosenVariation}</span>
+                          </div>
+                        )}
+                        {(offer as any).totalUnits && (offer as any).totalUnits > 1 && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] font-bold text-[11px]">
+                            <span>📦 {(offer as any).totalUnits} unidades</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {Array.isArray((offer as any).orderItems) && (offer as any).orderItems.length > 0 ? (
+                        <div className="divide-y divide-white/5 max-h-36 overflow-y-auto pt-1">
                           {(offer as any).orderItems.map((item: any, idx: number) => (
-                            <div key={idx} className="py-1 flex items-center justify-between text-[11px]">
+                            <div key={idx} className="py-1.5 flex items-center justify-between text-[11px]">
                               <span className="text-slate-200 font-medium">
                                 <strong className="text-[#00D287]">{item.quantity}x</strong> {item.model}
                                 {item.variation && (
@@ -586,475 +997,61 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             </div>
                           ))}
                         </div>
-                      </div>
-                    ) : chosenModel ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-white font-bold">
-                        <span className="text-[#00D287]">📱 Modelo:</span>
-                        <span>{chosenModel}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Address Form / Saved Address Card */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-[#00D287]" /> Endereço de Entrega do Lojista
-                  </h4>
-                  {hasSavedAddress && !isEditingAddress && (
-                    <span className="text-[10px] bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30 px-2 py-0.5 rounded-full font-bold">
-                      Endereço Salvo no Perfil
-                    </span>
+                      ) : chosenModel ? (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                          <span className="text-[#00D287] font-bold">Modelo:</span>
+                          <span>{chosenModel}</span>
+                        </div>
+                      ) : null}
+                    </div>
                   )}
-                </div>
 
-                {hasSavedAddress && !isEditingAddress ? (
-                  /* Card de Endereço Já Cadastrado */
-                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-[#00D287]/30 space-y-3 shadow-md shadow-black/40">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                          <span>{address.street}, {address.number || 'S/N'}</span>
-                          {address.complement && <span className="text-slate-400 font-normal">({address.complement})</span>}
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                          {address.neighborhood ? `${address.neighborhood} • ` : ''}
-                          {address.city}/{address.state}
-                        </div>
-                        <div className="text-[11px] font-mono text-[#00D287] pt-0.5">
-                          CEP: {address.zipCode.replace(/^(\d{5})(\d{3})$/, '$1-$2')}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingAddress(true)}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Editar este endereço"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-[#00D287]" />
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddress({
-                              ...address,
-                              zipCode: '',
-                              street: '',
-                              number: '',
-                              complement: '',
-                              neighborhood: '',
-                              city: '',
-                              state: '',
-                            });
-                            setQuotes([]);
-                            setSelectedQuote(null);
-                            setIsEditingAddress(true);
-                          }}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Inserir um novo endereço de entrega"
-                        >
-                          <Plus className="w-3.5 h-3.5 text-[#00D287]" />
-                          Novo
-                        </button>
-                      </div>
+                  {/* Quebra Financeira */}
+                  <div className="p-4 rounded-xl bg-slate-950 border border-white/5 space-y-2.5 text-xs">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Subtotal dos Produtos:</span>
+                      <span className="text-white font-semibold">{formatBRL(productPrice)}</span>
                     </div>
-                  </div>
-                ) : (
-                  /* Formulário de Digitação / Edição de Endereço */
-                  <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 space-y-3">
-                    {hasSavedAddress && (
-                      <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                        <span className="text-[11px] text-slate-400">Preencha os campos para alterar ou cadastrar novo endereço:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (savedAddress) {
-                              setAddress({ ...savedAddress });
-                              if (savedAddress.zipCode) fetchQuotes(savedAddress.zipCode);
-                            }
-                            setIsEditingAddress(false);
-                            setCepError(null);
-                          }}
-                          className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
-                        >
-                          Cancelar e manter salvo
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                          CEP de Destino * {isValidatingCep && <span className="text-[#00D287] animate-pulse">(Validando...)</span>}
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={9}
-                          value={address.zipCode}
-                          onChange={(e) => handleCepChange(e.target.value)}
-                          onBlur={() => handleSaveCurrentAddress()}
-                          placeholder="00000-000"
-                          className={`w-full bg-slate-950 border rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none font-mono ${
-                            cepError ? 'border-rose-500 focus:border-rose-500 text-rose-300' : 'border-white/10 focus:border-[#00D287]'
-                          }`}
-                          required
-                        />
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                          Rua / Logradouro *
-                        </label>
-                        <input
-                          type="text"
-                          value={address.street}
-                          onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                          onBlur={() => handleSaveCurrentAddress()}
-                          placeholder="Ex: Av. Paulista"
-                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Alerta explícito quando o CEP não existe */}
-                    {cepError && (
-                      <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                        <span>{cepError}</span>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                          Número *
-                        </label>
-                        <input
-                          type="text"
-                          value={address.number}
-                          onChange={(e) => setAddress({ ...address, number: e.target.value })}
-                          onBlur={() => handleSaveCurrentAddress()}
-                          placeholder="1000"
-                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                          Complemento
-                        </label>
-                        <input
-                          type="text"
-                          value={address.complement}
-                          onChange={(e) => setAddress({ ...address, complement: e.target.value })}
-                          onBlur={() => handleSaveCurrentAddress()}
-                          placeholder="Sala 12"
-                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                          Bairro *
-                        </label>
-                        <input
-                          type="text"
-                          value={address.neighborhood}
-                          onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
-                          onBlur={() => handleSaveCurrentAddress()}
-                          placeholder="Bela Vista"
-                          className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-slate-400 font-medium mb-1">
-                          Cidade / UF *
-                        </label>
-                        <div className="flex gap-1">
-                          <input
-                            type="text"
-                            value={address.city}
-                            onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                            onBlur={() => handleSaveCurrentAddress()}
-                            placeholder="São Paulo"
-                            className="w-2/3 bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                            required
-                          />
-                          <input
-                            type="text"
-                            maxLength={2}
-                            value={address.state}
-                            onChange={(e) => setAddress({ ...address, state: e.target.value.toUpperCase() })}
-                            onBlur={() => handleSaveCurrentAddress()}
-                            placeholder="SP"
-                            className="w-1/3 bg-slate-950 border border-white/10 rounded-xl px-1 py-2 text-xs text-white placeholder:text-slate-600 focus:border-[#00D287] outline-none text-center font-bold"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-white/5">
-                      <span className="text-[10px] text-slate-400">
-                        O endereço digitado será salvo automaticamente no seu perfil.
+                    <div className="flex justify-between text-slate-400">
+                      <span>Frete ({selectedQuote ? selectedQuote.name : (isFreeShipping ? 'Grátis' : 'A calcular')}):</span>
+                      <span className="text-white font-semibold">
+                        {isFreeShipping ? 'Grátis (R$ 0,00)' : formatBRL(shippingAmountCharged)}
                       </span>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!address.street.trim() || !address.number.trim()) {
-                            toast.error('Preencha ao menos Rua e Número antes de salvar.');
-                            return;
-                          }
-                          await handleSaveCurrentAddress(address, true);
-                          setIsEditingAddress(false);
-                        }}
-                        className="px-3.5 py-1.5 rounded-xl bg-[#00D287]/20 hover:bg-[#00D287]/30 border border-[#00D287]/40 text-[#00D287] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-[#00D287]/10"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        Salvar como Endereço Padrão
-                      </button>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Garantia de Custódia CellHub:</span>
+                      <span className="text-emerald-400 font-semibold">Inclusa</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold pt-3 border-t border-white/10 text-white">
+                      <span>Total a Pagar:</span>
+                      <span className="text-lg font-black text-[#00D287]">{formatBRL(totalAmount)}</span>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Opções de Envio (Melhor Envio) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-[#00D287]" /> Modalidade de Envio (Melhor Envio)
-                  </h4>
-                  {isLoadingQuotes && (
-                    <span className="text-[11px] text-[#00D287] flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Cotando transportadoras...
-                    </span>
-                  )}
-                </div>
-
-                {isFreeShipping ? (
-                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-white">Frete Grátis Oferecido pelo Vendedor</div>
-                        <div className="text-[11px] text-slate-400">O vendedor cobrirá o custo da etiqueta no Melhor Envio.</div>
-                      </div>
-                    </div>
-                    <span className="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
-                  </div>
-                ) : quoteError ? (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{quoteError}</span>
-                  </div>
-                ) : quotes.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {quotes.map((q) => {
-                      const isSelected = selectedQuote?.id === q.id;
-                      const formattedService = formatShippingServiceName(q.company?.name, q.name);
-                      return (
-                        <div
-                          key={q.id}
-                          onClick={() => setSelectedQuote(q)}
-                          className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                            isSelected
-                              ? 'border-[#00D287] bg-[#00D287]/10 text-white shadow-md shadow-[#00D287]/10'
-                              : 'border-white/10 bg-slate-950/60 hover:border-white/20 text-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#00D287] bg-[#00D287]' : 'border-slate-500'}`}>
-                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
-                            </div>
-                            <div>
-                              <div className="text-xs font-bold text-white">
-                                {formattedService.fullName}
-                              </div>
-                              <div className="text-[10px] text-slate-400">
-                                Previsão: {q.delivery_time} {q.delivery_time === 1 ? 'dia útil' : 'dias úteis'}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <div className="text-xs font-black text-[#00D287]">{formatBRL(q.price)}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 text-xs text-slate-400 text-center">
-                    Informe seu CEP acima para carregar as cotações oficiais de frete.
-                  </div>
-                )}
-              </div>
-
-              {/* Payment Methods */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-[#00D287]" /> Método de Pagamento B2B
-                </h4>
-
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  {/* Botão de Finalizar */}
                   <button
-                    type="button"
-                    onClick={() => setPaymentMethod('PIX')}
-                    className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left flex items-center gap-2 sm:gap-3 transition-all cursor-pointer ${
-                      paymentMethod === 'PIX'
-                        ? 'border-[#00D287] bg-[#00D287]/10 text-white'
-                        : 'border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/20'
-                    }`}
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full py-4 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-sm shadow-xl shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-[#00D287] shrink-0" />
-                    <div>
-                      <span className="text-xs font-bold block text-white">PIX Imediato</span>
-                      <span className="text-[10px] text-slate-400 hidden sm:block">Liberação instantânea</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('Cartao')}
-                    className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left flex items-center gap-2 sm:gap-3 transition-all cursor-pointer ${
-                      paymentMethod === 'Cartao'
-                        ? 'border-[#00D287] bg-[#00D287]/10 text-white'
-                        : 'border-white/10 bg-slate-950/60 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-[#00D287] shrink-0" />
-                    <div>
-                      <span className="text-xs font-bold block text-white">Cartão Corporativo</span>
-                      <span className="text-[10px] text-slate-400 hidden sm:block">Até 12x via Gateway</span>
-                    </div>
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Processando Pedido B2B...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Confirmar e Pagar • {formatBRL(totalAmount)}</span>
+                      </>
+                    )}
                   </button>
                 </div>
-
-                {paymentMethod === 'PIX' ? (
-                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-2.5 sm:space-y-3 text-center">
-                    {/* QR Code apenas em telas desktop / tablets */}
-                    <div className="hidden sm:flex w-32 h-32 mx-auto bg-white p-2 rounded-xl items-center justify-center">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixCode)}`}
-                        alt="QR Code PIX"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <p className="text-[11px] text-slate-400 hidden sm:block">
-                      Escaneie o QR Code ou copie o código PIX para efetuar o pagamento seguro com custódia CellHub.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyPix}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-white/10 flex items-center justify-center gap-2 mx-auto transition-colors cursor-pointer active:scale-95"
-                    >
-                      {copiedPix ? <Check className="w-4 h-4 text-[#00D287]" /> : <Copy className="w-4 h-4 text-[#00D287]" />}
-                      <span>{copiedPix ? 'Código PIX Copiado!' : 'Copiar Código PIX (Copia e Cola)'}</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-3">
-                    <div>
-                      <label className="block text-[10px] text-slate-400 font-medium mb-1">
-                        Número do Cartão
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={19}
-                        value={cardData.number}
-                        onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
-                        placeholder="0000 0000 0000 0000"
-                        className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] text-slate-400 font-medium mb-1">
-                          Validade (MM/AA)
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={5}
-                          value={cardData.expiry}
-                          onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
-                          placeholder="12/28"
-                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-slate-400 font-medium mb-1">
-                          CVV
-                        </label>
-                        <input
-                          type="password"
-                          maxLength={4}
-                          value={cardData.cvv}
-                          onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
-                          placeholder="123"
-                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:border-[#00D287] outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              {/* Financial Breakdown Table */}
-              <div className="p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2 text-xs">
-                <div className="flex justify-between text-slate-400">
-                  <span>Subtotal do Produto:</span>
-                  <span className="text-white font-semibold">{formatBRL(productPrice)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Frete ({selectedQuote ? selectedQuote.name : (isFreeShipping ? 'Grátis' : 'A calcular')}):</span>
-                  <span className="text-white font-semibold">
-                    {isFreeShipping ? 'Grátis (R$ 0,00)' : formatBRL(shippingAmountCharged)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Taxa de Intermediação CellHub:</span>
-                  <span className="text-emerald-400 font-semibold">Inclusa no repasse</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-white/10 text-white">
-                  <span>Total a Pagar:</span>
-                  <span className="text-base font-black text-[#00D287]">{formatBRL(totalAmount)}</span>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isProcessing}
-                className="w-full py-3.5 rounded-2xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-bold text-sm shadow-xl shadow-[#00D287]/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processando Pagamento & Compra de Envio...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    Confirmar Pagamento • {formatBRL(totalAmount)}
-                  </>
-                )}
-              </button>
             </form>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

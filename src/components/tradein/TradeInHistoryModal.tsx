@@ -65,61 +65,84 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-5 bg-black/90 md:backdrop-blur-sm overflow-hidden animate-in fade-in duration-150">
-      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-4xl bg-[#0f172a] md:border md:border-slate-700/90 md:rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-100 print:border-none print:shadow-none print:bg-white print:max-h-none print:w-full print:m-0 pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
-        
-        {/* Header (Hidden on print) */}
-        <div className="p-3.5 sm:p-6 border-b border-slate-800 bg-[#1e293b]/95 backdrop-blur-md flex items-center justify-between shrink-0 print:hidden">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Botão Voltar no Mobile */}
-            <button
-              onClick={selectedEvaluation ? () => setSelectedEvaluation(null) : onClose}
-              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1.5 -ml-1 rounded-xl active:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5 text-blue-400" />
-              <span className="text-xs">Voltar</span>
-            </button>
+    <div className="fixed inset-0 z-50 bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200">
+      {/* Header Superior Minimalista (Hidden on print) */}
+      <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg print:hidden">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={selectedEvaluation ? () => setSelectedEvaluation(null) : onClose}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+            title="Voltar"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+            <span className="hidden sm:inline">{selectedEvaluation ? 'Voltar para Lista' : 'Voltar'}</span>
+          </button>
 
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 hidden sm:flex items-center justify-center text-blue-400 shrink-0">
-              <History className="w-5 h-5" />
+          <div className="h-5 w-px bg-white/10" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+              <History className="w-4 h-4 text-[#00D287]" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-lg font-bold text-white tracking-tight">
-                Histórico de Compras & Termos
+              <h2 className="text-sm sm:text-base font-bold text-white leading-none">
+                Histórico de Compras & Termos Trade-In
               </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[240px] sm:max-w-none">
-                Arquivo digital seguro para consultar e reimprimir termos
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
+                Arquivo digital para consulta e reimpressão de termos
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {selectedEvaluation && (
+            <button
+              type="button"
+              onClick={handlePrintDocument}
+              className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold shadow-lg shadow-[#00D287]/20 flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Imprimir / PDF</span>
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={onClose}
-            className="hidden md:flex w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 items-center justify-center transition-colors"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/5"
+            title="Fechar"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
+      </header>
 
-        {/* Search Bar (Hidden on print) */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-800 bg-[#0f172a] flex flex-col sm:flex-row gap-2.5 shrink-0 print:hidden">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && loadEvaluations()}
-              placeholder="Pesquisar por Código (REC-...), IMEI, Modelo ou CPF do cliente..."
-              className="bg-[#1e293b] border-slate-700 pl-10 text-xs sm:text-sm rounded-xl focus:border-blue-500 text-white h-10"
-            />
-          </div>
-          <Button
-            onClick={loadEvaluations}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shrink-0 h-10 px-5 rounded-xl shadow-md shadow-blue-600/30"
-          >
-            {loading ? 'Buscando...' : 'Buscar'}
-          </Button>
+      {/* Search Bar (Hidden on print) */}
+      <div className="p-4 sm:px-8 border-b border-white/5 bg-[#070b14] flex flex-col sm:flex-row gap-3 shrink-0 print:hidden">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && loadEvaluations()}
+            placeholder="Pesquisar por Código (REC-...), IMEI, Modelo ou CPF do cliente..."
+            className="bg-slate-950 border-white/10 pl-10 text-xs sm:text-sm rounded-xl focus:border-[#00D287] text-white h-10"
+          />
         </div>
+        <Button
+          onClick={loadEvaluations}
+          disabled={loading}
+          className="bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs sm:text-sm font-bold shrink-0 h-10 px-5 rounded-xl shadow-md shadow-[#00D287]/20 cursor-pointer"
+        >
+          {loading ? 'Buscando...' : 'Buscar'}
+        </Button>
+      </div>
+
+      {/* Main Body */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:p-0 print:overflow-visible">
+        <div className="max-w-5xl mx-auto">
 
         {/* Content Body */}
         <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 scrollbar-thin print:p-0 print:overflow-visible pb-24 md:pb-6">
@@ -338,7 +361,7 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
                             R$ {item.final_valuation.toLocaleString('pt-BR')}
                           </span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#00D287] group-hover:translate-x-1 transition-all" />
                       </div>
                     </div>
                   ))}
@@ -347,7 +370,7 @@ export const TradeInHistoryModal: React.FC<TradeInHistoryModalProps> = ({ isOpen
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

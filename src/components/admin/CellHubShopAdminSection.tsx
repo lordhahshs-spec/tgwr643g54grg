@@ -997,411 +997,57 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         />
       )}
 
-      {/* 7. MODAL DE EDIÇÃO DE PRODUTO OFICIAL (MINIMALISTA E DINÂMICO) */}
+      {/* 7. EDIÇÃO DE PRODUTO EM TELA CHEIA (ESTILO MERCADO LIVRE / ENTERPRISE) */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 md:p-5 overflow-hidden animate-in fade-in duration-150">
-          <div className="relative w-full max-h-[92vh] max-w-2xl bg-[#090e1c] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between bg-[#060912] shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
-                  <Edit className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white leading-tight">Editar Produto Oficial</h3>
-                  <p className="text-[11px] text-slate-400">CellHub Shop • {editCategory}</p>
-                </div>
-              </div>
-
+        <div className="fixed inset-0 z-50 bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200">
+          {/* Header Superior Minimalista */}
+          <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg">
+            <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => setEditingProduct(null)}
-                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+                title="Voltar"
               >
-                <X className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+                <span className="hidden sm:inline">Voltar</span>
               </button>
-            </div>
 
-            {/* Body */}
-            <div className="p-5 overflow-y-auto flex-1 space-y-4">
-              {/* Título */}
+              <div className="h-5 w-px bg-white/10" />
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Título do Produto</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                />
-              </div>
-
-              {/* Categoria e Condição */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Categoria</label>
-                  <select
-                    value={editCategory}
-                    onChange={(e) => handleEditCategoryChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                  >
-                    {activeCategories.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Condição</label>
-                  <select
-                    value={editCondition}
-                    onChange={(e) => setEditCondition(e.target.value as OfferCondition)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                  >
-                    {CONDITIONS.map((cond) => (
-                      <option key={cond} value={cond}>{cond}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Modelos e Variações (se a categoria suportar) */}
-              {categorySupportsModelGrid(editCategory) && (
-                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Smartphone className="w-3.5 h-3.5 text-[#00D287]" /> Grade de Modelos Compatíveis
-                    </span>
-                    <span className="text-[10px] text-[#00D287] font-bold bg-[#00D287]/10 px-2 py-0.5 rounded">
-                      {editCompatibleModels.length} modelo(s)
-                    </span>
-                  </div>
-
-                  {/* Marcas */}
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                    {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Outros'].map((bName) => (
-                      <button
-                        key={bName}
-                        type="button"
-                        onClick={() => setEditCompatibleBrand(bName)}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all text-center ${
-                          editCompatibleBrand.toLowerCase() === bName.toLowerCase()
-                            ? 'bg-[#00D287] text-slate-950 border-[#00D287] font-black'
-                            : 'bg-slate-900 text-slate-300 border-white/10 hover:bg-slate-800'
-                        }`}
-                      >
-                        {bName}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Variações Cores (somente se a categoria suportar, ex: Capinhas) */}
-                  {categorySupportsVariations(editCategory) && (
-                    <div className="pt-2.5 pb-1 border-t border-white/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-slate-400 font-semibold">Variações de Cor (Atacado):</span>
-                        <span className="text-[10px] text-slate-500">Opções disponíveis para o comprador</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-pink-500/40 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={editVariationFeminino}
-                            onChange={(e) => setEditVariationFeminino(e.target.checked)}
-                            className="accent-pink-500 rounded"
-                          />
-                          <span>👩 Cores \Feminina</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-blue-500/40 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={editVariationMasculino}
-                            onChange={(e) => setEditVariationMasculino(e.target.checked)}
-                            className="accent-blue-500 rounded"
-                          />
-                          <span>👨 Cores \Masculina</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer select-none bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 hover:border-amber-500/40 transition-colors" title="Pode ir qualquer cor variada / sortimento misto">
-                          <input
-                            type="checkbox"
-                            checked={editVariationSortidas}
-                            onChange={(e) => setEditVariationSortidas(e.target.checked)}
-                            className="accent-amber-500 rounded"
-                          />
-                          <span>🎨 Cores / Sortidas</span>
-                          <span className="text-[10px] text-slate-400 font-normal ml-0.5">(Qualquer cor)</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Adicionar Modelo */}
-                  <div className="space-y-2">
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        value={editManualModelInput}
-                        onChange={(e) => setEditManualModelInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const c = editManualModelInput.trim();
-                            if (c && !editCompatibleModels.includes(c)) {
-                              setEditCompatibleModels([...editCompatibleModels, c]);
-                              setEditManualModelInput('');
-                            }
-                          }
-                        }}
-                        placeholder={`Adicionar modelo compatível de ${editCompatibleBrand}...`}
-                        className="flex-1 px-3 py-1.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#00D287]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const c = editManualModelInput.trim();
-                          if (c && !editCompatibleModels.includes(c)) {
-                            setEditCompatibleModels([...editCompatibleModels, c]);
-                            setEditManualModelInput('');
-                          }
-                        }}
-                        className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold rounded-xl cursor-pointer"
-                      >
-                        + Adicionar
-                      </button>
-                    </div>
-
-                    {editCompatibleModels.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-white/5">
-                        {editCompatibleModels.map((m, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-xs text-white"
-                          >
-                            <span>{m}</span>
-                            <button
-                              type="button"
-                              onClick={() => setEditCompatibleModels(editCompatibleModels.filter((_, i) => i !== idx))}
-                              className="hover:text-rose-400 text-slate-500 cursor-pointer"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-2.5 bg-slate-900/40 rounded-xl border border-white/5 text-slate-400 text-[11px] italic text-center">
-                        Nenhum modelo específico selecionado para {editCompatibleBrand}. Digite acima para adicionar.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Fornecedor de Origem (Melhor Envio) */}
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-cyan-400" /> Fornecedor de Origem (Melhor Envio)
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">
+                    Editar Produto Oficial
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[11px] font-bold">
+                    {editCategory}
                   </span>
-                  <span className="text-[10px] text-cyan-400 font-mono font-bold">Origem do Frete</span>
                 </div>
-
-                <select
-                  value={editSupplierId}
-                  onChange={(e) => setEditSupplierId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
-                >
-                  <option value="">Nenhum fornecedor vinculado (Usar padrão CellHub)</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Precificação & Margem */}
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#00D287]" /> Precificação & Margem de Venda
-                  </span>
-
-                  <div className="flex items-center gap-1">
-                    {[20, 30, 35, 45, 50].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => handleEditMarginPercentChange(m)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                          editMarginPercent === m
-                            ? 'bg-[#00D287] text-slate-950'
-                            : 'bg-white/5 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {m}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Custo no Fornecedor (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editSupplierCost}
-                      onChange={(e) => handleEditSupplierCostChange(e.target.value)}
-                      placeholder="4.50"
-                      className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Preço Final de Venda (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editPrice}
-                      onChange={(e) => setEditPrice(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-[#00D287]/40 text-[#00D287] text-xs font-black focus:outline-none focus:border-[#00D287]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10.5px] text-slate-400 mb-1">
-                    Preço Original "De: R$" (Opcional p/ Promoção com % OFF)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editOriginalPrice}
-                    onChange={(e) => setEditOriginalPrice(e.target.value)}
-                    placeholder="Ex: 12.00"
-                    className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 text-xs focus:outline-none focus:border-[#00D287]"
-                  />
-                </div>
-              </div>
-
-              {/* Fotos, Garantia & Frete */}
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-300">Fotos do Produto ({editImages.length})</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-[#00D287]/40 bg-[#00D287]/5 hover:bg-[#00D287]/10 text-slate-200 hover:text-white cursor-pointer transition-colors text-xs font-semibold">
-                      <UploadCloud className="w-4 h-4 text-[#00D287]" />
-                      <span>Escolher foto do computador</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleEditFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-
-                    <div className="flex gap-1.5">
-                      <input
-                        type="url"
-                        value={editImageUrlInput}
-                        onChange={(e) => setEditImageUrlInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddEditImage())}
-                        placeholder="Ou cole a URL https://..."
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddEditImage}
-                        className="px-3.5 py-1.5 bg-[#00D287] hover:bg-[#00b574] text-slate-950 text-xs font-bold rounded-xl cursor-pointer"
-                      >
-                        + Link
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {editImages.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {editImages.map((img, idx) => (
-                      <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-slate-950 group shrink-0 shadow-md">
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                        {idx === 0 && (
-                          <span className="absolute bottom-0 inset-x-0 bg-[#00D287] text-slate-950 text-[7.5px] font-black text-center py-0.5">
-                            CAPA
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEditImage(idx)}
-                          className="absolute top-1 right-1 p-0.5 rounded-full bg-black/80 text-rose-400 hover:text-rose-300"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {categorySupportsWarranty(editCategory) ? (
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Garantia Técnica (Dias)</label>
-                      <input
-                        type="number"
-                        value={editWarrantyDays}
-                        onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col justify-center px-3 py-1.5 rounded-xl bg-slate-950 border border-white/5">
-                      <span className="text-[10.5px] text-slate-400 font-semibold">Garantia:</span>
-                      <span className="text-xs text-slate-300">Produto de consumo (Sem garantia de fábrica)</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Política de Frete</label>
-                    <select
-                      value={editShippingPolicy}
-                      onChange={(e) => setEditShippingPolicy(e.target.value as ShippingPolicy)}
-                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
-                    >
-                      <option value="comprador_paga">Calculado no Checkout</option>
-                      <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Descrição</label>
-                  <textarea
-                    rows={2}
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
-                  />
-                </div>
+                <p className="text-[11px] text-slate-400">
+                  CellHub Shop • ID: {editingProduct.id.slice(0, 8)}...
+                </p>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="px-5 py-3.5 border-t border-white/5 bg-[#060912] flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => setEditingProduct(null)}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-transparent hover:bg-white/5 text-slate-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
 
               <button
+                type="button"
                 onClick={handleSaveEdit}
                 disabled={isSavingEdit}
-                className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-black shadow-lg shadow-[#00D287]/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                className="px-6 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold shadow-lg shadow-[#00D287]/25 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isSavingEdit ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>Salvando...</span>
                   </>
                 ) : (
@@ -1412,7 +1058,434 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                 )}
               </button>
             </div>
-          </div>
+          </header>
+
+          {/* Body em 2 Colunas */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Coluna Esquerda: Dados do Produto, Modelos, Fotos & Fornecedor (lg:col-span-8) */}
+              <div className="lg:col-span-8 space-y-6">
+                
+                {/* Dados Gerais */}
+                <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Boxes className="w-4 h-4 text-[#00D287]" /> Dados Gerais
+                    </span>
+                    <span className="text-[11px] text-slate-400">Edição de título e categoria</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-200 mb-1.5">Título do Produto *</label>
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-medium focus:outline-none focus:border-[#00D287] transition-colors"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-200 mb-1.5">Categoria</label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => handleEditCategoryChange(e.target.value)}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                        >
+                          {activeCategories.map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-200 mb-1.5">Condição</label>
+                        <select
+                          value={editCondition}
+                          onChange={(e) => setEditCondition(e.target.value as OfferCondition)}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                        >
+                          {CONDITIONS.map((cond) => (
+                            <option key={cond} value={cond}>{cond}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-200 mb-1.5">Descrição do Produto</label>
+                      <textarea
+                        rows={3}
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Modelos Compatíveis & Variações (se a categoria suportar) */}
+                {categorySupportsModelGrid(editCategory) && (
+                  <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-[#00D287]" /> Grade de Modelos Compatíveis
+                      </span>
+                      <span className="text-[11px] text-[#00D287] font-bold bg-[#00D287]/10 px-2.5 py-0.5 rounded-full">
+                        {editCompatibleModels.length} modelo(s) cadastrado(s)
+                      </span>
+                    </div>
+
+                    {/* Marcas */}
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-semibold text-slate-300 block">Marca Principal:</span>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Outros'].map((bName) => (
+                          <button
+                            key={bName}
+                            type="button"
+                            onClick={() => setEditCompatibleBrand(bName)}
+                            className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                              editCompatibleBrand.toLowerCase() === bName.toLowerCase()
+                                ? 'bg-[#00D287] text-slate-950 border-[#00D287] font-black shadow-md shadow-[#00D287]/20'
+                                : 'bg-slate-950 text-slate-300 border-white/10 hover:bg-slate-900'
+                            }`}
+                          >
+                            {bName}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Variações Cores (somente se a categoria suportar, ex: Capinhas) */}
+                    {categorySupportsVariations(editCategory) && (
+                      <div className="p-3.5 rounded-xl bg-slate-950 border border-white/5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">Variações de Cor no Atacado:</span>
+                          <span className="text-[10.5px] text-slate-400">Opções disponíveis para o lojista</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="flex items-center gap-2 text-xs text-white font-medium cursor-pointer select-none bg-slate-900 px-3 py-2 rounded-xl border border-white/5 hover:border-pink-500/40 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={editVariationFeminino}
+                              onChange={(e) => setEditVariationFeminino(e.target.checked)}
+                              className="accent-pink-500 w-4 h-4 rounded cursor-pointer"
+                            />
+                            <span>👩 Cores \Feminina</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-white font-medium cursor-pointer select-none bg-slate-900 px-3 py-2 rounded-xl border border-white/5 hover:border-blue-500/40 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={editVariationMasculino}
+                              onChange={(e) => setEditVariationMasculino(e.target.checked)}
+                              className="accent-blue-500 w-4 h-4 rounded cursor-pointer"
+                            />
+                            <span>👨 Cores \Masculina</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-white font-medium cursor-pointer select-none bg-slate-900 px-3 py-2 rounded-xl border border-white/5 hover:border-amber-500/40 transition-colors" title="Qualquer cor sortida / mix de cores">
+                            <input
+                              type="checkbox"
+                              checked={editVariationSortidas}
+                              onChange={(e) => setEditVariationSortidas(e.target.checked)}
+                              className="accent-amber-500 w-4 h-4 rounded cursor-pointer"
+                            />
+                            <span>🎨 Cores / Sortidas</span>
+                            <span className="text-[10.5px] text-slate-400 font-normal">(Qualquer cor)</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Adicionar Modelo */}
+                    <div className="space-y-2.5">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editManualModelInput}
+                          onChange={(e) => setEditManualModelInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const c = editManualModelInput.trim();
+                              if (c && !editCompatibleModels.includes(c)) {
+                                setEditCompatibleModels([...editCompatibleModels, c]);
+                                setEditManualModelInput('');
+                              }
+                            }
+                          }}
+                          placeholder={`Adicionar modelo compatível de ${editCompatibleBrand}...`}
+                          className="flex-1 px-3.5 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#00D287]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const c = editManualModelInput.trim();
+                            if (c && !editCompatibleModels.includes(c)) {
+                              setEditCompatibleModels([...editCompatibleModels, c]);
+                              setEditManualModelInput('');
+                            }
+                          }}
+                          className="px-4 py-2 bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold rounded-xl cursor-pointer shrink-0"
+                        >
+                          + Adicionar Modelo
+                        </button>
+                      </div>
+
+                      {editCompatibleModels.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3 bg-slate-950/60 rounded-xl border border-white/5">
+                          {editCompatibleModels.map((m, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-xs text-white"
+                            >
+                              <span>{m}</span>
+                              <button
+                                type="button"
+                                onClick={() => setEditCompatibleModels(editCompatibleModels.filter((_, i) => i !== idx))}
+                                className="hover:text-rose-400 text-slate-500 cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 text-slate-400 text-xs italic text-center">
+                          Nenhum modelo específico selecionado para {editCompatibleBrand}. Digite acima para adicionar.
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {/* Fotos do Produto */}
+                <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-[#00D287]" /> Fotos do Produto ({editImages.length})
+                    </span>
+                    <span className="text-[11px] text-slate-400">Upload direto ou link</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-dashed border-[#00D287]/40 bg-[#00D287]/5 hover:bg-[#00D287]/10 text-slate-200 hover:text-white cursor-pointer transition-colors text-xs font-semibold text-center">
+                      <UploadCloud className="w-5 h-5 text-[#00D287]" />
+                      <span>Escolher foto do computador/celular</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleEditFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="flex flex-col justify-between p-3.5 rounded-xl bg-slate-950 border border-white/10">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-300 block mb-1">
+                          Ou cole a URL da imagem:
+                        </label>
+                        <input
+                          type="url"
+                          value={editImageUrlInput}
+                          onChange={(e) => setEditImageUrlInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddEditImage())}
+                          placeholder="https://exemplo.com/foto.jpg"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleAddEditImage}
+                        className="w-full mt-2 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-semibold border border-white/10 transition-colors cursor-pointer"
+                      >
+                        + Adicionar Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {editImages.length > 0 && (
+                    <div className="flex gap-3 overflow-x-auto pb-2 pt-1">
+                      {editImages.map((img, idx) => (
+                        <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#00D287]/40 bg-slate-950 group shrink-0 shadow-md">
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          {idx === 0 && (
+                            <span className="absolute bottom-0 inset-x-0 bg-[#00D287] text-slate-950 text-[8px] font-black text-center py-0.5 uppercase">
+                              Capa
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditImage(idx)}
+                            className="absolute top-1 right-1 p-1 rounded-full bg-black/80 text-rose-400 hover:text-rose-300 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Fornecedor & Logística */}
+                <section className="p-5 sm:p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-cyan-400" /> Logística & Fornecedor de Origem
+                    </span>
+                    <span className="text-[11px] text-cyan-400 font-mono font-bold">Melhor Envio</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">Fornecedor de Origem:</label>
+                      <select
+                        value={editSupplierId}
+                        onChange={(e) => setEditSupplierId(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
+                      >
+                        <option value="">Nenhum fornecedor vinculado (Usar padrão CellHub)</option>
+                        {suppliers.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            [{s.tag}] {s.name} — {s.city}/{s.state} (CEP {s.postalCode})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">Política de Frete</label>
+                        <select
+                          value={editShippingPolicy}
+                          onChange={(e) => setEditShippingPolicy(e.target.value as ShippingPolicy)}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                        >
+                          <option value="comprador_paga">Calculado no Checkout</option>
+                          <option value="frete_gratis">Frete Grátis (CellHub Paga)</option>
+                        </select>
+                      </div>
+
+                      {categorySupportsWarranty(editCategory) ? (
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-300 mb-1.5">Garantia Técnica (Dias)</label>
+                          <input
+                            type="number"
+                            value={editWarrantyDays}
+                            onChange={(e) => setEditWarrantyDays(Number(e.target.value) || 90)}
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs outline-none focus:border-[#00D287]"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col justify-center px-3.5 py-2.5 rounded-xl bg-slate-950/60 border border-white/5">
+                          <span className="text-[10.5px] text-slate-400 font-semibold">Garantia:</span>
+                          <span className="text-xs text-slate-300">Produto de consumo (Sem garantia de fábrica)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              {/* Coluna Direita: Precificação & Ações (lg:col-span-4) */}
+              <div className="lg:col-span-4 space-y-6">
+                <div className="sticky top-4 p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-5 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-[#00D287]" /> Precificação & Margem
+                    </span>
+                    <span className="text-xs text-[#00D287] font-bold">Atacado B2B</span>
+                  </div>
+
+                  {/* Atalhos Rápidos de Margem */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-slate-400 font-semibold block">Margem de Lucro Desejada:</label>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[20, 30, 35, 45, 50].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handleEditMarginPercentChange(m)}
+                          className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            editMarginPercent === m
+                              ? 'bg-[#00D287] text-slate-950 shadow-md shadow-[#00D287]/20 font-black'
+                              : 'bg-slate-950 text-slate-400 hover:text-white border border-white/5'
+                          }`}
+                        >
+                          {m}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custos e Preços */}
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Custo no Fornecedor (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editSupplierCost}
+                        onChange={(e) => handleEditSupplierCostChange(e.target.value)}
+                        placeholder="4.50"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-sm font-bold focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Preço Final de Venda (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-[#00D287]/50 text-[#00D287] text-lg font-black focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">
+                        Preço De: R$ (Opcional p/ Promoção com % OFF)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editOriginalPrice}
+                        onChange={(e) => setEditOriginalPrice(e.target.value)}
+                        placeholder="Ex: 12.00"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-slate-300 text-xs focus:outline-none focus:border-[#00D287]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botão de Salvar Alterações */}
+                  <button
+                    type="button"
+                    onClick={handleSaveEdit}
+                    disabled={isSavingEdit}
+                    className="w-full py-3.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-sm font-black shadow-xl shadow-[#00D287]/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingEdit ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Salvando alterações...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                        <span>Salvar Alterações</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       )}
     </div>

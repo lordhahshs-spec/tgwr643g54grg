@@ -108,222 +108,286 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const isDemo = currentUser.role !== 'admin' && currentUser.planStatus !== 'ativo';
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/90 md:backdrop-blur-md flex items-center justify-center md:p-4 overflow-hidden animate-in fade-in duration-200">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-md bg-[#090e1c] md:border md:border-white/10 md:rounded-3xl p-4 sm:p-6 space-y-5 shadow-2xl overflow-y-auto overscroll-contain flex flex-col pt-[max(env(safe-area-inset-top,0px),12px)] md:pt-6 pb-[max(env(safe-area-inset-bottom,0px),16px)] md:pb-6">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="md:hidden flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs p-1 -ml-1 rounded-xl active:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#00D287]" />
-            </button>
-            <User className="w-5 h-5 text-[#00D287]" />
-            <h3 className="text-base font-bold text-white">Meu Perfil de Lojista</h3>
-          </div>
+    <div className="fixed inset-0 z-[120] bg-[#060911] text-slate-100 flex flex-col overflow-hidden animate-in fade-in duration-200">
+      {/* Header Superior Minimalista */}
+      <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-[#080c18] flex items-center justify-between shrink-0 shadow-lg">
+        <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onClose}
-            className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/5"
+            title="Voltar"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#00D287]" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
+
+          <div className="h-5 w-px bg-white/10" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00D287]/15 text-[#00D287] flex items-center justify-center">
+              <User className="w-4 h-4 text-[#00D287]" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-white leading-none">
+                Meu Perfil de Lojista
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
+                Configurações da conta, dados da loja e preferências
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-5 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold shadow-lg shadow-[#00D287]/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? (
+              <span>Salvando...</span>
+            ) : (
+              <>
+                <Check className="w-4 h-4 stroke-[2.5]" />
+                <span>Salvar</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/5"
+            title="Fechar"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
+      </header>
 
-        {/* Foto de Perfil / Avatar Uploader */}
-        <div className="flex flex-col items-center justify-center space-y-2.5">
-          <div className="relative group">
-            {/* Anel Gradiente Estilo Instagram */}
-            <div className="p-1 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-[#00D287] shadow-xl">
-              <div className="w-20 h-20 rounded-full bg-slate-900 border-2 border-black overflow-hidden flex items-center justify-center">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={tradeName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl font-black text-white uppercase">
-                    {(tradeName || currentUser.companyName).substring(0, 2)}
+      {/* Main Body */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            {/* Cartão de Foto & Status (md:col-span-4) */}
+            <div className="md:col-span-4 space-y-4">
+              <div className="p-6 rounded-2xl bg-[#090e1d] border border-white/10 flex flex-col items-center justify-center space-y-3 text-center shadow-sm">
+                <div className="relative group">
+                  {/* Anel Gradiente */}
+                  <div className="p-1 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-[#00D287] shadow-xl">
+                    <div className="w-24 h-24 rounded-full bg-slate-900 border-2 border-black overflow-hidden flex items-center justify-center">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={tradeName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl font-black text-white uppercase">
+                          {(tradeName || currentUser.companyName).substring(0, 2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Botão de Upload */}
+                  <label
+                    htmlFor="avatar-file-upload"
+                    className="absolute bottom-0 right-0 p-2.5 rounded-full bg-[#00D287] text-slate-950 shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                    title="Trocar foto de perfil"
+                  >
+                    <Camera className="w-4 h-4 stroke-[2.5]" />
+                    <input
+                      id="avatar-file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <span className="text-sm font-bold text-white block">
+                    {tradeName || currentUser.companyName}
                   </span>
+                  <span className="text-xs text-slate-400 font-mono mt-0.5 block">
+                    CNPJ: {currentUser.cnpj}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status do Plano */}
+              <div className="p-4 rounded-2xl bg-[#090e1d] border border-white/10 space-y-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDemo ? 'bg-amber-500/20 text-amber-400' : 'bg-[#00D287]/20 text-[#00D287]'}`}>
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      {isDemo ? 'Modo Demonstração' : 'Licença Vitalícia Ativa'}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {isDemo ? 'Limites de degustação' : 'Acesso completo ilimitado'}
+                    </span>
+                  </div>
+                </div>
+
+                {isDemo && onUnlockModal && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onUnlockModal();
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#00D287]/20 cursor-pointer transition-all"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Desbloquear Acesso Completo
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* Botão de Upload com Input Oculto */}
-            <label
-              htmlFor="avatar-file-upload"
-              className="absolute bottom-0 right-0 p-2 rounded-full bg-[#00D287] text-slate-950 shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
-              title="Trocar foto de perfil"
-            >
-              <Camera className="w-4 h-4 stroke-[2.5]" />
-              <input
-                id="avatar-file-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          <div className="text-center">
-            <span className="text-xs font-semibold text-white block">
-              {tradeName || currentUser.companyName}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              CNPJ: {currentUser.cnpj}
-            </span>
-          </div>
-        </div>
-
-        {/* Status da Conta */}
-        <div className="p-3 rounded-2xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className={`w-5 h-5 ${isDemo ? 'text-amber-400' : 'text-[#00D287]'}`} />
-            <div>
-              <span className="text-xs font-bold text-white block">
-                {isDemo ? 'Modo Demonstração' : 'Licença Vitalícia Ativa'}
-              </span>
-              <span className="text-[10px] text-slate-400">
-                {isDemo ? 'Recursos com limites de degustação' : 'Acesso total liberado para sempre'}
-              </span>
-            </div>
-          </div>
-
-          {isDemo && onUnlockModal && (
-            <button
-              onClick={() => {
-                onClose();
-                onUnlockModal();
-              }}
-              className="px-3 py-1.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 font-black text-[11px] flex items-center gap-1 shadow-md shadow-[#00D287]/20 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Liberar
-            </button>
-          )}
-        </div>
-
-        {/* Formulário de Edição */}
-        <div className="space-y-3">
-          <div>
-            <label className="text-[11px] font-bold text-slate-300 block mb-1">
-              Nome Fantasia da Loja
-            </label>
-            <div className="relative">
-              <Building2 className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={tradeName}
-                onChange={(e) => setTradeName(e.target.value)}
-                placeholder="Ex: Cell Express"
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-slate-300 block mb-1">
-              Nome do Responsável
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={ownerName}
-                onChange={(e) => setOwnerName(e.target.value)}
-                placeholder="Ex: Lucas Ferreira"
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-slate-300 block mb-1">
-              WhatsApp para Vendas & Contato
-            </label>
-            <div className="relative">
-              <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="Ex: (11) 99999-9999"
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Seção Baixar Aplicativo (Android / iOS / PWA) - Visível apenas para Administradores em fase de testes */}
-        {currentUser?.role === 'admin' && (
-          <div className="pt-2 border-t border-white/5 space-y-2">
-            <span className="text-[11px] font-bold text-slate-400 block">
-              Aplicativo Móvel (Ambiente de Testes)
-            </span>
-
-            <button
-              type="button"
-              onClick={handleInstallApp}
-              className="w-full p-3 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0a1526] hover:from-[#0a1526] hover:to-[#0f2038] border border-[#00D287]/30 text-white flex items-center justify-between transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#00D287]/20 text-[#00D287] flex items-center justify-center">
-                  <Smartphone className="w-4 h-4" />
+            {/* Formulário de Dados da Loja (md:col-span-8) */}
+            <div className="md:col-span-8 space-y-6">
+              <div className="p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-[#00D287]" /> Dados da Loja
+                  </span>
+                  <span className="text-[11px] text-slate-400">Visível para outros lojistas</span>
                 </div>
-                <div className="text-left">
-                  <span className="text-xs font-bold text-white block group-hover:text-[#00D287] transition-colors">
-                    Testar Instalação no Celular
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Acesso exclusivo para administradores
-                  </span>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                      Nome Fantasia da Loja
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={tradeName}
+                        onChange={(e) => setTradeName(e.target.value)}
+                        placeholder="Ex: Cell Express"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                      Nome do Responsável
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={ownerName}
+                        onChange={(e) => setOwnerName(e.target.value)}
+                        placeholder="Ex: Lucas Ferreira"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                      WhatsApp para Vendas & Contato
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={whatsapp}
+                        onChange={(e) => setWhatsapp(e.target.value)}
+                        placeholder="Ex: (11) 99999-9999"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00D287] transition-colors"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <Download className="w-4 h-4 text-[#00D287] group-hover:translate-y-0.5 transition-transform" />
-            </button>
-          </div>
-        )}
+              {/* Seção Baixar Aplicativo (Admin) */}
+              {currentUser?.role === 'admin' && (
+                <div className="p-6 rounded-2xl bg-[#090e1d] border border-white/10 space-y-3 shadow-sm">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                    Aplicativo Móvel (Ambiente de Testes)
+                  </span>
 
-        {/* Ações Finais */}
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
-          <button
-            type="button"
-            onClick={onLogout}
-            className="px-3.5 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sair</span>
-          </button>
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-slate-950 to-[#0a1526] hover:from-[#0a1526] hover:to-[#0f2038] border border-[#00D287]/30 text-white flex items-center justify-between transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#00D287]/20 text-[#00D287] flex items-center justify-center">
+                        <Smartphone className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-bold text-white block group-hover:text-[#00D287] transition-colors">
+                          Testar Instalação no Celular (PWA)
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Acesso exclusivo para administradores
+                        </span>
+                      </div>
+                    </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all cursor-pointer"
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-[#00D287]/20 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isSaving ? (
-                <span>Salvando...</span>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Salvar Alterações</span>
-                </>
+                    <Download className="w-4 h-4 text-[#00D287] group-hover:translate-y-0.5 transition-transform" />
+                  </button>
+                </div>
               )}
-            </button>
+
+              {/* Ações Inferiores */}
+              <div className="flex items-center justify-between gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border border-red-500/20"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Desconectar Conta</span>
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00B875] text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <span>Salvando...</span>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>Salvar Alterações</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </main>
+    </div>
+  );
+};
 
         {/* Modal Passo a Passo iOS */}
         {showIosGuide && (
