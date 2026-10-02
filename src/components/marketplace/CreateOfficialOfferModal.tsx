@@ -522,10 +522,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       };
     });
 
-    // Determina opções de variação (Masculino / Feminino)
+    // Determina opções de variação (Feminina / Masculina)
     const variationOptions: string[] = [];
-    if (variationMasculino) variationOptions.push('Masculino');
-    if (variationFeminino) variationOptions.push('Feminino');
+    if (variationFeminino) variationOptions.push('Cores \\Feminina');
+    if (variationMasculino) variationOptions.push('Cores \\Masculina');
 
     try {
       const res = await marketplaceService.createOffer({
@@ -1038,40 +1038,21 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   </div>
                 )}
 
-                {/* SEÇÃO: VARIAÇÃO DE CORES (APENAS MASCULINO / FEMININO) */}
+                {/* SEÇÃO: VARIAÇÃO DE CORES (FEMININA / MASCULINA) */}
                 <div className="pt-2 border-t border-white/10 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-[#00D287]" />
-                        Variação de Cores & Kits de Atacado
+                        Variação de Cores da Capinha (Atacado)
                       </span>
                       <p className="text-[11px] text-slate-400">
-                        Conforme padrão de atacado: apenas variação de kit Masculino e Feminino (sem escolha individual de cor).
+                        Marque se o produto terá variação Feminina e Masculina, apenas Feminina, apenas Masculina, ou desmarque ambas para produto sem variação.
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <label
-                      onClick={() => setVariationMasculino(!variationMasculino)}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
-                        variationMasculino
-                          ? 'bg-blue-950/40 border-blue-500/50 text-white font-bold'
-                          : 'bg-slate-950/60 border-white/10 text-slate-500'
-                      }`}
-                    >
-                      {variationMasculino ? (
-                        <CheckSquare className="w-4 h-4 text-blue-400 shrink-0" />
-                      ) : (
-                        <Square className="w-4 h-4 text-slate-600 shrink-0" />
-                      )}
-                      <div>
-                        <span className="text-xs block text-white">👨 Kit Masculino</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Preto, grafite, azul escuro, etc.</span>
-                      </div>
-                    </label>
-
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <label
                       onClick={() => setVariationFeminino(!variationFeminino)}
                       className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
@@ -1086,8 +1067,27 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                         <Square className="w-4 h-4 text-slate-600 shrink-0" />
                       )}
                       <div>
-                        <span className="text-xs block text-white">👩 Kit Feminino</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Rosa, lilás, glitter, clean, etc.</span>
+                        <span className="text-xs block text-white">👩 Cores \Feminina</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Cores femininas (rosa, lilás, glitter, etc.)</span>
+                      </div>
+                    </label>
+
+                    <label
+                      onClick={() => setVariationMasculino(!variationMasculino)}
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
+                        variationMasculino
+                          ? 'bg-blue-950/40 border-blue-500/50 text-white font-bold'
+                          : 'bg-slate-950/60 border-white/10 text-slate-500'
+                      }`}
+                    >
+                      {variationMasculino ? (
+                        <CheckSquare className="w-4 h-4 text-blue-400 shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600 shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-xs block text-white">👨 Cores \Masculina</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Cores masculinas (preto, azul, grafite, etc.)</span>
                       </div>
                     </label>
                   </div>

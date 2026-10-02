@@ -119,6 +119,7 @@ export interface ModelPriceItem {
 
 export interface OrderItem {
   model: string;
+  variation?: string;
   price: number;
   quantity: number;
 }

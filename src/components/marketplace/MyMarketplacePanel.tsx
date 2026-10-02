@@ -500,6 +500,7 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                                 {order.orderItems.map((it, idx) => (
                                   <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-950 border border-white/10 text-[11px] text-slate-200">
                                     <strong className="text-[#00D287]">{it.quantity}x</strong> {it.model}
+                                    {it.variation && <span className="text-slate-400 text-[10px] ml-1">({it.variation})</span>}
                                   </span>
                                 ))}
                               </div>
@@ -753,6 +754,7 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                                   {order.orderItems.map((it, idx) => (
                                     <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-950 border border-white/10 text-[11px] text-slate-200">
                                       <strong className="text-[#00D287]">{it.quantity}x</strong> {it.model}
+                                      {it.variation && <span className="text-slate-400 text-[10px] ml-1">({it.variation})</span>}
                                     </span>
                                   ))}
                                 </div>

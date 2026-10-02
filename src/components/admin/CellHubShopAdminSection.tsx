@@ -254,8 +254,12 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     // Load compatible brand & models
     setEditCompatibleBrand(product.compatibleBrand || 'Apple');
     setEditCompatibleModels(product.compatibleModels || []);
-    const hasMasc = product.variationOptions ? product.variationOptions.includes('Masculino') : true;
-    const hasFem = product.variationOptions ? product.variationOptions.includes('Feminino') : true;
+    const hasMasc = product.variationOptions && product.variationOptions.length > 0
+      ? product.variationOptions.some((v) => v.toLowerCase().includes('masc'))
+      : false;
+    const hasFem = product.variationOptions && product.variationOptions.length > 0
+      ? product.variationOptions.some((v) => v.toLowerCase().includes('fem'))
+      : false;
     setEditVariationMasculino(hasMasc);
     setEditVariationFeminino(hasFem);
 
@@ -364,8 +368,8 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         compatibleModels: editCompatibleModels,
         variationType: (editVariationMasculino || editVariationFeminino) ? 'masculino_feminino' : 'nenhum',
         variationOptions: [
-          ...(editVariationMasculino ? ['Masculino'] : []),
-          ...(editVariationFeminino ? ['Feminino'] : [])
+          ...(editVariationFeminino ? ['Cores \\Feminina'] : []),
+          ...(editVariationMasculino ? ['Cores \\Masculina'] : [])
         ],
       });
 
@@ -1112,26 +1116,26 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                   </div>
                 )}
 
-                {/* Variações Masc/Fem */}
-                <div className="pt-2 border-t border-white/10 flex items-center gap-3">
-                  <span className="text-[11px] text-slate-400 font-medium">Variação:</span>
-                  <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editVariationMasculino}
-                      onChange={(e) => setEditVariationMasculino(e.target.checked)}
-                      className="accent-[#00D287]"
-                    />
-                    <span>👨 Masculino</span>
-                  </label>
+                {/* Variações Cores Feminina / Cores Masculina */}
+                <div className="pt-2 border-t border-white/10 flex flex-wrap items-center gap-4">
+                  <span className="text-[11px] text-slate-400 font-bold">Variações de Cor:</span>
                   <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer">
                     <input
                       type="checkbox"
                       checked={editVariationFeminino}
                       onChange={(e) => setEditVariationFeminino(e.target.checked)}
-                      className="accent-[#00D287]"
+                      className="accent-pink-500"
                     />
-                    <span>👩 Feminino</span>
+                    <span>👩 Cores \Feminina</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editVariationMasculino}
+                      onChange={(e) => setEditVariationMasculino(e.target.checked)}
+                      className="accent-blue-500"
+                    />
+                    <span>👨 Cores \Masculina</span>
                   </label>
                 </div>
               </div>

@@ -570,6 +570,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             <div key={idx} className="py-1 flex items-center justify-between text-[11px]">
                               <span className="text-slate-200 font-medium">
                                 <strong className="text-[#00D287]">{item.quantity}x</strong> {item.model}
+                                {item.variation && (
+                                  <span className="text-slate-400 text-[10px] ml-1">({item.variation})</span>
+                                )}
                               </span>
                               <span className="text-white font-mono font-semibold">
                                 {formatBRL(item.price * item.quantity)}
