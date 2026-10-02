@@ -1348,9 +1348,6 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
           </div>
         </div>
       )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
