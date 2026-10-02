@@ -58,6 +58,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderCompletedId, setOrderCompletedId] = useState<string | null>(null);
 
+  // Model & Variation selected by buyer
+  const [chosenModel, setChosenModel] = useState<string>(() => {
+    if ((offer as any).selectedModel) return (offer as any).selectedModel;
+    if (offer.compatibleModels && offer.compatibleModels.length > 0) return offer.compatibleModels[0];
+    return '';
+  });
+
+  const [chosenVariation, setChosenVariation] = useState<string>(() => {
+    if ((offer as any).selectedVariation) return (offer as any).selectedVariation;
+    if (offer.variationOptions && offer.variationOptions.length > 0) return offer.variationOptions[0];
+    return 'Masculino';
+  });
+
   // Delivery Address Form
   const [address, setAddress] = useState<ShippingAddress>(() => ({
     zipCode: currentUser.shippingZipCode || '',
@@ -349,6 +362,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         paymentMethod,
         paymentStatus: 'pago',
         orderStatus: 'aguardando_envio',
+        selectedModel: chosenModel || undefined,
+        selectedVariation: chosenVariation || undefined,
         
         // Separação contábil estrita
         productAmount: productPrice,
@@ -500,27 +515,48 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             /* Checkout Form */
             <form onSubmit={handleConfirmOrder} className="space-y-6">
               {/* Product Summary Mini Card */}
-              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-950 border border-white/5 flex-shrink-0">
-                  <img
-                    src={offer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400'}
-                    alt={offer.title}
-                    className="w-full h-full object-cover"
-                  />
+              <div className="p-4 rounded-2xl bg-[#0a0f1e] border border-white/10 space-y-2.5">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-950 border border-white/5 flex-shrink-0">
+                    <img
+                      src={offer.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400'}
+                      alt={offer.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-[#00D287] uppercase tracking-wider">
+                      {offer.category} • {offer.condition} {offer.compatibleBrand ? `• ${offer.compatibleBrand}` : ''}
+                    </span>
+                    <h4 className="text-sm font-bold text-white truncate">{offer.title}</h4>
+                    <p className="text-xs text-slate-400">Vendedor: {offer.sellerCompany}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-black text-white">{formatBRL(productPrice)}</span>
+                    <span className="text-[11px] text-emerald-400 block font-semibold">
+                      {isFreeShipping ? 'Frete Grátis' : `+ ${formatBRL(shippingAmountCharged)} frete`}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-bold text-[#00D287] uppercase tracking-wider">
-                    {offer.category} • {offer.condition}
-                  </span>
-                  <h4 className="text-sm font-bold text-white truncate">{offer.title}</h4>
-                  <p className="text-xs text-slate-400">Vendedor: {offer.sellerCompany}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-black text-white">{formatBRL(productPrice)}</span>
-                  <span className="text-[11px] text-emerald-400 block font-semibold">
-                    {isFreeShipping ? 'Frete Grátis' : `+ ${formatBRL(shippingAmountCharged)} frete`}
-                  </span>
-                </div>
+
+                {/* Model & Variation Badges */}
+                {(chosenModel || chosenVariation || (offer.compatibleModels && offer.compatibleModels.length > 0)) && (
+                  <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-2 text-xs">
+                    {chosenModel && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-white font-bold">
+                        <span className="text-[#00D287]">📱 Modelo:</span>
+                        <span>{chosenModel}</span>
+                      </div>
+                    )}
+                    {chosenVariation && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-white font-bold">
+                        <span>{chosenVariation.toLowerCase().includes('masc') ? '👨' : '👩'}</span>
+                        <span className="text-blue-300">Variação:</span>
+                        <span>{chosenVariation}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Delivery Address Form / Saved Address Card */}

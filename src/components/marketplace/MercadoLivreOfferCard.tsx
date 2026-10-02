@@ -96,8 +96,14 @@ export const MercadoLivreOfferCard: React.FC<MercadoLivreOfferCardProps> = ({
         </div>
 
         {/* Linha 1: Categoria & Condição */}
-        <div className="text-[11px] text-slate-400 mb-1 truncate font-medium">
-          {offer.category} • {offer.condition}
+        <div className="flex items-center justify-between gap-1 text-[11px] text-slate-400 mb-1 truncate font-medium">
+          <span className="truncate">{offer.category} • {offer.condition}</span>
+          {offer.compatibleBrand && (
+            <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded shrink-0">
+              {offer.compatibleBrand}
+            </span>
+          )}
+        </div>
         </div>
 
         {/* Linha 2: Título do Produto */}

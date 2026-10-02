@@ -106,6 +106,13 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
   const [editImageUrlInput, setEditImageUrlInput] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Model Compatibility & Variations in Edit Modal
+  const [editCompatibleBrand, setEditCompatibleBrand] = useState<string>('Apple');
+  const [editCompatibleModels, setEditCompatibleModels] = useState<string[]>([]);
+  const [editManualModelInput, setEditManualModelInput] = useState<string>('');
+  const [editVariationMasculino, setEditVariationMasculino] = useState<boolean>(true);
+  const [editVariationFeminino, setEditVariationFeminino] = useState<boolean>(true);
+
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -244,6 +251,14 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
     setEditImages(product.images || []);
     setEditImageUrlInput('');
 
+    // Load compatible brand & models
+    setEditCompatibleBrand(product.compatibleBrand || 'Apple');
+    setEditCompatibleModels(product.compatibleModels || []);
+    const hasMasc = product.variationOptions ? product.variationOptions.includes('Masculino') : true;
+    const hasFem = product.variationOptions ? product.variationOptions.includes('Feminino') : true;
+    setEditVariationMasculino(hasMasc);
+    setEditVariationFeminino(hasFem);
+
     // Calculate current implied margin
     const costNum = product.supplierCost || 0;
     if (costNum > 0 && product.price > costNum) {
@@ -345,6 +360,13 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
         shippingPolicy: editShippingPolicy,
         freeShipping: editShippingPolicy === 'frete_gratis',
         images: editImages,
+        compatibleBrand: editCompatibleBrand || undefined,
+        compatibleModels: editCompatibleModels,
+        variationType: (editVariationMasculino || editVariationFeminino) ? 'masculino_feminino' : 'nenhum',
+        variationOptions: [
+          ...(editVariationMasculino ? ['Masculino'] : []),
+          ...(editVariationFeminino ? ['Feminino'] : [])
+        ],
       });
 
       if (success) {
@@ -794,9 +816,16 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                                 <span className="font-bold text-white block truncate hover:text-[#00D287]">
                                   {product.title}
                                 </span>
-                                <span className="text-[10px] text-slate-500 truncate block">
-                                  {product.category} • {product.condition}
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                  <span className="text-[10px] text-slate-500 truncate">
+                                    {product.category} • {product.condition}
+                                  </span>
+                                  {product.compatibleBrand && (
+                                    <span className="text-[9.5px] font-bold text-blue-300 bg-blue-950/60 border border-blue-500/20 px-1.5 py-0.2 rounded">
+                                      📱 {product.compatibleBrand} ({product.compatibleModels?.length || 0})
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -997,6 +1026,113 @@ export const CellHubShopAdminSection: React.FC<CellHubShopAdminSectionProps> = (
                       <option key={cond} value={cond}>{cond}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Modelos e Variações Compatíveis */}
+              <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e172e] to-[#090e1c] border border-[#00D287]/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-[#00D287]" />
+                    Compatibilidade & Modelos ({editCompatibleBrand || 'Sem Marca'})
+                  </span>
+                  <span className="text-[10px] text-[#00D287] bg-[#00D287]/15 px-2 py-0.5 rounded font-bold">
+                    {editCompatibleModels.length} modelo(s)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Outros'].map((bName) => (
+                    <button
+                      key={bName}
+                      type="button"
+                      onClick={() => setEditCompatibleBrand(bName)}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        editCompatibleBrand.toLowerCase() === bName.toLowerCase()
+                          ? 'bg-[#00D287] text-slate-950 border-[#00D287]'
+                          : 'bg-slate-900 text-slate-300 border-white/10 hover:bg-slate-800'
+                      }`}
+                    >
+                      {bName}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tags de Modelos */}
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={editManualModelInput}
+                    onChange={(e) => setEditManualModelInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const c = editManualModelInput.trim();
+                        if (c && !editCompatibleModels.includes(c)) {
+                          setEditCompatibleModels([...editCompatibleModels, c]);
+                          setEditManualModelInput('');
+                        }
+                      }
+                    }}
+                    placeholder="Adicionar modelo compatível..."
+                    className="flex-1 px-3 py-1.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-[#00D287]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const c = editManualModelInput.trim();
+                      if (c && !editCompatibleModels.includes(c)) {
+                        setEditCompatibleModels([...editCompatibleModels, c]);
+                        setEditManualModelInput('');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-[#00D287] hover:bg-[#00b875] text-slate-950 text-xs font-bold rounded-xl"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+
+                {editCompatibleModels.length > 0 && (
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pt-1">
+                    {editCompatibleModels.map((m, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-[11px] text-white"
+                      >
+                        {m}
+                        <button
+                          type="button"
+                          onClick={() => setEditCompatibleModels(editCompatibleModels.filter((_, i) => i !== idx))}
+                          className="hover:text-rose-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Variações Masc/Fem */}
+                <div className="pt-2 border-t border-white/10 flex items-center gap-3">
+                  <span className="text-[11px] text-slate-400 font-medium">Variação:</span>
+                  <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editVariationMasculino}
+                      onChange={(e) => setEditVariationMasculino(e.target.checked)}
+                      className="accent-[#00D287]"
+                    />
+                    <span>👨 Masculino</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-white font-bold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editVariationFeminino}
+                      onChange={(e) => setEditVariationFeminino(e.target.checked)}
+                      className="accent-[#00D287]"
+                    />
+                    <span>👩 Feminino</span>
+                  </label>
                 </div>
               </div>
 

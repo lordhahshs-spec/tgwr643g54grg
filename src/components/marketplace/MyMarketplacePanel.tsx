@@ -480,6 +480,20 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                           {getOrderStatusBadge(order.orderStatus, order.shippingStatus)}
                         </div>
                         <h4 className="text-sm font-bold text-white mt-1">{order.productTitle}</h4>
+                        {(order.selectedModel || order.selectedVariation) && (
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {order.selectedModel && (
+                              <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/15 border border-[#00D287]/30 px-2 py-0.5 rounded-md">
+                                📱 Modelo: {order.selectedModel}
+                              </span>
+                            )}
+                            {order.selectedVariation && (
+                              <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
+                                {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -703,6 +717,20 @@ export const MyMarketplacePanel: React.FC<MyMarketplacePanelProps> = ({
                             {getOrderStatusBadge(order.orderStatus, order.shippingStatus)}
                           </div>
                           <h4 className="text-sm font-bold text-white mt-0.5">{order.productTitle}</h4>
+                          {(order.selectedModel || order.selectedVariation) && (
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {order.selectedModel && (
+                                <span className="text-[11px] font-bold text-[#00D287] bg-[#00D287]/15 border border-[#00D287]/30 px-2 py-0.5 rounded-md">
+                                  📱 Modelo: {order.selectedModel}
+                                </span>
+                              )}
+                              {order.selectedVariation && (
+                                <span className="text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
+                                  {order.selectedVariation.toLowerCase().includes('masc') ? '👨' : '👩'} {order.selectedVariation}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <p className="text-xs text-slate-400">Vendedor: {order.sellerCompany}</p>
                         </div>
                       </div>

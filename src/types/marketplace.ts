@@ -156,6 +156,10 @@ export interface MarketplaceOffer {
   supplierId?: string;
   supplierName?: string;
   supplierTag?: string;
+  compatibleBrand?: string;
+  compatibleModels?: string[];
+  variationType?: string;
+  variationOptions?: string[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -181,6 +185,8 @@ export interface MarketplaceOrder {
   paymentMethod: 'PIX' | 'Cartao';
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
+  selectedModel?: string;
+  selectedVariation?: string;
   
   // Financial breakdown
   productAmount?: number;

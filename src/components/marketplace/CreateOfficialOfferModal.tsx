@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   UploadCloud,
@@ -20,7 +20,12 @@ import {
   Sliders,
   ArrowDown,
   Image as ImageIcon,
-  Star
+  Star,
+  Smartphone,
+  CheckSquare,
+  Square,
+  Search,
+  Users
 } from 'lucide-react';
 import {
   OfferCategory,
@@ -32,6 +37,7 @@ import {
 import { marketplaceService } from '@/services/marketplaceService';
 import { melhorEnvioService } from '@/services/melhorEnvioService';
 import { pricingRulesService, OFFICIAL_CATEGORIES } from '@/services/pricingRulesService';
+import { tradeinService, BRANDS_LIST } from '@/services/tradeinService';
 import { UserAccount } from '@/services/leadAuthService';
 import { toast } from 'sonner';
 
@@ -57,6 +63,42 @@ const CONDITIONS: OfferCondition[] = [
 
 const PRESET_MARGINS = [10, 15, 20, 25, 30, 35, 40, 50];
 
+// Fallback robusto de modelos Apple organizados por geração decrescente
+const DEFAULT_APPLE_MODELS = [
+  'iPhone 16 Pro Max',
+  'iPhone 16 Pro',
+  'iPhone 16 Plus',
+  'iPhone 16',
+  'iPhone 15 Pro Max',
+  'iPhone 15 Pro',
+  'iPhone 15 Plus',
+  'iPhone 15',
+  'iPhone 14 Pro Max',
+  'iPhone 14 Pro',
+  'iPhone 14 Plus',
+  'iPhone 14',
+  'iPhone 13 Pro Max',
+  'iPhone 13 Pro',
+  'iPhone 13',
+  'iPhone 13 mini',
+  'iPhone 12 Pro Max',
+  'iPhone 12 Pro',
+  'iPhone 12',
+  'iPhone 12 mini',
+  'iPhone 11 Pro Max',
+  'iPhone 11 Pro',
+  'iPhone 11',
+  'iPhone XR',
+  'iPhone XS Max',
+  'iPhone XS',
+  'iPhone X',
+  'iPhone SE (2ª/3ª geração)',
+  'iPhone 8 Plus',
+  'iPhone 8',
+  'iPhone 7 Plus',
+  'iPhone 7'
+];
+
 export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> = ({
   isOpen = true,
   currentUser,
@@ -69,15 +111,30 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
   // Product Fields
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<OfferCategory>('Celulares');
+  const [category, setCategory] = useState<OfferCategory>('Capinhas');
   const [subcategory, setSubcategory] = useState('');
   const [condition, setCondition] = useState<OfferCondition>('Novo');
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
   
+  // Modelos e Marcas Compatíveis (Especial para Capinhas e Acessórios)
+  const [enableCompatibility, setEnableCompatibility] = useState<boolean>(true);
+  const [selectedBrand, setSelectedBrand] = useState<string>('Apple');
+  const [appleModelsList, setAppleModelsList] = useState<string[]>(DEFAULT_APPLE_MODELS);
+  const [selectedAppleModels, setSelectedAppleModels] = useState<string[]>(DEFAULT_APPLE_MODELS);
+  const [appleSearchFilter, setAppleSearchFilter] = useState('');
+  
+  // Modelos Manuais para Outras Marcas (Samsung, Motorola, Xiaomi, etc.)
+  const [manualModels, setManualModels] = useState<string[]>([]);
+  const [manualModelInput, setManualModelInput] = useState('');
+
+  // Variações de Cores / Perfil (Apenas Masculino / Feminino)
+  const [variationMasculino, setVariationMasculino] = useState(true);
+  const [variationFeminino, setVariationFeminino] = useState(true);
+
   // Pricing Mode & Margins
   const [pricingMode, setPricingMode] = useState<'margin' | 'manual'>('margin');
-  const [marginPercent, setMarginPercent] = useState<number>(15);
+  const [marginPercent, setMarginPercent] = useState<number>(45);
   const [price, setPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
   const [supplierCost, setSupplierCost] = useState('');
@@ -86,10 +143,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
   // Shipping
   const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>('comprador_paga');
-  const [packageWeight, setPackageWeight] = useState<number>(0.5);
-  const [packageHeight, setPackageHeight] = useState<number>(8);
-  const [packageWidth, setPackageWidth] = useState<number>(15);
-  const [packageLength, setPackageLength] = useState<number>(20);
+  const [packageWeight, setPackageWeight] = useState<number>(0.1);
+  const [packageHeight, setPackageHeight] = useState<number>(4);
+  const [packageWidth, setPackageWidth] = useState<number>(12);
+  const [packageLength, setPackageLength] = useState<number>(18);
 
   // Images
   const [images, setImages] = useState<string[]>([]);
@@ -112,7 +169,41 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     });
   }, []);
 
-  // Auto-update default suggested margin when Category, Condition or Title changes
+  // Carrega modelos cadastrados na aba de Avaliação de Aparelhos (Trade-In)
+  useEffect(() => {
+    async function loadTradeInAppleModels() {
+      try {
+        const tradeinModels = await tradeinService.getModels('Apple', currentUser?.id, true);
+        if (tradeinModels && tradeinModels.length > 0) {
+          // Extrai nomes únicos de modelos de iPhone da tabela de avaliação
+          const uniqueNames = Array.from(
+            new Set(
+              tradeinModels
+                .map((m) => m.model_name.trim())
+                .filter((name) => Boolean(name) && name.toLowerCase().includes('iphone'))
+            )
+          );
+
+          // Mescla com a lista padrão para garantir cobertura completa
+          const merged = Array.from(new Set([...uniqueNames, ...DEFAULT_APPLE_MODELS]));
+          setAppleModelsList(merged);
+          // Por padrão, todos vêm marcados conforme instrução
+          setSelectedAppleModels(merged);
+        } else {
+          setAppleModelsList(DEFAULT_APPLE_MODELS);
+          setSelectedAppleModels(DEFAULT_APPLE_MODELS);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar modelos do Trade-In:', err);
+        setAppleModelsList(DEFAULT_APPLE_MODELS);
+        setSelectedAppleModels(DEFAULT_APPLE_MODELS);
+      }
+    }
+
+    loadTradeInAppleModels();
+  }, [currentUser?.id]);
+
+  // Auto-update default suggested margin when Category changes
   useEffect(() => {
     const list = pricingRulesService.getCategories();
     setCategoriesList(list);
@@ -128,11 +219,15 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         setPrice(calculated.toFixed(2));
       }
     }
+
+    // Se for Capinhas ou Acessórios, ativa compatibilidade por padrão
+    const isCapinhaOrAcc = ['capinhas', 'acessórios', 'telas', 'películas'].includes(category.toLowerCase());
+    setEnableCompatibility(isCapinhaOrAcc);
   }, [category]);
 
   useEffect(() => {
     melhorEnvioService.getPackageDefaults().then((defs) => {
-      const match = defs.find((d) => d.category.toLowerCase() === 'celulares');
+      const match = defs.find((d) => d.category.toLowerCase() === category.toLowerCase());
       if (match) {
         setPackageWeight(match.default_weight);
         setPackageHeight(match.default_height);
@@ -140,7 +235,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         setPackageLength(match.default_length);
       }
     });
-  }, []);
+  }, [category]);
 
   const handleCategoryChange = (cat: OfferCategory) => {
     setCategory(cat);
@@ -153,6 +248,46 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         setPackageLength(match.default_length);
       }
     });
+  };
+
+  // Modelos Apple: Toggle individual
+  const handleToggleAppleModel = (modelName: string) => {
+    setSelectedAppleModels((prev) =>
+      prev.includes(modelName)
+        ? prev.filter((m) => m !== modelName)
+        : [...prev, modelName]
+    );
+  };
+
+  // Modelos Apple: Marcar todos
+  const handleSelectAllApple = () => {
+    setSelectedAppleModels([...appleModelsList]);
+    toast.success('Todos os modelos Apple foram marcados!');
+  };
+
+  // Modelos Apple: Desmarcar todos
+  const handleDeselectAllApple = () => {
+    setSelectedAppleModels([]);
+    toast.info('Todos os modelos foram desmarcados.');
+  };
+
+  // Modelos Manuais (Outras Marcas): Adicionar
+  const handleAddManualModel = () => {
+    const clean = manualModelInput.trim();
+    if (!clean) return;
+
+    if (manualModels.some((m) => m.toLowerCase() === clean.toLowerCase())) {
+      toast.info('Este modelo já foi adicionado.');
+      return;
+    }
+
+    setManualModels((prev) => [...prev, clean]);
+    setManualModelInput('');
+  };
+
+  // Modelos Manuais: Remover
+  const handleRemoveManualModel = (index: number) => {
+    setManualModels((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Handle Supplier Cost input in margin mode
@@ -263,15 +398,6 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
     toast.success('Link de imagem adicionado!');
   };
 
-  const handleSelectPreset = (url: string) => {
-    if (images.includes(url)) {
-      toast.info('Essa foto já está na lista.');
-      return;
-    }
-    setImages((prev) => [...prev, url]);
-    toast.success('Foto modelo adicionada!');
-  };
-
   const handleSetCoverImage = (index: number) => {
     if (index === 0) return;
     setImages((prev) => {
@@ -291,6 +417,12 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
   const profitMargin = parsedPrice - parsedCost;
   const profitPercent = parsedCost > 0 ? ((profitMargin / parsedCost) * 100).toFixed(1) : '0';
 
+  const filteredAppleModels = useMemo(() => {
+    const q = appleSearchFilter.toLowerCase().trim();
+    if (!q) return appleModelsList;
+    return appleModelsList.filter((m) => m.toLowerCase().includes(q));
+  }, [appleModelsList, appleSearchFilter]);
+
   const handleValidateForm = () => {
     if (!title.trim()) {
       toast.error('Informe o título do produto.');
@@ -304,6 +436,23 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
       toast.error('Adicione pelo menos 1 imagem do produto.');
       return false;
     }
+
+    if (enableCompatibility) {
+      if (selectedBrand === 'Apple' && selectedAppleModels.length === 0) {
+        toast.error('Selecione ao menos 1 modelo de iPhone compatível.');
+        return false;
+      }
+      if (selectedBrand !== 'Apple' && selectedBrand !== 'Universal' && manualModels.length === 0) {
+        toast.error('Adicione ao menos 1 modelo compatível para a marca selecionada.');
+        return false;
+      }
+    }
+
+    if (!variationMasculino && !variationFeminino) {
+      toast.error('Selecione ao menos uma opção de variação (Masculino ou Feminino).');
+      return false;
+    }
+
     return true;
   };
 
@@ -317,6 +466,18 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
     const matchedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
 
+    // Determina lista final de modelos compatíveis
+    const finalCompatibleModels = enableCompatibility
+      ? selectedBrand === 'Apple'
+        ? selectedAppleModels
+        : manualModels
+      : [];
+
+    // Determina opções de variação
+    const variationOptions: string[] = [];
+    if (variationMasculino) variationOptions.push('Masculino');
+    if (variationFeminino) variationOptions.push('Feminino');
+
     try {
       const res = await marketplaceService.createOffer({
         sellerId: currentUser.id,
@@ -328,7 +489,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         category,
         subcategory: subcategory.trim() || undefined,
         condition,
-        description: description.trim() || 'Produto verificado com garantia técnica CellHub Shop.',
+        description: description.trim() || 'Produto oficial verificado com garantia técnica CellHub Shop.',
         details: details.trim() || undefined,
         price: parsedPrice,
         originalPrice: isDiscount ? parsedOrig : undefined,
@@ -354,6 +515,10 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
         packageHeight,
         packageWidth,
         packageLength,
+        compatibleBrand: enableCompatibility ? selectedBrand : undefined,
+        compatibleModels: finalCompatibleModels,
+        variationType: variationOptions.length > 0 ? 'masculino_feminino' : 'nenhum',
+        variationOptions: variationOptions,
       });
 
       if (res.success) {
@@ -374,7 +539,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 md:backdrop-blur-sm md:p-4 overflow-hidden">
-      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-2xl bg-[#090e1c] md:border md:border-[#00D287]/30 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] md:max-w-3xl bg-[#090e1c] md:border md:border-[#00D287]/30 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col pt-[max(env(safe-area-inset-top,0px),0px)] md:pt-0">
         {/* Header */}
         <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-950/80 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">
@@ -397,7 +562,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   CELLHUB SHOP
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-none">Catálogo Atacado com 90 dias de garantia</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[220px] sm:max-w-none">Catálogo Atacado com modelos e variações Masc/Fem</p>
             </div>
           </div>
 
@@ -423,7 +588,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: iPhone 14 Pro Max 256GB Deep Purple - Impecável"
+                    placeholder="Ex: Capinha Magnética MagSafe Acrílica Anti-Impacto"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
                   />
                 </div>
@@ -453,6 +618,263 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                         <option key={cond} value={cond}>{cond}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO: MARCAS & MODELOS COMPATÍVEIS (CAPINHAS / ACESSÓRIOS) */}
+              <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e172e] to-[#090e1c] border border-[#00D287]/30 space-y-4 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-[#00D287]/15 border border-[#00D287]/30 text-[#00D287] flex items-center justify-center">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                        Marca & Modelos Compatíveis
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#00D287]/20 text-[#00D287] border border-[#00D287]/30">
+                          Catálogo Atacado
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Selecione a marca e os modelos compatíveis com este produto.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer self-start sm:self-auto bg-slate-900/80 px-3 py-1.5 rounded-xl border border-white/10">
+                    <input
+                      type="checkbox"
+                      checked={enableCompatibility}
+                      onChange={(e) => setEnableCompatibility(e.target.checked)}
+                      className="rounded accent-[#00D287] w-4 h-4"
+                    />
+                    <span>Ativar compatibilidade de modelos</span>
+                  </label>
+                </div>
+
+                {enableCompatibility && (
+                  <div className="space-y-3.5">
+                    {/* Seleção de Marca */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        Marca do Aparelho
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {['Apple', 'Samsung', 'Motorola', 'Xiaomi', 'Realme', 'Infinix', 'Tecno', 'Outros'].map((brandName) => {
+                          const isSelected = selectedBrand.toLowerCase() === brandName.toLowerCase();
+                          return (
+                            <button
+                              key={brandName}
+                              type="button"
+                              onClick={() => setSelectedBrand(brandName)}
+                              className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between ${
+                                isSelected
+                                  ? 'bg-[#00D287] text-slate-950 border-[#00D287] shadow-md shadow-[#00D287]/20 font-black'
+                                  : 'bg-slate-950/80 text-slate-300 border-white/10 hover:border-white/20 hover:bg-slate-900'
+                              }`}
+                            >
+                              <span>{brandName}</span>
+                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5 fill-slate-950 text-white" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* CASO 1: APPLE (Utiliza modelos do Trade-in com tudo marcado por padrão) */}
+                    {selectedBrand === 'Apple' ? (
+                      <div className="p-3.5 rounded-xl bg-slate-950/90 border border-[#00D287]/20 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-[#00D287]" />
+                              Modelos Apple (Cadastrados na Avaliação Trade-In)
+                            </span>
+                            <span className="text-[11px] text-slate-400 block">
+                              Todos os modelos vêm marcados por padrão. Desmarque apenas os que não possuem essa capinha.
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                            <button
+                              type="button"
+                              onClick={handleSelectAllApple}
+                              className="px-2.5 py-1 rounded-lg bg-[#00D287]/15 hover:bg-[#00D287]/25 text-[#00D287] border border-[#00D287]/30 text-[10.5px] font-bold transition-colors"
+                            >
+                              Marcar Todos
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDeselectAllApple}
+                              className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 text-[10.5px] font-bold transition-colors"
+                            >
+                              Desmarcar Todos
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Barra de Busca de Modelos Apple */}
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={appleSearchFilter}
+                            onChange={(e) => setAppleSearchFilter(e.target.value)}
+                            placeholder="Buscar modelo de iPhone (ex: 14 Pro, 15, 13)..."
+                            className="w-full pl-8 pr-3.5 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
+                          />
+                        </div>
+
+                        {/* Contador de selecionados */}
+                        <div className="flex items-center justify-between text-[11px] px-1 text-slate-400">
+                          <span>{selectedAppleModels.length} de {appleModelsList.length} modelos selecionados</span>
+                          {selectedAppleModels.length === 0 && (
+                            <span className="text-rose-400 font-semibold">Selecione ao menos 1 modelo</span>
+                          )}
+                        </div>
+
+                        {/* Grid de Modelos com Checkbox */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                          {filteredAppleModels.map((modelName) => {
+                            const isChecked = selectedAppleModels.includes(modelName);
+                            return (
+                              <label
+                                key={modelName}
+                                onClick={() => handleToggleAppleModel(modelName)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs cursor-pointer select-none transition-all border ${
+                                  isChecked
+                                    ? 'bg-[#00D287]/15 border-[#00D287]/40 text-white font-semibold'
+                                    : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'
+                                }`}
+                              >
+                                {isChecked ? (
+                                  <CheckSquare className="w-4 h-4 text-[#00D287] shrink-0" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-slate-600 shrink-0" />
+                                )}
+                                <span className="truncate">{modelName}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      /* CASO 2: OUTRAS MARCAS (Adição Manual de Modelos) */
+                      <div className="p-3.5 rounded-xl bg-slate-950/90 border border-white/10 space-y-3">
+                        <div>
+                          <span className="text-xs font-bold text-white block">
+                            Adicionar Modelos para {selectedBrand}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            Digite o nome do modelo (ex: Galaxy S24 Ultra, Moto G84, Redmi Note 13) e clique em Adicionar.
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={manualModelInput}
+                            onChange={(e) => setManualModelInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddManualModel())}
+                            placeholder={`Nome do modelo ${selectedBrand}...`}
+                            className="flex-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#00D287]"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddManualModel}
+                            className="px-4 py-2 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5 stroke-[3]" /> Adicionar
+                          </button>
+                        </div>
+
+                        {/* Lista de Modelos Adicionados */}
+                        {manualModels.length > 0 ? (
+                          <div className="space-y-1.5 pt-1">
+                            <span className="text-[11px] text-slate-400 font-semibold">
+                              {manualModels.length} modelo(s) configurado(s):
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {manualModels.map((m, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#00D287]/15 border border-[#00D287]/30 text-white text-xs font-medium"
+                                >
+                                  {m}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveManualModel(idx)}
+                                    className="p-0.5 hover:text-rose-400 transition-colors"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-slate-900/40 border border-dashed border-white/10 text-center text-xs text-slate-400">
+                            Nenhum modelo manual adicionado ainda para {selectedBrand}.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SEÇÃO: VARIAÇÃO DE CORES (APENAS MASCULINO / FEMININO) */}
+                <div className="pt-2 border-t border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-[#00D287]" />
+                        Variação de Cores & Kits de Atacado
+                      </span>
+                      <p className="text-[11px] text-slate-400">
+                        Conforme padrão de atacado: apenas variação de kit Masculino e Feminino (sem escolha individual de cor).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <label
+                      onClick={() => setVariationMasculino(!variationMasculino)}
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
+                        variationMasculino
+                          ? 'bg-blue-950/40 border-blue-500/50 text-white font-bold'
+                          : 'bg-slate-950/60 border-white/10 text-slate-500'
+                      }`}
+                    >
+                      {variationMasculino ? (
+                        <CheckSquare className="w-4 h-4 text-blue-400 shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600 shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-xs block text-white">👨 Kit Masculino</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Preto, grafite, azul escuro, etc.</span>
+                      </div>
+                    </label>
+
+                    <label
+                      onClick={() => setVariationFeminino(!variationFeminino)}
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all ${
+                        variationFeminino
+                          ? 'bg-pink-950/40 border-pink-500/50 text-white font-bold'
+                          : 'bg-slate-950/60 border-white/10 text-slate-500'
+                      }`}
+                    >
+                      {variationFeminino ? (
+                        <CheckSquare className="w-4 h-4 text-pink-400 shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600 shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-xs block text-white">👩 Kit Feminino</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Rosa, lilás, glitter, clean, etc.</span>
+                      </div>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -507,7 +929,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                           step="0.01"
                           value={supplierCost}
                           onChange={(e) => handleSupplierCostChange(e.target.value)}
-                          placeholder="Ex: 4700.00"
+                          placeholder="Ex: 6.65"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white font-bold text-sm focus:outline-none focus:border-[#00D287]"
                         />
                       </div>
@@ -584,7 +1006,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                           step="0.01"
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
-                          placeholder="Ex: 5890.00"
+                          placeholder="Ex: 12.90"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-[#00D287] font-black text-sm focus:outline-none focus:border-[#00D287]"
                         />
                       </div>
@@ -598,7 +1020,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                           step="0.01"
                           value={supplierCost}
                           onChange={(e) => setSupplierCost(e.target.value)}
-                          placeholder="Ex: 4700.00"
+                          placeholder="Ex: 6.65"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-sm focus:outline-none focus:border-[#00D287]"
                         />
                       </div>
@@ -641,7 +1063,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                         step="0.01"
                         value={originalPrice}
                         onChange={(e) => setOriginalPrice(e.target.value)}
-                        placeholder="Ex: 5990.00 (Valor antes do desconto)"
+                        placeholder="Ex: 25.00 (Valor de tabela antes do desconto)"
                         className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-[#00D287]"
                       />
 
@@ -653,7 +1075,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                               Gatilho de Urgência Ativo: Redução de -{discountPct}%!
                             </span>
                             <span className="text-[10.5px] text-rose-300">
-                              O anúncio exibirá o selo vermelho de <strong>{discountPct}% OFF</strong> no canto superior direito da vitrine.
+                              O anúncio exibirá o selo vermelho de <strong>{discountPct}% OFF</strong> no catálogo da CellHub Shop.
                             </span>
                           </div>
                         </div>
@@ -661,6 +1083,22 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* Descrição e Detalhes */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Descrição do Produto
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Descreva as qualidades, acabamento, botões metalizados e proteção da capinha..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
+                  />
+                </div>
               </div>
 
               {/* Garantia e Política de Frete */}
@@ -742,7 +1180,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                 })()}
               </div>
 
-              {/* Imagens do Produto (Upload de Arquivos do Computador + URL + Drag & Drop) */}
+              {/* Imagens do Produto */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-300">
@@ -753,7 +1191,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   </span>
                 </div>
 
-                {/* 1. Área de Upload / Arrastar e Soltar Fotos do Computador */}
+                {/* Upload Fotos */}
                 <label
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -782,7 +1220,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   </span>
                 </label>
 
-                {/* 2. Campo Alternativo: Inserir Link/URL Direto */}
+                {/* Inserir Link */}
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -801,7 +1239,7 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   </button>
                 </div>
 
-                {/* 3. Galeria de Fotos Adicionadas com Capa Principal */}
+                {/* Galeria */}
                 {images.length > 0 && (
                   <div className="space-y-1.5 pt-1">
                     <span className="text-[10.5px] text-slate-400 font-semibold block">
@@ -817,14 +1255,12 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                         >
                           <img src={img} alt="" className="w-full h-full object-contain p-1" />
                           
-                          {/* Badge de Capa Principal */}
                           {idx === 0 && (
-                            <div className="absolute top-1 left-1 bg-[#00D287] text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded shadow flex items-center gap-0.5 z-10">
+                            <div className="absolute top-1 left-1 bg-[#00D287] text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded shadow flex items-center gap-0.5 z-10">
                               <Star className="w-2.5 h-2.5 fill-slate-950" /> CAPA
                             </div>
                           )}
 
-                          {/* Ações ao passar o mouse */}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
                             {idx !== 0 && (
                               <button
@@ -851,65 +1287,65 @@ export const CreateOfficialOfferModal: React.FC<CreateOfficialOfferModalProps> =
                   </div>
                 )}
               </div>
-
-              {/* Descrição */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Descrição Detalhada</label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descreva detalhes como estado estético, bateria, acessórios inclusos e notas técnicas..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-[#00D287]"
-                />
-              </div>
             </>
           ) : (
-            /* Preview Step */
+            /* Visualização Prévia */
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-white/10 flex gap-4">
-                <img
-                  src={images[0]}
-                  alt=""
-                  className="w-24 h-24 rounded-xl object-cover bg-slate-900 flex-shrink-0"
-                />
-                <div className="space-y-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#00D287]/20 text-[#00D287]">
-                    OFICIAL CELLHUB SHOP
-                  </span>
-                  <h4 className="text-sm font-bold text-white">{title}</h4>
-                  <p className="text-xs text-slate-400">{category} • {condition}</p>
-                  <div className="text-base font-black text-[#00D287]">
-                    R$ {parsedPrice.toFixed(2)}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-white/10 space-y-3">
+                <div className="flex items-center gap-3">
+                  {images[0] && (
+                    <img src={images[0]} alt="" className="w-20 h-20 rounded-xl object-contain bg-slate-900 border border-white/5" />
+                  )}
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{title}</h4>
+                    <p className="text-xs text-slate-400">{category} • {condition}</p>
+                    <p className="text-base font-black text-[#00D287] mt-1">
+                      R$ {parsedPrice.toFixed(2)}
+                    </p>
                   </div>
                 </div>
+
+                {enableCompatibility && (
+                  <div className="pt-2 border-t border-white/10 text-xs">
+                    <span className="text-slate-400 block mb-1">
+                      Marca: <strong className="text-white">{selectedBrand}</strong> • Modelos compatíveis:
+                    </span>
+                    <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                      {(selectedBrand === 'Apple' ? selectedAppleModels : manualModels).map((m, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-slate-200 text-[10.5px]">
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/5 bg-slate-950/60 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-t border-white/10 bg-slate-950/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold transition-colors cursor-pointer"
           >
             Cancelar
           </button>
 
           <button
             type="button"
-            onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b875] text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all cursor-pointer disabled:opacity-50"
+            onClick={handleSubmit}
+            className="px-6 py-2.5 rounded-xl bg-[#00D287] hover:bg-[#00b574] text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#00D287]/20 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
           >
             {isSubmitting ? (
-              <span>Salvando Produto...</span>
+              <>Cadastrando...</>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Cadastrar na CellHub Shop</span>
+                Publicar no Catálogo
               </>
             )}
           </button>

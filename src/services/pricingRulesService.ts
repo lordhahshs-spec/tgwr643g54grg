@@ -8,12 +8,13 @@ export interface MarginRule {
 }
 
 export const INITIAL_DEFAULT_MARGIN_RULES: MarginRule[] = [
+  { id: 'cat-capinhas', category: 'Capinhas', marginPercent: 45, description: 'Capinhas anti-impacto, silicone, MagSafe e transparentes' },
   { id: 'cat-celulares', category: 'Celulares', marginPercent: 20, description: 'Smartphones novos, seminovos e usados' },
   { id: 'cat-pecas', category: 'Peças', marginPercent: 35, description: 'Câmeras, carcaças, flex e periféricos' },
   { id: 'cat-telas', category: 'Telas', marginPercent: 30, description: 'Displays OLED, Incell e originais' },
   { id: 'cat-baterias', category: 'Baterias', marginPercent: 35, description: 'Baterias homologadas de alta capacidade' },
   { id: 'cat-conectores', category: 'Conectores', marginPercent: 50, description: 'Conectores de carga, solda e placas sub' },
-  { id: 'cat-acessorios', category: 'Acessórios', marginPercent: 40, description: 'Carregadores Tipo C, V8, cabos e capas' },
+  { id: 'cat-acessorios', category: 'Acessórios', marginPercent: 40, description: 'Carregadores Tipo C, V8, cabos e periféricos' },
   { id: 'cat-ferramentas', category: 'Ferramentas', marginPercent: 25, description: 'Chaves de precisão, microscópios e estações' },
   { id: 'cat-maquinas', category: 'Máquinas', marginPercent: 20, description: 'Separadoras LCD, laminadoras e lasers' },
   { id: 'cat-eletronicos', category: 'Eletrônicos', marginPercent: 25, description: 'Smartwatches, caixas de som e fones Bluetooth' },
