@@ -6,7 +6,8 @@ import {
   Smartphone,
   ShoppingBag,
   Cpu,
-  Repeat
+  Repeat,
+  Store
 } from 'lucide-react';
 
 interface InstagramMobileBottomBarProps {
@@ -97,7 +98,21 @@ export const InstagramMobileBottomBar: React.FC<InstagramMobileBottomBarProps> =
         </span>
       </button>
 
-      {/* 6. Perfil do Lojista */}
+      {/* 6. Vitrine Virtual / Catálogo */}
+      <button
+        type="button"
+        onClick={() => onSelectTab('vitrine-virtual')}
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer ${
+          activeTab === 'vitrine-virtual' ? 'text-[#00D287]' : 'text-slate-400 hover:text-white'
+        }`}
+      >
+        <Store className={`w-5 h-5 transition-transform ${activeTab === 'vitrine-virtual' ? 'stroke-[2.5] scale-105 text-[#00D287]' : 'opacity-75'}`} />
+        <span className={`text-[10px] font-bold mt-0.5 tracking-tight ${activeTab === 'vitrine-virtual' ? 'text-[#00D287]' : 'text-slate-400'}`}>
+          Vitrine
+        </span>
+      </button>
+
+      {/* 7. Perfil do Lojista */}
       <button
         type="button"
         onClick={onOpenProfile}

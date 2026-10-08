@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const MelhorEnvioCallback = lazy(() => import("./pages/MelhorEnvioCallback"));
 const TradeInCameraPage = lazy(() => import("./pages/TradeInCameraPage"));
+const StoreShowcasePublicPage = lazy(() => import("./pages/StoreShowcasePublicPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,10 @@ const App = () => (
 
             {/* 5. Fluxo de Captura Mobile via QR Code para CellHub IA */}
             <Route path="/tradein/camera/:sessionId" element={<TradeInCameraPage />} />
+
+            {/* 6. Vitrine Virtual / Catálogo Público do Lojista para Clientes */}
+            <Route path="/vitrine/:storeId" element={<StoreShowcasePublicPage />} />
+            <Route path="/catalogo/:storeId" element={<StoreShowcasePublicPage />} />
 
             {/* Fallback */}
             <Route path="*" element={<NotFound />} />

@@ -6,6 +6,7 @@ import { EsquemasTab } from '@/components/tabs/EsquemasTab';
 import { TradeInTab } from '@/components/tabs/TradeInTab';
 import { SuperOfertasTab } from '@/components/tabs/SuperOfertasTab';
 import { CellHubShopTab } from '@/components/tabs/CellHubShopTab';
+import { VitrineVirtualTab } from '@/components/showcase/VitrineVirtualTab';
 import { BannedScreen } from '@/components/BannedScreen';
 import { UnlockPlatformModal } from '@/components/demo/UnlockPlatformModal';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
@@ -234,6 +235,9 @@ const Index: React.FC = () => {
           </div>
           <div className={activeTab === 'trade-in' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto lg:overflow-hidden touch-scroll-area mobile-animate-in' : 'hidden'}>
             <TradeInTab onGoToAurusSimulator={() => setActiveTab('venda-android')} />
+          </div>
+          <div className={activeTab === 'vitrine-virtual' ? 'w-full h-full min-h-0 flex-1 flex flex-col overflow-y-auto touch-scroll-area mobile-animate-in' : 'hidden'}>
+            <VitrineVirtualTab />
           </div>
         </main>
       </div>

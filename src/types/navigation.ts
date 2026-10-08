@@ -3,7 +3,8 @@ export type TabId =
   | 'cell-shop'
   | 'super-ofertas'
   | 'esquemas'
-  | 'trade-in';
+  | 'trade-in'
+  | 'vitrine-virtual';
 
 export interface TabItem {
   id: TabId;
@@ -40,5 +41,11 @@ export const NAVIGATION_TABS: TabItem[] = [
     id: 'trade-in',
     label: 'Avaliação de Aparelho',
     iconName: 'Repeat',
+  },
+  {
+    id: 'vitrine-virtual',
+    label: 'Vitrine Virtual',
+    iconName: 'Store',
+    badge: 'LINK CLIENTE',
   },
 ];

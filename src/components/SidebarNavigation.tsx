@@ -14,7 +14,8 @@ import {
   LogOut,
   Flame,
   Sparkles,
-  Lock
+  Lock,
+  Store
 } from 'lucide-react';
 import { TabId, NAVIGATION_TABS } from '@/types/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -66,6 +67,8 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         return <ShoppingBag className={className} />;
       case 'Repeat':
         return <Repeat className={className} />;
+      case 'Store':
+        return <Store className={className} />;
       case 'Calculator':
         return <Calculator className={className} />;
       default:
